@@ -18,6 +18,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     address public factory;
     address public token0;
     address public token1;
+    address public pairOwner;
+    uint public slope;
 
     uint112 private reserve0;           // uses single storage slot, accessible via getReserves
     uint112 private reserve1;           // uses single storage slot, accessible via getReserves
@@ -60,13 +62,26 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     constructor() public {
         factory = msg.sender;
+        slope = 1;
     }
 
     // called once by the factory at time of deployment
-    function initialize(address _token0, address _token1) external {
+    function initialize(address _token0, address _token1, address _pairOwner, uint _slope) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
         token0 = _token0;
         token1 = _token1;
+        pairOwner = _pairOwner;
+        slope = _slope;
+    }
+
+    function setPairOwner(address _nextOwner) external {
+        require(msg.sender == pairOwner, 'UniswapV2: FORBIDDEN');
+        pairOwner = _nextOwner;
+    }
+
+    function setSlope(uint _nextSlope) external {
+        require(msg.sender == pairOwner, 'UniswapV2: FORBIDDEN');
+        slope = _nextSlope;
     }
 
     // update reserves and, on the first call per block, price accumulators
