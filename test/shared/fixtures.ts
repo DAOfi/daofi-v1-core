@@ -24,7 +24,9 @@ export async function factoryFixture(_: Web3Provider, [wallet]: Wallet[]): Promi
 interface PairFixture extends FactoryFixture {
   token0: Contract
   token1: Contract
-  pair: Contract
+  token2: Contract
+  pair1: Contract
+  pair2: Contract
 }
 
 export async function pairFixture(provider: Web3Provider, [wallet]: Wallet[]): Promise<PairFixture> {
@@ -32,14 +34,20 @@ export async function pairFixture(provider: Web3Provider, [wallet]: Wallet[]): P
 
   const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
   const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
+  const tokenC = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
 
   await factory.createPair(tokenA.address, tokenB.address,  wallet.address, 1, overrides)
-  const pairAddress = await factory.getPair(tokenA.address, tokenB.address)
-  const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), provider).connect(wallet)
+  await factory.createPair(tokenB.address, tokenC.address,  wallet.address, 2, overrides)
+  const pairAddress1 = await factory.getPair(tokenA.address, tokenB.address)
+  const pairAddress2 = await factory.getPair(tokenB.address, tokenC.address)
+  const pair1 = new Contract(pairAddress1, JSON.stringify(UniswapV2Pair.abi), provider).connect(wallet)
+  const pair2 = new Contract(pairAddress2, JSON.stringify(UniswapV2Pair.abi), provider).connect(wallet)
 
-  const token0Address = (await pair.token0()).address
+  const token0Address = (await pair1.token0()).address
+  const token1Address = (await pair2.token1()).address
   const token0 = tokenA.address === token0Address ? tokenA : tokenB
   const token1 = tokenA.address === token0Address ? tokenB : tokenA
+  const token2 = tokenB.address === token1Address ? tokenB : tokenC
 
-  return { factory, token0, token1, pair }
+  return { factory, token0, token1, token2,  pair1, pair2 }
 }
