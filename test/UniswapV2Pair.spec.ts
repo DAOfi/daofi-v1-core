@@ -27,14 +27,18 @@ describe('UniswapV2Pair', () => {
   let factory: Contract
   let token0: Contract
   let token1: Contract
+  let token2: Contract
   let pair1: Contract
+  let pair2: Contract
 
   beforeEach(async () => {
     const fixture = await loadFixture(pairFixture)
     factory = fixture.factory
     token0 = fixture.token0
     token1 = fixture.token1
+    token2 = fixture.token2
     pair1 = fixture.pair1
+    pair2 = fixture.pair2
   })
 
   it('mint', async () => {
@@ -111,7 +115,7 @@ describe('UniswapV2Pair', () => {
     })
   })
 
-  it('swap:token0 default slope', async () => {
+  it('swap:token0 default linear slope 1', async () => {
     const token0Amount = expandTo18Decimals(5)
     const token1Amount = expandTo18Decimals(10)
     await addLiquidity(token0Amount, token1Amount)
@@ -138,7 +142,7 @@ describe('UniswapV2Pair', () => {
     expect(await token1.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(token1Amount).add(expectedOutputAmount))
   })
 
-  it('swap:token1 default slope', async () => {
+  it('swap:token1 default linear slope 1', async () => {
     const token0Amount = expandTo18Decimals(5)
     const token1Amount = expandTo18Decimals(10)
     await addLiquidity(token0Amount, token1Amount)
