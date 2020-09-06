@@ -70,22 +70,43 @@ describe('UniswapV2Pair', () => {
     await pair.mint(wallet.address, overrides)
   }
 
+  const swapTestCaseParams: number[][] = [
+    // m, n, fee,
+    [1000, 1000, 3],
+    [1000, 1000, 3],
+    [1000, 1000, 3],
+    [1000, 1000, 3],
+    [1000, 1000, 3],
+    [1000, 1000, 3],
+    [1000, 1000, 3],
+    // linear slope = 1/2
+    [500, 1000, 3],
+    // linear slope = 2
+    [2000, 1000, 3],
+  ]
   const swapTestCases: BigNumber[][] = [
     // slope, exponent, fee, swapAmount, token0AMount, token1Amount, expectedOutputAmount
-    [1000, 1000, 3, 1, 5, 10, '1662497915624478906'], // m, n, fee, swapAmount, token0AMount, token1Amount, expectedOutputAmount
-    [1000, 1000, 3, 1, 10, 5, '453305446940074565'],
+    [1, 5, 10, '1662497915624478906'], //swapAmount, token0AMount, token1Amount, expectedOutputAmount
+    [1, 10, 5, '453305446940074565'],
 
-    [1000, 1000, 3, 2, 5, 10, '2851015155847869602'],
-    [1000, 1000, 3, 2, 10, 5, '831248957812239453'],
+    [2, 5, 10, '2851015155847869602'],
+    [2, 10, 5, '831248957812239453'],
 
-    [1000, 1000, 3, 1, 10, 10, '906610893880149131'],
-    [1000, 1000, 3, 1, 100, 100, '987158034397061298'],
-    [1000, 1000, 3, 1, 1000, 1000, '996006981039903216']
+    [1, 10, 10, '906610893880149131'],
+    [1, 100, 100, '987158034397061298'],
+    [1, 1000, 1000, '996006981039903216'],
+
+    // linear tests
+    // slope = 1/2
+    [1, 5, 10, '1662497915624478906'],
+    // slope = 2
+    [1, 5, 10, '1662497915624478906']
 
   ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
   swapTestCases.forEach((swapTestCase, i) => {
     it(`getInputPrice:${i}`, async () => {
-      const [m, n, fee, swapAmount, token0Amount, token1Amount, expectedOutputAmount] = swapTestCase
+      const [swapAmount, token0Amount, token1Amount, expectedOutputAmount] = swapTestCase
+      const [m, n, fee] = swapTestCaseParams[i]
       await pair.setParams(m, n, fee)
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, swapAmount)
@@ -95,6 +116,8 @@ describe('UniswapV2Pair', () => {
       await pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides)
     })
   })
+
+
 
   const optimisticTestCases: BigNumber[][] = [
     ['997000000000000000', 5, 10, 1], // given amountIn, amountOut = floor(amountIn * .997)
