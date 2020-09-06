@@ -64,8 +64,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     constructor() public {
         factory = msg.sender;
-        m = 1;
-        n = 1;
+        m = 1000;
+        n = 1000;
         fee = 3;
     }
 
