@@ -18,6 +18,10 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     address public factory;
     address public token0;
     address public token1;
+    address public pairOwner;
+    uint public m; //m == 1 (m == 0.001), n = 1000 (n = 1), y = mx^n, x = y/0.001, F(x) = x^2 / 2/m = x^2 x m/2
+    uint public n; // 1 == 0.001, 1000 = 1 = n = y / x, F(x) = x^2 / 2/m = x^2 x m/2
+    uint public fee;
 
     uint112 private reserve0;           // uses single storage slot, accessible via getReserves
     uint112 private reserve1;           // uses single storage slot, accessible via getReserves
@@ -60,13 +64,32 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     constructor() public {
         factory = msg.sender;
+        m = 1000;
+        n = 1000;
+        fee = 3;
     }
 
     // called once by the factory at time of deployment
-    function initialize(address _token0, address _token1) external {
+    function initialize(address _token0, address _token1, address _pairOwner, uint _slope, uint _exp, uint _fee) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
         token0 = _token0;
         token1 = _token1;
+        pairOwner = _pairOwner;
+        m = _slope;
+        n = _exp;
+        fee = _fee;
+    }
+
+    function setPairOwner(address _nextOwner) external {
+        require(msg.sender == pairOwner, 'UniswapV2: FORBIDDEN');
+        pairOwner = _nextOwner;
+    }
+
+    function setParams(uint _nextSlope, uint _nextExp, uint _nextFee) external {
+        require(msg.sender == pairOwner, 'UniswapV2: FORBIDDEN');
+        m = _nextSlope;
+        n = _nextExp;
+        fee = _nextFee;
     }
 
     // update reserves and, on the first call per block, price accumulators

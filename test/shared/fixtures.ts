@@ -33,7 +33,7 @@ export async function pairFixture(provider: Web3Provider, [wallet]: Wallet[]): P
   const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
   const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
 
-  await factory.createPair(tokenA.address, tokenB.address, overrides)
+  await factory.createPair(tokenA.address, tokenB.address, wallet.address, 1000, 1000, 3, overrides)
   const pairAddress = await factory.getPair(tokenA.address, tokenB.address)
   const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), provider).connect(wallet)
 
