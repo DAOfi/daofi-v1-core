@@ -194,27 +194,6 @@ describe('UniswapV2Pair', () => {
     expect(curveParams[1]).to.eq(2000)
     expect(curveParams[2]).to.eq(1000)
     expect(curveParams[3]).to.eq(2)
-
-    // const swapAmount = expandTo18Decimals(1)
-    // const expectedOutputAmount = bigNumberify('453305446940074565')
-    // await token1.transfer(pair.address, swapAmount)
-    // await expect(pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides))
-    //   .to.emit(token0, 'Transfer')
-    //   .withArgs(pair.address, wallet.address, expectedOutputAmount)
-    //   .to.emit(pair, 'Sync')
-    //   .withArgs(token0Amount.sub(expectedOutputAmount), token1Amount.add(swapAmount))
-    //   .to.emit(pair, 'Swap')
-    //   .withArgs(wallet.address, 0, swapAmount, expectedOutputAmount, 0, wallet.address)
-
-    // const reserves = await pair.getReserves()
-    // expect(reserves[0]).to.eq(token0Amount.sub(expectedOutputAmount))
-    // expect(reserves[1]).to.eq(token1Amount.add(swapAmount))
-    // expect(await token0.balanceOf(pair.address)).to.eq(token0Amount.sub(expectedOutputAmount))
-    // expect(await token1.balanceOf(pair.address)).to.eq(token1Amount.add(swapAmount))
-    // const totalSupplyToken0 = await token0.totalSupply()
-    // const totalSupplyToken1 = await token1.totalSupply()
-    // expect(await token0.balanceOf(wallet.address)).to.eq(totalSupplyToken0.sub(token0Amount).add(expectedOutputAmount))
-    // expect(await token1.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(token1Amount).sub(swapAmount))
   })
 
   it('swap:gas', async () => {
