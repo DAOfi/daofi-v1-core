@@ -44,7 +44,7 @@ describe('UniswapV2Pair', () => {
     token1 = fixture.token1
     pair = fixture.pair
 
-    const fixtureLinearSlope2 = await getPairFixtureWithParams(provider, wallet, 2000)
+    const fixtureLinearSlope2 = await getPairFixtureWithParams(provider, wallet, 2000, 1000, 2)
     token0LinearSlope2 = fixtureLinearSlope2.token0
     token1LinearSlope2 = fixtureLinearSlope2.token1
     pairLinearSlope2 = fixtureLinearSlope2.pair
@@ -184,11 +184,16 @@ describe('UniswapV2Pair', () => {
   //   expect(await pair.fee()).to.eq(2)
   // })
 
-  it('swap:linear slope 2', async () => {
+  it('swap:linear slope 2, fee 2', async () => {
     // ratio of base/quote must be 1:2
     const token0Amount = expandTo18Decimals(5)
     const token1Amount = expandTo18Decimals(10)
     await addLiquidity(token0LinearSlope2, token0Amount, token1LinearSlope2, token1Amount, pairLinearSlope2)
+    const curveParams = await pairLinearSlope2.getCurveParams()
+    expect(curveParams[0]).to.eq(token1LinearSlope2.address)
+    expect(curveParams[1]).to.eq(2000)
+    expect(curveParams[2]).to.eq(1000)
+    expect(curveParams[3]).to.eq(2)
 
     // const swapAmount = expandTo18Decimals(1)
     // const expectedOutputAmount = bigNumberify('453305446940074565')

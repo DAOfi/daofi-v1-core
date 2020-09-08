@@ -46,6 +46,13 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         _reserve1 = reserve1;
     }
 
+    function getCurveParams() public view returns (address _baseToken, uint _m, uint _n, uint _fee) {
+        _baseToken = baseToken;
+        _m = m;
+        _n = n;
+        _fee = fee;
+    }
+
 
     function _safeTransfer(address token, address to, uint value) private {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(SELECTOR, to, value));
