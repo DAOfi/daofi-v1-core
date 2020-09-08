@@ -4,7 +4,7 @@ import { solidity, MockProvider, createFixtureLoader } from 'ethereum-waffle'
 import { BigNumber, bigNumberify } from 'ethers/utils'
 
 import { expandTo18Decimals, mineBlock, encodePrice } from './shared/utilities'
-import { pairFixture } from './shared/fixtures'
+import { getPairFixtureWithParams, pairFixture } from './shared/fixtures'
 import { AddressZero } from 'ethers/constants'
 
 const MINIMUM_LIQUIDITY = bigNumberify(10).pow(3)
@@ -29,13 +29,25 @@ describe('UniswapV2Pair', () => {
   let token1: Contract
   let pair: Contract
 
+  let token0LinearSlope2: Contract
+  let token1LinearSlope2: Contract
+  let pairLinearSlope2: Contract
+
+  let token0LinearSlopeHalf: Contract
+  let token1LinearSlopeHalf: Contract
+  let pairLinearSlopeHalf: Contract
+
   beforeEach(async () => {
     const fixture = await loadFixture(pairFixture)
     factory = fixture.factory
     token0 = fixture.token0
     token1 = fixture.token1
     pair = fixture.pair
-    //pair2 = fixture.pair2
+
+    const fixtureLinearSlope2 = await getPairFixtureWithParams(provider, wallet, 2000)
+    token0LinearSlope2 = fixtureLinearSlope2.token0
+    token1LinearSlope2 = fixtureLinearSlope2.token1
+    pairLinearSlope2 = fixtureLinearSlope2.pair
   })
 
   it('mint', async () => {
@@ -69,24 +81,8 @@ describe('UniswapV2Pair', () => {
     await token1.transfer(pair.address, token1Amount)
     await pair.mint(wallet.address, overrides)
   }
-
-  const swapTestCaseParams: number[][] = [
-    // m, n, fee,
-    [1000, 1000, 3],
-    [1000, 1000, 3],
-    [1000, 1000, 3],
-    [1000, 1000, 3],
-    [1000, 1000, 3],
-    [1000, 1000, 3],
-    [1000, 1000, 3],
-    // linear slope = 1/2
-    [500, 1000, 3],
-    // linear slope = 2
-    [2000, 1000, 3],
-  ]
   const swapTestCases: BigNumber[][] = [
-    // swapAmount (token 0 in), token0AMount (liquidity token 0), (liquidity toke1 ), expectedOutputAmount (token 1)
-    [1, 5, 10, '1662497915624478906'], //, token0AMount, token1Amount, expectedOutputAmount
+    [1, 5, 10, '1662497915624478906'],
     [1, 10, 5, '453305446940074565'],
 
     [2, 5, 10, '2851015155847869602'],
@@ -94,19 +90,11 @@ describe('UniswapV2Pair', () => {
 
     [1, 10, 10, '906610893880149131'],
     [1, 100, 100, '987158034397061298'],
-    [1, 1000, 1000, '996006981039903216'],
-
-    // parameterized linear tests
-
-    //[1, 50, 25, '1662497915624478906'],
-    //[1, 5, 10, '1662497915624478906']
-
+    [1, 1000, 1000, '996006981039903216']
   ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
   swapTestCases.forEach((swapTestCase, i) => {
     it(`getInputPrice:${i}`, async () => {
       const [swapAmount, token0Amount, token1Amount, expectedOutputAmount] = swapTestCase
-      const [m, n, fee] = swapTestCaseParams[i]
-      await pair.setParams(m, n, fee)
       await addLiquidity(token0Amount, token1Amount)
       await token0.transfer(pair.address, swapAmount)
       await expect(pair.swap(0, expectedOutputAmount.add(1), wallet.address, '0x', overrides)).to.be.revertedWith(
@@ -117,12 +105,11 @@ describe('UniswapV2Pair', () => {
   })
 
   const optimisticTestCases: BigNumber[][] = [
-    ['997000000000000000', 5, 10, 1], // given amountIn, amountOut = floor(amountIn * .997 * slope)
+    ['997000000000000000', 5, 10, 1], // given amountIn, amountOut = floor(amountIn * .997)
     ['997000000000000000', 10, 5, 1],
     ['997000000000000000', 5, 5, 1],
-    [1, 5, 5, '1003009027081243732'] // given amountOut, amountIn = ceiling(amountOut / (.997 * slope))
+    [1, 5, 5, '1003009027081243732'] // given amountOut, amountIn = ceiling(amountOut / .997)
   ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
-
   optimisticTestCases.forEach((optimisticTestCase, i) => {
     it(`optimistic:${i}`, async () => {
       const [outputAmount, token0Amount, token1Amount, inputAmount] = optimisticTestCase
@@ -189,11 +176,16 @@ describe('UniswapV2Pair', () => {
     expect(await token1.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(token1Amount).sub(swapAmount))
   })
 
-  it('pair: setParams', async () => {
-    await pair.setParams(2000, 1000, 2) //slope 2, exp 1, fee .2%
-    expect(await pair.m()).to.eq(2000)
-    expect(await pair.n()).to.eq(1000)
-    expect(await pair.fee()).to.eq(2)
+  // TODO SOON
+  // it('pair: setParams', async () => {
+  //   await pair.setParams(2000, 1000, 2) //slope 2, exp 1, fee .2%
+  //   expect(await pair.m()).to.eq(2000)
+  //   expect(await pair.n()).to.eq(1000)
+  //   expect(await pair.fee()).to.eq(2)
+  // })
+
+  it('pair:linear slope 2', async () => {
+
   })
 
   it('swap:gas', async () => {

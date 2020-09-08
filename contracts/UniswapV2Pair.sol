@@ -74,6 +74,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     // called once by the factory at time of deployment
     function initialize(address _token0, address _token1, address _baseToken, address _pairOwner, uint _slope, uint _exp, uint _fee) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
+        require(_exp == 1000, 'UniswapV2: exponential not allowed yet');
         token0 = _token0;
         token1 = _token1;
         baseToken = _baseToken;
@@ -89,12 +90,13 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         pairOwner = _nextOwner;
     }
 
-    function setParams(uint _nextSlope, uint _nextExp, uint _nextFee) external {
-        require(msg.sender == pairOwner, 'UniswapV2: FORBIDDEN');
-        m = _nextSlope;
-        n = _nextExp;
-        fee = _nextFee;
-    }
+    // TODO we either have to determine the liquidity needed to not alter price, or alter price :)
+    // function setParams(uint _nextSlope, uint _nextExp, uint _nextFee) external {
+    //     require(msg.sender == pairOwner, 'UniswapV2: FORBIDDEN');
+    //     m = _nextSlope;
+    //     n = _nextExp;
+    //     fee = _nextFee;
+    // }
 
     // update reserves and, on the first call per block, price accumulators
     function _update(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {

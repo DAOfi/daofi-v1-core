@@ -50,6 +50,6 @@ interface IUniswapV2Pair {
 
     function initialize(address, address, address, address, uint, uint, uint) external;
     function setPairOwner(address) external;
-    function setParams(uint, uint, uint) external;
+    // function setParams(uint, uint, uint) external;
 
 }
