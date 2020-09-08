@@ -18,6 +18,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     address public factory;
     address public token0;
     address public token1;
+    address public baseToken;
+    address public quoteToken;
     address public pairOwner;
     uint public m; //m == 1 (m == 0.001), n = 1000 (n = 1), y = mx^n, x = y/0.001, F(x) = x^2 / 2/m = x^2 x m/2
     uint public n; // 1 == 0.001, 1000 = 1 = n = y / x, F(x) = x^2 / 2/m = x^2 x m/2
@@ -70,10 +72,12 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     }
 
     // called once by the factory at time of deployment
-    function initialize(address _token0, address _token1, address _pairOwner, uint _slope, uint _exp, uint _fee) external {
+    function initialize(address _token0, address _token1, address _baseToken, address _pairOwner, uint _slope, uint _exp, uint _fee) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
         token0 = _token0;
         token1 = _token1;
+        baseToken = _baseToken;
+        quoteToken = _token0 == _baseToken ? _token1 : _token0;
         pairOwner = _pairOwner;
         m = _slope;
         n = _exp;

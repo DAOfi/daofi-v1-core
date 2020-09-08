@@ -37,15 +37,15 @@ describe('UniswapV2Factory', () => {
     expect(await factory.allPairsLength()).to.eq(0)
   })
 
-  async function createPair(tokens: [string, string], owner:string, slope:number, exp: number, fee:number) {
+  async function createPair(tokens: [string, string], baseToken: string, owner:string, slope:number, exp: number, fee:number) {
     const bytecode = `0x${UniswapV2Pair.evm.bytecode.object}`
     const create2Address = getCreate2Address(factory.address, tokens, bytecode)
-    await expect(factory.createPair(...tokens, owner, slope, exp, fee))
+    await expect(factory.createPair(...tokens, tokens[1], owner, slope, exp, fee))
       .to.emit(factory, 'PairCreated')
       .withArgs(TEST_ADDRESSES[0], TEST_ADDRESSES[1], create2Address, bigNumberify(1))
 
-    await expect(factory.createPair(...tokens, owner, slope, exp, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
-    await expect(factory.createPair(...tokens.slice().reverse(), owner, slope, exp, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
+    await expect(factory.createPair(...tokens, tokens[1], owner, slope, exp, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
+    await expect(factory.createPair(...tokens.slice().reverse(), tokens[1], owner, slope, exp, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
     expect(await factory.getPair(...tokens)).to.eq(create2Address)
     expect(await factory.getPair(...tokens.slice().reverse())).to.eq(create2Address)
     expect(await factory.allPairs(0)).to.eq(create2Address)
@@ -58,17 +58,17 @@ describe('UniswapV2Factory', () => {
   }
 
   it('createPair', async () => {
-    await createPair(TEST_ADDRESSES, wallet.address, 1, 1, 3)
+    await createPair(TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, 1000, 1000, 3)
   })
 
   it('createPair:reverse', async () => {
-    await createPair(TEST_ADDRESSES.slice().reverse() as [string, string], wallet.address, 1, 1, 3)
+    await createPair(TEST_ADDRESSES.slice().reverse() as [string, string], TEST_ADDRESSES[0], wallet.address, 1000, 1000, 3)
   })
 
   it('createPair:gas', async () => {
-    const tx = await factory.createPair(...TEST_ADDRESSES, wallet.address, 1, 1, 3)
+    const tx = await factory.createPair(...TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, 1000, 1000, 3)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(2730521)
+    expect(receipt.gasUsed).to.eq(2819245)
   })
 
   it('setFeeTo', async () => {
