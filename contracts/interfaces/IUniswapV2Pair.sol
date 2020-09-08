@@ -38,7 +38,7 @@ interface IUniswapV2Pair {
     function token0() external view returns (address);
     function token1() external view returns (address);
     function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
-    function getCurveParams() external view returns (address baseToken, uint m, uint n, uint fee);
+    function getCurveParams() external view returns (address baseToken, uint112 m, uint112 n, uint fee);
 
     function price0CumulativeLast() external view returns (uint);
     function price1CumulativeLast() external view returns (uint);
@@ -50,7 +50,7 @@ interface IUniswapV2Pair {
     function skim(address to) external;
     function sync() external;
 
-    function initialize(address, address, address, address, uint, uint, uint) external;
+    function initialize(address, address, address, address, uint112, uint112, uint) external;
     function setPairOwner(address) external;
     // function setParams(uint, uint, uint) external;
 

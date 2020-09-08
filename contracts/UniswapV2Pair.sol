@@ -21,8 +21,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     address public baseToken;
     address public quoteToken;
     address public pairOwner;
-    uint public m; //m == 1 (m == 0.001), n = 1000 (n = 1), y = mx^n, x = y/0.001, F(x) = x^2 / 2/m = x^2 x m/2
-    uint public n; // 1 == 0.001, 1000 = 1 = n = y / x, F(x) = x^2 / 2/m = x^2 x m/2
+    uint112 public m; //m == 1 (m == 0.001), n = 1000 (n = 1), y = mx^n, x = y/0.001, F(x) = x^2 / 2/m = x^2 x m/2
+    uint112 public n; // 1 == 0.001, 1000 = 1 = n = y / x, F(x) = x^2 / 2/m = x^2 x m/2
     uint public fee;
 
     uint112 private reserve0;           // uses single storage slot, accessible via getReserves
@@ -47,13 +47,12 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         _blockTimestampLast = blockTimestampLast;
     }
 
-    function getCurveParams() public view returns (address _baseToken, uint _m, uint _n, uint _fee) {
+    function getCurveParams() public view returns (address _baseToken, uint112 _m, uint112 _n, uint _fee) {
         _baseToken = baseToken;
         _m = m;
         _n = n;
         _fee = fee;
     }
-
 
     function _safeTransfer(address token, address to, uint value) private {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(SELECTOR, to, value));
@@ -80,16 +79,16 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     }
 
     // called once by the factory at time of deployment
-    function initialize(address _token0, address _token1, address _baseToken, address _pairOwner, uint _slope, uint _exp, uint _fee) external {
+    function initialize(address _token0, address _token1, address _baseToken, address _pairOwner, uint112 _m, uint112 _n, uint _fee) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
-        require(_exp == 1000, 'UniswapV2: exponential not allowed yet');
+        require(_n == 1000, 'UniswapV2: exponential not allowed yet');
         token0 = _token0;
         token1 = _token1;
         baseToken = _baseToken;
         quoteToken = _token0 == _baseToken ? _token1 : _token0;
         pairOwner = _pairOwner;
-        m = _slope;
-        n = _exp;
+        m = _m;
+        n = _n;
         fee = _fee;
     }
 
@@ -113,8 +112,15 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
         if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
             // * never overflows, and + overflow is desired
-            price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
-            price1CumulativeLast += uint(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
+            if (token0 == baseToken) {
+                uint112 _reserve1Mod = _reserve1 * m;
+                price0CumulativeLast += uint(UQ112x112.encode(_reserve1Mod).uqdiv(_reserve0)) * timeElapsed;
+                price1CumulativeLast += uint(UQ112x112.encode(_reserve0).uqdiv(_reserve1Mod)) * timeElapsed;
+            } else {
+                uint112 _reserve0Mod = _reserve0 * m;
+                price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0Mod)) * timeElapsed;
+                price1CumulativeLast += uint(UQ112x112.encode(_reserve0Mod).uqdiv(_reserve1)) * timeElapsed;
+            }
         }
         reserve0 = uint112(balance0);
         reserve1 = uint112(balance1);
