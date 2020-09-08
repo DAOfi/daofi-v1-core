@@ -56,7 +56,7 @@ export async function getPairFixtureWithParams(
   const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
   const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
 
-  await factory.createPair(tokenA.address, tokenB.address, tokenB.address, wallet.address, slope, exp, fee, overrides)
+  await factory.createPair(tokenA.address, tokenB.address, tokenA.address, wallet.address, slope, exp, fee, overrides)
   const pairAddress = await factory.getPair(tokenA.address, tokenB.address)
   const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), provider).connect(wallet)
 
