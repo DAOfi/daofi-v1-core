@@ -184,16 +184,37 @@ describe('UniswapV2Pair', () => {
   //   expect(await pair.fee()).to.eq(2)
   // })
 
-  it('swap:linear slope 2, fee 2', async () => {
-    // ratio of base/quote must be 1:2
-    const token0Amount = expandTo18Decimals(5)
-    const token1Amount = expandTo18Decimals(10)
-    await addLiquidity(token0LinearSlope2, token0Amount, token1LinearSlope2, token1Amount, pairLinearSlope2)
+  it('mint:slope 2', async () => {
     const curveParams = await pairLinearSlope2.getCurveParams()
     expect(curveParams[0]).to.eq(token1LinearSlope2.address)
     expect(curveParams[1]).to.eq(2000)
     expect(curveParams[2]).to.eq(1000)
     expect(curveParams[3]).to.eq(2)
+
+    const token0Amount = expandTo18Decimals(1)
+    const token1Amount = expandTo18Decimals(8)
+    await token0LinearSlope2.transfer(pairLinearSlope2.address, token0Amount)
+    await token1LinearSlope2.transfer(pairLinearSlope2.address, token1Amount)
+
+    const expectedLiquidity = expandTo18Decimals(2)
+
+    await expect(pairLinearSlope2.mint(wallet.address, overrides))
+      .to.emit(pairLinearSlope2, 'Transfer')
+      .withArgs(AddressZero, AddressZero, MINIMUM_LIQUIDITY)
+      .to.emit(pairLinearSlope2, 'Transfer')
+      .withArgs(AddressZero, wallet.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
+      .to.emit(pairLinearSlope2, 'Sync')
+      .withArgs(token0Amount, token1Amount)
+      .to.emit(pairLinearSlope2, 'Mint')
+      .withArgs(wallet.address, token0Amount, token1Amount)
+
+    expect(await pairLinearSlope2.totalSupply()).to.eq(expectedLiquidity)
+    expect(await pairLinearSlope2.balanceOf(wallet.address)).to.eq(expectedLiquidity.sub(MINIMUM_LIQUIDITY))
+    expect(await token0LinearSlope2.balanceOf(pairLinearSlope2.address)).to.eq(token0Amount)
+    expect(await token1LinearSlope2.balanceOf(pairLinearSlope2.address)).to.eq(token1Amount)
+    const reserves = await pairLinearSlope2.getReserves()
+    expect(reserves[0]).to.eq(token0Amount)
+    expect(reserves[1]).to.eq(token1Amount)
   })
 
   it('swap:gas', async () => {
@@ -241,6 +262,35 @@ describe('UniswapV2Pair', () => {
     const totalSupplyToken1 = await token1.totalSupply()
     expect(await token0.balanceOf(wallet.address)).to.eq(totalSupplyToken0.sub(1000))
     expect(await token1.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(1000))
+  })
+
+  it('burn:slope 2', async () => {
+    const token0Amount = expandTo18Decimals(1)
+    const token1Amount = expandTo18Decimals(8)
+    await addLiquidity(token0LinearSlope2, token0Amount, token1LinearSlope2, token1Amount, pairLinearSlope2)
+
+    const expectedLiquidity = expandTo18Decimals(2)
+    await pairLinearSlope2.transfer(pairLinearSlope2.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
+    await expect(pairLinearSlope2.burn(wallet.address, overrides))
+      .to.emit(pairLinearSlope2, 'Transfer')
+      .withArgs(pairLinearSlope2.address, AddressZero, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
+      .to.emit(token0LinearSlope2, 'Transfer')
+      .withArgs(pairLinearSlope2.address, wallet.address, token0Amount.sub(500))
+      .to.emit(token1LinearSlope2, 'Transfer')
+      .withArgs(pairLinearSlope2.address, wallet.address, token1Amount.sub(4000))
+      .to.emit(pairLinearSlope2, 'Sync')
+      .withArgs(500, 4000)
+      .to.emit(pairLinearSlope2, 'Burn')
+      .withArgs(wallet.address, token0Amount.sub(500), token1Amount.sub(4000), wallet.address)
+
+    expect(await pairLinearSlope2.balanceOf(wallet.address)).to.eq(0)
+    expect(await pairLinearSlope2.totalSupply()).to.eq(MINIMUM_LIQUIDITY)
+    expect(await token0LinearSlope2.balanceOf(pairLinearSlope2.address)).to.eq(500)
+    expect(await token1LinearSlope2.balanceOf(pairLinearSlope2.address)).to.eq(4000)
+    const totalSupplyToken0 = await token0LinearSlope2.totalSupply()
+    const totalSupplyToken1 = await token1LinearSlope2.totalSupply()
+    expect(await token0LinearSlope2.balanceOf(wallet.address)).to.eq(totalSupplyToken0.sub(500))
+    expect(await token1LinearSlope2.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(4000))
   })
 
   it('price{0,1}CumulativeLast', async () => {

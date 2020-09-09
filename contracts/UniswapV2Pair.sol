@@ -19,7 +19,6 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     address public token0;
     address public token1;
     address public baseToken;
-    address public quoteToken;
     address public pairOwner;
     uint public m; //m == 1 (m == 0.001), n = 1000 (n = 1), y = mx^n, x = y/0.001, F(x) = x^2 / 2/m = x^2 x m/2
     uint public n; // 1 == 0.001, 1000 = 1 = n = y / x, F(x) = x^2 / 2/m = x^2 x m/2
@@ -34,6 +33,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     uint public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
 
     uint private unlocked = 1;
+
     modifier lock() {
         require(unlocked == 1, 'UniswapV2: LOCKED');
         unlocked = 0;
@@ -53,7 +53,6 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         _n = n;
         _fee = fee;
     }
-
 
     function _safeTransfer(address token, address to, uint value) private {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(SELECTOR, to, value));
@@ -86,7 +85,6 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         token0 = _token0;
         token1 = _token1;
         baseToken = _baseToken;
-        quoteToken = _token0 == _baseToken ? _token1 : _token0;
         pairOwner = _pairOwner;
         m = _slope;
         n = _exp;
@@ -150,15 +148,21 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint balance1 = IERC20(token1).balanceOf(address(this));
         uint amount0 = balance0.sub(_reserve0);
         uint amount1 = balance1.sub(_reserve1);
-
         bool feeOn = _mintFee(_reserve0, _reserve1);
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
+        uint112 reserveBase = token0 == baseToken ? _reserve0 : _reserve1;
+        uint112 reserveQuote = token0 == baseToken ? _reserve1 : _reserve0;
+        uint slope = m / 1000;
+        uint liquidityBase = token0 == baseToken ? amount0 : amount1;
+        uint liquidityQuote = token0 == baseToken ? amount1 / slope : amount0 / slope;
+
         if (_totalSupply == 0) {
-            liquidity = Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
+            liquidity = Math.sqrt(liquidityBase.mul(liquidityQuote)).sub(MINIMUM_LIQUIDITY);
            _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
         } else {
-            liquidity = Math.min(amount0.mul(_totalSupply) / _reserve0, amount1.mul(_totalSupply) / _reserve1);
+            liquidity = Math.min(liquidityBase.mul(_totalSupply) / reserveBase, liquidityQuote.mul(_totalSupply) / reserveQuote);
         }
+
         require(liquidity > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_MINTED');
         _mint(to, liquidity);
 
@@ -169,7 +173,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     // this low-level function should be called from a contract which performs important safety checks
     function burn(address to) external lock returns (uint amount0, uint amount1) {
-        (uint112 _reserve0, uint112 _reserve1,)  = getReserves(); // gas savings
+        (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
         address _token0 = token0;                                // gas savings
         address _token1 = token1;                                // gas savings
         uint balance0 = IERC20(_token0).balanceOf(address(this));
