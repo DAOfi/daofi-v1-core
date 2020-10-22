@@ -82,6 +82,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     function initialize(address _token0, address _token1, address _baseToken, address _pairOwner, uint _slope, uint _exp, uint _fee) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
         require(_exp == 1000, 'UniswapV2: exponential not allowed yet');
+        require(_slope >= 1, 'UniswapV2: slope must be >= 1');
+        require(_fee >= 1, 'UniswapV2: fee must be >= 1');
         token0 = _token0;
         token1 = _token1;
         baseToken = _baseToken;
