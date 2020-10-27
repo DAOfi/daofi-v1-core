@@ -21,7 +21,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     address public baseToken;
     address public pairOwner;
     uint public m; //m == 1 (m == 0.001), n = 1000 (n = 1), y = mx^n, x = y/0.001, F(x) = x^2 / 2/m = x^2 x m/2
-    uint public n; // 1 == 0.001, 1000 = 1 = n = y / x, F(x) = x^2 / 2/m = x^2 x m/2
+    uint public n; // 1 == 1 = 1 = n = y / x, F(x) = x^2 / 2/m = x^2 x m/2
     uint public fee;
 
     uint112 private reserve0;           // uses single storage slot, accessible via getReserves
@@ -81,7 +81,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     // called once by the factory at time of deployment
     function initialize(address _token0, address _token1, address _baseToken, address _pairOwner, uint _slope, uint _exp, uint _fee) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
-        require(_exp == 1000, 'UniswapV2: exponential not allowed yet');
+        require(_exp >= 1, 'UniswapV2: exponent must be >= 1');
         require(_slope >= 1, 'UniswapV2: slope must be >= 1');
         require(_fee >= 1, 'UniswapV2: fee must be >= 1');
         token0 = _token0;
@@ -156,7 +156,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint112 reserveQuote = token0 == baseToken ? _reserve1 : _reserve0;
         uint slope = m / 1000;
         uint liquidityBase = token0 == baseToken ? amount0 : amount1;
-        uint liquidityQuote = token0 == baseToken ? amount1 / slope : amount0 / slope;
+        uint liquidityQuote = token0 == baseToken ? (amount1 * (slope ** n)) : (amount0 * (slope ** n));
 
         if (_totalSupply == 0) {
             liquidity = Math.sqrt(liquidityBase.mul(liquidityQuote)).sub(MINIMUM_LIQUIDITY);
