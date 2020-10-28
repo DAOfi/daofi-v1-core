@@ -44,7 +44,7 @@ describe('UniswapV2Pair', () => {
     token1 = fixture.token1
     pair = fixture.pair
 
-    const fixtureLinearSlope2 = await getPairFixtureWithParams(provider, wallet, 2000, 1000, 2)
+    const fixtureLinearSlope2 = await getPairFixtureWithParams(provider, wallet, 2000, 1, 3)
     token0LinearSlope2 = fixtureLinearSlope2.token0
     token1LinearSlope2 = fixtureLinearSlope2.token1
     pairLinearSlope2 = fixtureLinearSlope2.pair
@@ -184,29 +184,27 @@ describe('UniswapV2Pair', () => {
   //   expect(await pair.fee()).to.eq(2)
   // })
 
-  it('mint:slope 2', async () => {
+  it.only('mint:slope 2', async () => {
     const curveParams = await pairLinearSlope2.getCurveParams()
     expect(curveParams[0]).to.eq(token1LinearSlope2.address)
     expect(curveParams[1]).to.eq(2000)
-    expect(curveParams[2]).to.eq(1000)
-    expect(curveParams[3]).to.eq(2)
+    expect(curveParams[2]).to.eq(1)
+    expect(curveParams[3]).to.eq(3)
 
     const token0Amount = expandTo18Decimals(1)
     const token1Amount = expandTo18Decimals(8)
     await token0LinearSlope2.transfer(pairLinearSlope2.address, token0Amount)
     await token1LinearSlope2.transfer(pairLinearSlope2.address, token1Amount)
 
-    const expectedLiquidity = expandTo18Decimals(2)
-
+    const expectedLiquidity = expandTo18Decimals(4)
     await expect(pairLinearSlope2.mint(wallet.address, overrides))
-      .to.emit(pairLinearSlope2, 'Transfer')
-      .withArgs(AddressZero, AddressZero, MINIMUM_LIQUIDITY)
-      .to.emit(pairLinearSlope2, 'Transfer')
-      .withArgs(AddressZero, wallet.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-      .to.emit(pairLinearSlope2, 'Sync')
-      .withArgs(token0Amount, token1Amount)
-      .to.emit(pairLinearSlope2, 'Mint')
-      .withArgs(wallet.address, token0Amount, token1Amount)
+    .to.emit(pairLinearSlope2, 'Transfer')
+    .withArgs(AddressZero, AddressZero, MINIMUM_LIQUIDITY)
+   .to.emit(pairLinearSlope2, 'Transfer')
+    .to.emit(pairLinearSlope2, 'Sync')
+    .withArgs(token0Amount, token1Amount)
+    .to.emit(pairLinearSlope2, 'Mint')
+    .withArgs(wallet.address, token0Amount, token1Amount)
 
     expect(await pairLinearSlope2.totalSupply()).to.eq(expectedLiquidity)
     expect(await pairLinearSlope2.balanceOf(wallet.address)).to.eq(expectedLiquidity.sub(MINIMUM_LIQUIDITY))
@@ -265,8 +263,8 @@ describe('UniswapV2Pair', () => {
   })
 
   it('burn:slope 2', async () => {
-    const token0Amount = expandTo18Decimals(1)
-    const token1Amount = expandTo18Decimals(8)
+    const token0Amount = expandTo18Decimals(10)
+    const token1Amount = expandTo18Decimals(80)
     await addLiquidity(token0LinearSlope2, token0Amount, token1LinearSlope2, token1Amount, pairLinearSlope2)
 
     const expectedLiquidity = expandTo18Decimals(2)

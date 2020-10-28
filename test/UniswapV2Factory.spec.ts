@@ -20,7 +20,9 @@ describe('UniswapV2Factory', () => {
   const provider = new MockProvider({
     hardfork: 'istanbul',
     mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
-    gasLimit: 9999999
+    gasLimit: 9999999,
+    // verbose: true,
+    // logger: console
   })
   const [wallet, other] = provider.getWallets()
   const loadFixture = createFixtureLoader(provider, [wallet, other])
@@ -58,7 +60,7 @@ describe('UniswapV2Factory', () => {
   }
 
   it('createPair', async () => {
-    await createPair(TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, 1000, 1000, 3)
+    await createPair(TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, 1000, 1, 3)
   })
 
   it('createPair:reverse', async () => {
@@ -66,9 +68,9 @@ describe('UniswapV2Factory', () => {
   })
 
   it('createPair:gas', async () => {
-    const tx = await factory.createPair(...TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, 1000, 1000, 3)
+    const tx = await factory.createPair(...TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, 1000, 1, 3)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(2895602)
+    expect(receipt.gasUsed).to.eq(2891190)
   })
 
   it('setFeeTo', async () => {
