@@ -184,7 +184,7 @@ describe('UniswapV2Pair', () => {
   //   expect(await pair.fee()).to.eq(2)
   // })
 
-  it.only('mint:slope 2', async () => {
+  it('mint:slope 2', async () => {
     const curveParams = await pairLinearSlope2.getCurveParams()
     expect(curveParams[0]).to.eq(token1LinearSlope2.address)
     expect(curveParams[1]).to.eq(2000)
@@ -263,8 +263,8 @@ describe('UniswapV2Pair', () => {
   })
 
   it('burn:slope 2', async () => {
-    const token0Amount = expandTo18Decimals(10)
-    const token1Amount = expandTo18Decimals(80)
+    const token0Amount = expandTo18Decimals(1)
+    const token1Amount = expandTo18Decimals(8)
     await addLiquidity(token0LinearSlope2, token0Amount, token1LinearSlope2, token1Amount, pairLinearSlope2)
 
     const expectedLiquidity = expandTo18Decimals(2)
@@ -281,8 +281,8 @@ describe('UniswapV2Pair', () => {
       .to.emit(pairLinearSlope2, 'Burn')
       .withArgs(wallet.address, token0Amount.sub(500), token1Amount.sub(4000), wallet.address)
 
-    expect(await pairLinearSlope2.balanceOf(wallet.address)).to.eq(0)
-    expect(await pairLinearSlope2.totalSupply()).to.eq(MINIMUM_LIQUIDITY)
+    expect(await pairLinearSlope2.balanceOf(wallet.address)).to.eq(expectedLiquidity)
+    expect(await pairLinearSlope2.totalSupply()).to.eq(expectedLiquidity.add(MINIMUM_LIQUIDITY))
     expect(await token0LinearSlope2.balanceOf(pairLinearSlope2.address)).to.eq(500)
     expect(await token1LinearSlope2.balanceOf(pairLinearSlope2.address)).to.eq(4000)
     const totalSupplyToken0 = await token0LinearSlope2.totalSupply()
