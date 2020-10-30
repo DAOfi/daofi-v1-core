@@ -327,6 +327,35 @@ describe('UniswapV2Pair', () => {
     expect(await token1LinearSlope2.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(2000))
   })
 
+  it('burn:slope 1/2', async () => {
+    const token0Amount = expandTo18Decimals(1)
+    const token1Amount = expandTo18Decimals(8)
+    await addLiquidity(token0LinearSlopeHalf, token0Amount, token1LinearSlopeHalf, token1Amount, pairLinearSlopeHalf)
+
+    const expectedLiquidity = expandTo18Decimals(2)
+    await pairLinearSlopeHalf.transfer(pairLinearSlopeHalf.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
+    await expect(pairLinearSlopeHalf.burn(wallet.address, overrides))
+      .to.emit(pairLinearSlopeHalf, 'Transfer')
+      .withArgs(pairLinearSlopeHalf.address, AddressZero, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
+      .to.emit(token0LinearSlopeHalf, 'Transfer')
+      .withArgs(pairLinearSlopeHalf.address, wallet.address, token0Amount.sub(500))
+      .to.emit(token1LinearSlopeHalf, 'Transfer')
+      .withArgs(pairLinearSlopeHalf.address, wallet.address, token1Amount.sub(4000))
+      .to.emit(pairLinearSlopeHalf, 'Sync')
+      .withArgs(500, 4000)
+      .to.emit(pairLinearSlopeHalf, 'Burn')
+      .withArgs(wallet.address, token0Amount.sub(500), token1Amount.sub(4000), wallet.address)
+
+    expect(await pairLinearSlopeHalf.balanceOf(wallet.address)).to.eq(0)
+    expect(await pairLinearSlopeHalf.totalSupply()).to.eq(MINIMUM_LIQUIDITY)
+    expect(await token0LinearSlopeHalf.balanceOf(pairLinearSlopeHalf.address)).to.eq(500)
+    expect(await token1LinearSlopeHalf.balanceOf(pairLinearSlopeHalf.address)).to.eq(4000)
+    const totalSupplyToken0 = await token0LinearSlopeHalf.totalSupply()
+    const totalSupplyToken1 = await token1LinearSlopeHalf.totalSupply()
+    expect(await token0LinearSlopeHalf.balanceOf(wallet.address)).to.eq(totalSupplyToken0.sub(500))
+    expect(await token1LinearSlopeHalf.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(4000))
+  })
+
   it('price{0,1}CumulativeLast', async () => {
     const token0Amount = expandTo18Decimals(3)
     const token1Amount = expandTo18Decimals(3)
