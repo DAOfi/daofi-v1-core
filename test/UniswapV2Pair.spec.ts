@@ -3,7 +3,7 @@ import { Contract } from 'ethers'
 import { solidity, MockProvider, createFixtureLoader } from 'ethereum-waffle'
 import { BigNumber, bigNumberify } from 'ethers/utils'
 
-import { expandTo18Decimals, mineBlock, encodePrice } from './shared/utilities'
+import { expandToMDecimals, expandTo18Decimals, mineBlock, encodePrice } from './shared/utilities'
 import { getPairFixtureWithParams, pairFixture } from './shared/fixtures'
 import { AddressZero } from 'ethers/constants'
 
@@ -44,12 +44,12 @@ describe('UniswapV2Pair', () => {
     token1 = fixture.token1
     pair = fixture.pair
 
-    const fixtureLinearSlope2 = await getPairFixtureWithParams(provider, wallet, 2000, 1, 3)
+    const fixtureLinearSlope2 = await getPairFixtureWithParams(provider, wallet, 20, 1, 3)
     token0LinearSlope2 = fixtureLinearSlope2.token0
     token1LinearSlope2 = fixtureLinearSlope2.token1
     pairLinearSlope2 = fixtureLinearSlope2.pair
 
-    const fixtureLinearSlopeHalf = await getPairFixtureWithParams(provider, wallet, 500, 1, 3)
+    const fixtureLinearSlopeHalf = await getPairFixtureWithParams(provider, wallet, 5, 1, 3)
     token0LinearSlopeHalf = fixtureLinearSlopeHalf.token0
     token1LinearSlopeHalf = fixtureLinearSlopeHalf.token1
     pairLinearSlopeHalf = fixtureLinearSlopeHalf.pair
@@ -192,7 +192,7 @@ describe('UniswapV2Pair', () => {
   it('mint:slope 2', async () => {
     const curveParams = await pairLinearSlope2.getCurveParams()
     expect(curveParams[0]).to.eq(token1LinearSlope2.address)
-    expect(curveParams[1]).to.eq(2000)
+    expect(curveParams[1]).to.eq(expandTo18Decimals(2))
     expect(curveParams[2]).to.eq(1)
     expect(curveParams[3]).to.eq(3)
 
@@ -223,7 +223,7 @@ describe('UniswapV2Pair', () => {
   it('mint:slope 1/2', async () => {
     const curveParams = await pairLinearSlopeHalf.getCurveParams()
     expect(curveParams[0]).to.eq(token1LinearSlopeHalf.address)
-    expect(curveParams[1]).to.eq(500)
+    expect(curveParams[1]).to.eq(expandToMDecimals(5, 17))
     expect(curveParams[2]).to.eq(1)
     expect(curveParams[3]).to.eq(3)
 

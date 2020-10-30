@@ -2,7 +2,7 @@ import { Contract, Wallet } from 'ethers'
 import { Web3Provider } from 'ethers/providers'
 import { deployContract } from 'ethereum-waffle'
 
-import { expandTo18Decimals } from './utilities'
+import { expandToMDecimals, expandTo18Decimals } from './utilities'
 
 import ERC20 from '../../build/ERC20.json'
 import UniswapV2Factory from '../../build/UniswapV2Factory.json'
@@ -33,7 +33,7 @@ export async function pairFixture(provider: Web3Provider, [wallet]: Wallet[]): P
   const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
   const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
 
-  await factory.createPair(tokenA.address, tokenB.address, tokenB.address, wallet.address, 1000, 1, 3, overrides)
+  await factory.createPair(tokenA.address, tokenB.address, tokenB.address, wallet.address, expandTo18Decimals(1), 1, 3, overrides)
   const pairAddress = await factory.getPair(tokenA.address, tokenB.address)
   const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), provider).connect(wallet)
 
@@ -47,7 +47,7 @@ export async function pairFixture(provider: Web3Provider, [wallet]: Wallet[]): P
 export async function getPairFixtureWithParams(
   provider: Web3Provider,
   wallet: Wallet,
-  slope:number = 1000,
+  slope:number = 10, // * 1e17
   exp: number = 1,
   fee: number = 3
 ): Promise<PairFixture> {
@@ -56,7 +56,7 @@ export async function getPairFixtureWithParams(
   const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
   const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(10000)], overrides)
 
-  await factory.createPair(tokenA.address, tokenB.address, tokenA.address, wallet.address, slope, exp, fee, overrides)
+  await factory.createPair(tokenA.address, tokenB.address, tokenA.address, wallet.address, expandToMDecimals(slope, 17), exp, fee, overrides)
   const pairAddress = await factory.getPair(tokenA.address, tokenB.address)
   const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), provider).connect(wallet)
 
