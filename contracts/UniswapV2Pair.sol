@@ -182,8 +182,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint liquidity = balanceOf[address(this)];
         bool feeOn = _mintFee(_reserve0, _reserve1);
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
-        amount0 = liquidity.mul(token0 == baseToken ? balance0 : m * (balance0 ** n) / 1000) / _totalSupply; // using balances ensures pro-rata distribution
-        amount1 = liquidity.mul(token0 == baseToken ? balance1 : m * (balance1 ** n) / 1000) /  _totalSupply; // using balances ensures pro-rata distribution
+        amount0 = liquidity.mul(balance0) / _totalSupply; // using balances ensures pro-rata distribution
+        amount1 = liquidity.mul(balance1) / _totalSupply; // using balances ensures pro-rata distribution
         require(amount0 > 0 && amount1 > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED');
         _burn(address(this), liquidity);
         _safeTransfer(_token0, to, amount0);
