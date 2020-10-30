@@ -154,9 +154,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
         uint112 reserveBase = token0 == baseToken ? _reserve0 : _reserve1;
         uint112 reserveQuote = token0 == baseToken ? _reserve1 : _reserve0;
-        uint slope = m / 1000;
         uint liquidityBase = token0 == baseToken ? amount0 : amount1;
-        uint liquidityQuote = token0 == baseToken ? (slope * (amount1 ** n)) : (slope * (amount0 ** n));
+        uint liquidityQuote = token0 == baseToken ? (m * (amount1 ** n)) / 1000 : (m * (amount0 ** n)) / 1000;
 
         if (_totalSupply == 0) {
             liquidity = Math.sqrt(liquidityBase.mul(liquidityQuote)).sub(MINIMUM_LIQUIDITY);
@@ -181,11 +180,10 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint balance0 = IERC20(_token0).balanceOf(address(this));
         uint balance1 = IERC20(_token1).balanceOf(address(this));
         uint liquidity = balanceOf[address(this)];
-        uint slope = m / 1000;
         bool feeOn = _mintFee(_reserve0, _reserve1);
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
-        amount0 = liquidity.mul(token0 == baseToken ? balance0 : slope * (balance0 ** n)) / _totalSupply; // using balances ensures pro-rata distribution
-        amount1 = liquidity.mul(token0 == baseToken ? balance1 : slope * (balance1 ** n)) /  _totalSupply; // using balances ensures pro-rata distribution
+        amount0 = liquidity.mul(token0 == baseToken ? balance0 : m * (balance0 ** n) / 1000) / _totalSupply; // using balances ensures pro-rata distribution
+        amount1 = liquidity.mul(token0 == baseToken ? balance1 : m * (balance1 ** n) / 1000) /  _totalSupply; // using balances ensures pro-rata distribution
         require(amount0 > 0 && amount1 > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_BURNED');
         _burn(address(this), liquidity);
         _safeTransfer(_token0, to, amount0);
