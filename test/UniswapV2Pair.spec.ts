@@ -48,6 +48,11 @@ describe('UniswapV2Pair', () => {
     token0LinearSlope2 = fixtureLinearSlope2.token0
     token1LinearSlope2 = fixtureLinearSlope2.token1
     pairLinearSlope2 = fixtureLinearSlope2.pair
+
+    const fixtureLinearSlopeHalf = await getPairFixtureWithParams(provider, wallet, 500, 1, 3)
+    token0LinearSlopeHalf = fixtureLinearSlopeHalf.token0
+    token1LinearSlopeHalf = fixtureLinearSlopeHalf.token1
+    pairLinearSlopeHalf = fixtureLinearSlopeHalf.pair
   })
 
   it('mint', async () => {
@@ -211,6 +216,37 @@ describe('UniswapV2Pair', () => {
     expect(await token0LinearSlope2.balanceOf(pairLinearSlope2.address)).to.eq(token0Amount)
     expect(await token1LinearSlope2.balanceOf(pairLinearSlope2.address)).to.eq(token1Amount)
     const reserves = await pairLinearSlope2.getReserves()
+    expect(reserves[0]).to.eq(token0Amount)
+    expect(reserves[1]).to.eq(token1Amount)
+  })
+
+  it('mint:slope 1/2', async () => {
+    const curveParams = await pairLinearSlopeHalf.getCurveParams()
+    expect(curveParams[0]).to.eq(token1LinearSlopeHalf.address)
+    expect(curveParams[1]).to.eq(500)
+    expect(curveParams[2]).to.eq(1)
+    expect(curveParams[3]).to.eq(3)
+
+    const token0Amount = expandTo18Decimals(1)
+    const token1Amount = expandTo18Decimals(8)
+    await token0LinearSlopeHalf.transfer(pairLinearSlopeHalf.address, token0Amount)
+    await token1LinearSlopeHalf.transfer(pairLinearSlopeHalf.address, token1Amount)
+
+    const expectedLiquidity = expandTo18Decimals(2)
+    await expect(pairLinearSlopeHalf.mint(wallet.address, overrides))
+    .to.emit(pairLinearSlopeHalf, 'Transfer')
+    .withArgs(AddressZero, AddressZero, MINIMUM_LIQUIDITY)
+   .to.emit(pairLinearSlopeHalf, 'Transfer')
+    .to.emit(pairLinearSlopeHalf, 'Sync')
+    .withArgs(token0Amount, token1Amount)
+    .to.emit(pairLinearSlopeHalf, 'Mint')
+    .withArgs(wallet.address, token0Amount, token1Amount)
+
+    expect(await pairLinearSlopeHalf.totalSupply()).to.eq(expectedLiquidity)
+    expect(await pairLinearSlopeHalf.balanceOf(wallet.address)).to.eq(expectedLiquidity.sub(MINIMUM_LIQUIDITY))
+    expect(await token0LinearSlopeHalf.balanceOf(pairLinearSlopeHalf.address)).to.eq(token0Amount)
+    expect(await token1LinearSlopeHalf.balanceOf(pairLinearSlopeHalf.address)).to.eq(token1Amount)
+    const reserves = await pairLinearSlopeHalf.getReserves()
     expect(reserves[0]).to.eq(token0Amount)
     expect(reserves[1]).to.eq(token1Amount)
   })
