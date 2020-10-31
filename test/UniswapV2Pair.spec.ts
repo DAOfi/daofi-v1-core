@@ -37,10 +37,6 @@ describe('UniswapV2Pair', () => {
   let token1LinearSlopeHalf: Contract
   let pairLinearSlopeHalf: Contract
 
-  let token0Slope1Exp2: Contract
-  let token1Slope1Exp2: Contract
-  let pairSlope1Exp2: Contract
-
   beforeEach(async () => {
     const fixture = await loadFixture(pairFixture)
     factory = fixture.factory

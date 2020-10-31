@@ -13,8 +13,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     using UQ112x112 for uint224;
 
     uint public constant MINIMUM_LIQUIDITY = 10**3;
-    uint public constant LIQUIDITY_PRECISION = 10**18;
-    uint public constant EXP_WEIGHT = 5;
+    uint public constant LIQUIDITY_PRECISION = 10**18; // used to divide scaled quote liquidity
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
     address public factory;
@@ -84,7 +83,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     // called once by the factory at time of deployment
     function initialize(address _token0, address _token1, address _baseToken, address _pairOwner, uint256 _slope, uint _exp, uint _fee) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
-        require(_exp >= 1 && _exp <= 4, 'UniswapV2: exponent must be >= 1 and <= 100');
+        require(_exp == 1, 'UniswapV2: exponent must be == 1');
         require(_slope >= 1, 'UniswapV2: slope must be >= 1');
         require(_fee >= 1 && _fee <= 10, 'UniswapV2: fee must be >= 1 and <= 10');
         token0 = _token0;
