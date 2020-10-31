@@ -22,9 +22,9 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     address public token1;
     address public baseToken;
     address public pairOwner;
-    //k = sqrt(liquidity base *  (m * (liquidity quote ** n)) / LIQUIDITY_PRECISION);
+    //k = sqrt(liquidity base *  (m * (liquidity quote)) / LIQUIDITY_PRECISION);
     uint public m; // m / LIQUIDITY_PRECISION
-    uint public n;
+    uint public n; // TODO exponenent n.  Currently NOT used
     uint public fee;
 
     uint112 private reserve0;           // uses single storage slot, accessible via getReserves
@@ -158,17 +158,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint112 reserveBase = token0 == baseToken ? _reserve0 : _reserve1;
         uint112 reserveQuote = token0 == baseToken ? _reserve1 : _reserve0;
         uint256 liquidityBase = token0 == baseToken ? amount0 : amount1;
-        uint256 liquidityQuote = token0 == baseToken ? amount1 : amount0;
-
-        if (n == 1) {
-            liquidityBase = token0 == baseToken ? amount0 : amount1;
-            liquidityQuote = token0 == baseToken ? (m * amount1) / LIQUIDITY_PRECISION : (m * amount0) / LIQUIDITY_PRECISION;
-        } else {
-            uint baseExp = 1;
-            uint quoteExp = 2;
-            liquidityBase = (token0 == baseToken ? amount0 ** baseExp : amount1 ** baseExp);
-            liquidityQuote = (token0 == baseToken ? amount1 ** quoteExp : amount0 ** quoteExp);
-        }
+        uint256 liquidityQuote = token0 == baseToken ? (m * amount1) / LIQUIDITY_PRECISION : (m * amount0) / LIQUIDITY_PRECISION;
 
         if (_totalSupply == 0) {
             liquidity = Math.sqrt(liquidityBase.mul(liquidityQuote)).sub(MINIMUM_LIQUIDITY);

@@ -57,11 +57,6 @@ describe('UniswapV2Pair', () => {
     token0LinearSlopeHalf = fixtureLinearSlopeHalf.token0
     token1LinearSlopeHalf = fixtureLinearSlopeHalf.token1
     pairLinearSlopeHalf = fixtureLinearSlopeHalf.pair
-
-    const fixtureSlope1Exp2 = await getPairFixtureWithParams(provider, wallet, 10, 2, 3)
-    token0Slope1Exp2 = fixtureSlope1Exp2.token0
-    token1Slope1Exp2 = fixtureSlope1Exp2.token1
-    pairSlope1Exp2 = fixtureSlope1Exp2.pair
   })
 
   it('mint', async () => {
@@ -151,39 +146,6 @@ describe('UniswapV2Pair', () => {
     const reserves = await pairLinearSlopeHalf.getReserves()
     expect(reserves[0]).to.eq(token0Amount)
     expect(reserves[1]).to.eq(token1Amount)
-  })
-
-  it.only('mint:slope 1 exp 2', async () => {
-    const curveParams = await pairSlope1Exp2.getCurveParams()
-    expect(curveParams[0]).to.eq(token1Slope1Exp2.address)
-    expect(curveParams[1]).to.eq(expandTo18Decimals(1))
-    expect(curveParams[2]).to.eq(2)
-    expect(curveParams[3]).to.eq(3)
-
-    const token0Amount = expandTo18Decimals(1)
-    const token1Amount = expandTo18Decimals(4)
-    await token0Slope1Exp2.transfer(pairSlope1Exp2.address, token0Amount)
-    await token1Slope1Exp2.transfer(pairSlope1Exp2.address, token1Amount)
-
-    const expectedLiquidity = expandTo18Decimals(2)
-    await pairSlope1Exp2.mint(wallet.address, overrides)
-    console.log('slope 1 exp 2 actual minted liquidity:', await pairSlope1Exp2.totalSupply())
-    //   await expect(pairSlope1Exp2.mint(wallet.address, overrides))
-  //   .to.emit(pairSlope1Exp2, 'Transfer')
-  //   .withArgs(AddressZero, AddressZero, MINIMUM_LIQUIDITY)
-  //  .to.emit(pairSlope1Exp2, 'Transfer')
-  //   .to.emit(pairSlope1Exp2, 'Sync')
-  //   .withArgs(token0Amount, token1Amount)
-  //   .to.emit(pairSlope1Exp2, 'Mint')
-  //   .withArgs(wallet.address, token0Amount, token1Amount)
-
-    // expect(await pairSlope1Exp2.totalSupply()).to.eq(expectedLiquidity)
-    // expect(await pairSlope1Exp2.balanceOf(wallet.address)).to.eq(expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-    // expect(await token0Slope1Exp2.balanceOf(pairSlope1Exp2.address)).to.eq(token0Amount)
-    // expect(await token1Slope1Exp2.balanceOf(pairSlope1Exp2.address)).to.eq(token1Amount)
-    // const reserves = await pairSlope1Exp2.getReserves()
-    // expect(reserves[0]).to.eq(token0Amount)
-    // expect(reserves[1]).to.eq(token1Amount)
   })
 
   async function addLiquidity(token0: Contract, token0Amount: BigNumber, token1: Contract, token1Amount: BigNumber, pair: Contract) {
