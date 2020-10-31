@@ -85,7 +85,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
         require(_exp >= 1, 'UniswapV2: exponent must be >= 1');
         require(_slope >= 1, 'UniswapV2: slope must be >= 1');
-        require(_fee >= 1, 'UniswapV2: fee must be >= 1');
+        require(_fee >= 1 && _fee <= 10, 'UniswapV2: fee must be >= 1 and <= 10');
         token0 = _token0;
         token1 = _token1;
         baseToken = _baseToken;
@@ -157,7 +157,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint112 reserveBase = token0 == baseToken ? _reserve0 : _reserve1;
         uint112 reserveQuote = token0 == baseToken ? _reserve1 : _reserve0;
         uint liquidityBase = token0 == baseToken ? amount0 : amount1;
-        uint liquidityQuote = token0 == baseToken ? (m * (amount1 ** n)) / LIQUIDITY_PRECISION : (m * (amount0 ** n)) / LIQUIDITY_PRECISION;
+        uint liquidityQuote = token0 == baseToken ? (m * amount1) / LIQUIDITY_PRECISION : (m * amount0) / LIQUIDITY_PRECISION;
 
         if (_totalSupply == 0) {
             liquidity = Math.sqrt(liquidityBase.mul(liquidityQuote)).sub(MINIMUM_LIQUIDITY);
