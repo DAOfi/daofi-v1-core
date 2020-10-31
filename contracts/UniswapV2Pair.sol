@@ -13,7 +13,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     using UQ112x112 for uint224;
 
     uint public constant MINIMUM_LIQUIDITY = 10**3;
-    uint public constant LIQUIDITY_PRECISION = 10**18;
+    uint public constant LIQUIDITY_PRECISION = 10**18; // used to divide scaled quote liquidity
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
     address public factory;
@@ -21,9 +21,9 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     address public token1;
     address public baseToken;
     address public pairOwner;
-    //k = sqrt(liquidity base *  (m * (liquidity quote ** n)) / LIQUIDITY_PRECISION);
+    //k = sqrt(liquidity base *  (m * (liquidity quote)) / LIQUIDITY_PRECISION);
     uint public m; // m / LIQUIDITY_PRECISION
-    uint public n;
+    uint public n; // TODO exponenent n.  Currently NOT used
     uint public fee;
 
     uint112 private reserve0;           // uses single storage slot, accessible via getReserves
@@ -75,7 +75,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     constructor() public {
         factory = msg.sender;
-        m = 1000;
+        m = LIQUIDITY_PRECISION;
         n = 1;
         fee = 3;
     }
@@ -83,9 +83,9 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     // called once by the factory at time of deployment
     function initialize(address _token0, address _token1, address _baseToken, address _pairOwner, uint256 _slope, uint _exp, uint _fee) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
-        require(_exp >= 1, 'UniswapV2: exponent must be >= 1');
+        require(_exp == 1, 'UniswapV2: exponent must be == 1');
         require(_slope >= 1, 'UniswapV2: slope must be >= 1');
-        require(_fee >= 1, 'UniswapV2: fee must be >= 1');
+        require(_fee >= 1 && _fee <= 10, 'UniswapV2: fee must be >= 1 and <= 10');
         token0 = _token0;
         token1 = _token1;
         baseToken = _baseToken;
@@ -156,8 +156,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
         uint112 reserveBase = token0 == baseToken ? _reserve0 : _reserve1;
         uint112 reserveQuote = token0 == baseToken ? _reserve1 : _reserve0;
-        uint liquidityBase = token0 == baseToken ? amount0 : amount1;
-        uint liquidityQuote = token0 == baseToken ? (m * (amount1 ** n)) / LIQUIDITY_PRECISION : (m * (amount0 ** n)) / LIQUIDITY_PRECISION;
+        uint256 liquidityBase = token0 == baseToken ? amount0 : amount1;
+        uint256 liquidityQuote = token0 == baseToken ? (m * amount1) / LIQUIDITY_PRECISION : (m * amount0) / LIQUIDITY_PRECISION;
 
         if (_totalSupply == 0) {
             liquidity = Math.sqrt(liquidityBase.mul(liquidityQuote)).sub(MINIMUM_LIQUIDITY);
@@ -220,8 +220,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
         require(amount0In > 0 || amount1In > 0, 'UniswapV2: INSUFFICIENT_INPUT_AMOUNT');
         { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-        uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(3));
-        uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(3));
+        uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(fee));
+        uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(fee));
         require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'UniswapV2: K');
         }
 
