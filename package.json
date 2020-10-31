@@ -1,11 +1,11 @@
 {
-  "name": "@defiinvest.tech/uniswap-v2-xdai",
+  "name": "@defiinvest.tech/uniswap-v2-core",
   "description": "🎛 Core contracts for the UniswapV2 protocol",
-  "version": "1.0.1-beta.5",
+  "version": "1.0.2",
   "homepage": "https://uniswap.org",
   "repository": {
     "type": "git",
-    "url": "https://github.com/alexanvl/uniswap-v2-xdai"
+    "url": "https://github.com/DAOfi/uniswap-v2-core"
   },
   "keywords": [
     "uniswap",
