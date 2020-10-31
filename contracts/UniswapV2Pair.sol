@@ -14,6 +14,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     uint public constant MINIMUM_LIQUIDITY = 10**3;
     uint public constant LIQUIDITY_PRECISION = 10**18;
+    uint public constant EXP_WEIGHT = 5;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
     address public factory;
@@ -75,7 +76,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     constructor() public {
         factory = msg.sender;
-        m = 1000;
+        m = LIQUIDITY_PRECISION;
         n = 1;
         fee = 3;
     }
@@ -83,7 +84,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     // called once by the factory at time of deployment
     function initialize(address _token0, address _token1, address _baseToken, address _pairOwner, uint256 _slope, uint _exp, uint _fee) external {
         require(msg.sender == factory, 'UniswapV2: FORBIDDEN'); // sufficient check
-        require(_exp >= 1, 'UniswapV2: exponent must be >= 1');
+        require(_exp >= 1 && _exp <= 4, 'UniswapV2: exponent must be >= 1 and <= 100');
         require(_slope >= 1, 'UniswapV2: slope must be >= 1');
         require(_fee >= 1 && _fee <= 10, 'UniswapV2: fee must be >= 1 and <= 10');
         token0 = _token0;
@@ -156,8 +157,18 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
         uint112 reserveBase = token0 == baseToken ? _reserve0 : _reserve1;
         uint112 reserveQuote = token0 == baseToken ? _reserve1 : _reserve0;
-        uint liquidityBase = token0 == baseToken ? amount0 : amount1;
-        uint liquidityQuote = token0 == baseToken ? (m * amount1) / LIQUIDITY_PRECISION : (m * amount0) / LIQUIDITY_PRECISION;
+        uint256 liquidityBase = token0 == baseToken ? amount0 : amount1;
+        uint256 liquidityQuote = token0 == baseToken ? amount1 : amount0;
+
+        if (n == 1) {
+            liquidityBase = token0 == baseToken ? amount0 : amount1;
+            liquidityQuote = token0 == baseToken ? (m * amount1) / LIQUIDITY_PRECISION : (m * amount0) / LIQUIDITY_PRECISION;
+        } else {
+            uint baseExp = 1;
+            uint quoteExp = 2;
+            liquidityBase = (token0 == baseToken ? amount0 ** baseExp : amount1 ** baseExp);
+            liquidityQuote = (token0 == baseToken ? amount1 ** quoteExp : amount0 ** quoteExp);
+        }
 
         if (_totalSupply == 0) {
             liquidity = Math.sqrt(liquidityBase.mul(liquidityQuote)).sub(MINIMUM_LIQUIDITY);
