@@ -1,5 +1,5 @@
 {
-  "name": "@defiinvest.tech/uniswap-v2-core",
+  "name": "@daofi/uniswap-v2-core",
   "description": "🎛 Core contracts for the UniswapV2 protocol",
   "version": "1.0.2",
   "homepage": "https://uniswap.org",

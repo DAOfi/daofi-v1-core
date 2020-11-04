@@ -81,69 +81,6 @@ describe('UniswapV2Pair', () => {
     expect(reserves[1]).to.eq(token1Amount)
   })
 
-
-  it('mint:slope 2', async () => {
-    const curveParams = await pairLinearSlope2.getCurveParams()
-    expect(curveParams[0]).to.eq(token1LinearSlope2.address)
-    expect(curveParams[1]).to.eq(expandTo18Decimals(2))
-    expect(curveParams[2]).to.eq(1)
-    expect(curveParams[3]).to.eq(3)
-
-    const token0Amount = expandTo18Decimals(1)
-    const token1Amount = expandTo18Decimals(8)
-    await token0LinearSlope2.transfer(pairLinearSlope2.address, token0Amount)
-    await token1LinearSlope2.transfer(pairLinearSlope2.address, token1Amount)
-
-    const expectedLiquidity = expandTo18Decimals(4)
-    await expect(pairLinearSlope2.mint(wallet.address, overrides))
-    .to.emit(pairLinearSlope2, 'Transfer')
-    .withArgs(AddressZero, AddressZero, MINIMUM_LIQUIDITY)
-   .to.emit(pairLinearSlope2, 'Transfer')
-    .to.emit(pairLinearSlope2, 'Sync')
-    .withArgs(token0Amount, token1Amount)
-    .to.emit(pairLinearSlope2, 'Mint')
-    .withArgs(wallet.address, token0Amount, token1Amount)
-
-    expect(await pairLinearSlope2.totalSupply()).to.eq(expectedLiquidity)
-    expect(await pairLinearSlope2.balanceOf(wallet.address)).to.eq(expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-    expect(await token0LinearSlope2.balanceOf(pairLinearSlope2.address)).to.eq(token0Amount)
-    expect(await token1LinearSlope2.balanceOf(pairLinearSlope2.address)).to.eq(token1Amount)
-    const reserves = await pairLinearSlope2.getReserves()
-    expect(reserves[0]).to.eq(token0Amount)
-    expect(reserves[1]).to.eq(token1Amount)
-  })
-
-  it('mint:slope 1/2', async () => {
-    const curveParams = await pairLinearSlopeHalf.getCurveParams()
-    expect(curveParams[0]).to.eq(token1LinearSlopeHalf.address)
-    expect(curveParams[1]).to.eq(expandToMDecimals(5, 17))
-    expect(curveParams[2]).to.eq(1)
-    expect(curveParams[3]).to.eq(3)
-
-    const token0Amount = expandTo18Decimals(8)
-    const token1Amount = expandTo18Decimals(1)
-    await token0LinearSlopeHalf.transfer(pairLinearSlopeHalf.address, token0Amount)
-    await token1LinearSlopeHalf.transfer(pairLinearSlopeHalf.address, token1Amount)
-
-    const expectedLiquidity = expandTo18Decimals(2)
-    await expect(pairLinearSlopeHalf.mint(wallet.address, overrides))
-    .to.emit(pairLinearSlopeHalf, 'Transfer')
-    .withArgs(AddressZero, AddressZero, MINIMUM_LIQUIDITY)
-   .to.emit(pairLinearSlopeHalf, 'Transfer')
-    .to.emit(pairLinearSlopeHalf, 'Sync')
-    .withArgs(token0Amount, token1Amount)
-    .to.emit(pairLinearSlopeHalf, 'Mint')
-    .withArgs(wallet.address, token0Amount, token1Amount)
-
-    expect(await pairLinearSlopeHalf.totalSupply()).to.eq(expectedLiquidity)
-    expect(await pairLinearSlopeHalf.balanceOf(wallet.address)).to.eq(expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-    expect(await token0LinearSlopeHalf.balanceOf(pairLinearSlopeHalf.address)).to.eq(token0Amount)
-    expect(await token1LinearSlopeHalf.balanceOf(pairLinearSlopeHalf.address)).to.eq(token1Amount)
-    const reserves = await pairLinearSlopeHalf.getReserves()
-    expect(reserves[0]).to.eq(token0Amount)
-    expect(reserves[1]).to.eq(token1Amount)
-  })
-
   async function addLiquidity(token0: Contract, token0Amount: BigNumber, token1: Contract, token1Amount: BigNumber, pair: Contract) {
     await token0.transfer(pair.address, token0Amount)
     await token1.transfer(pair.address, token1Amount)
@@ -297,68 +234,6 @@ describe('UniswapV2Pair', () => {
     const totalSupplyToken1 = await token1.totalSupply()
     expect(await token0.balanceOf(wallet.address)).to.eq(totalSupplyToken0.sub(1000))
     expect(await token1.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(1000))
-  })
-
-  it('burn:slope 2', async () => {
-    const token0Amount = expandTo18Decimals(1)
-    const token1Amount = expandTo18Decimals(8)
-    await addLiquidity(token0LinearSlope2, token0Amount, token1LinearSlope2, token1Amount, pairLinearSlope2)
-
-    const expectedLiquidity = expandTo18Decimals(4)
-    const expectedMinToken0 = 250
-    const expectedMinToken1 = 2000
-    await pairLinearSlope2.transfer(pairLinearSlope2.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-    await expect(pairLinearSlope2.burn(wallet.address, overrides))
-      .to.emit(pairLinearSlope2, 'Transfer')
-      .withArgs(pairLinearSlope2.address, AddressZero, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-      .to.emit(token0LinearSlope2, 'Transfer')
-      .withArgs(pairLinearSlope2.address, wallet.address, token0Amount.sub(expectedMinToken0))
-      .to.emit(token1LinearSlope2, 'Transfer')
-      .withArgs(pairLinearSlope2.address, wallet.address, token1Amount.sub(expectedMinToken1))
-      .to.emit(pairLinearSlope2, 'Sync')
-      .withArgs(expectedMinToken0, expectedMinToken1)
-      .to.emit(pairLinearSlope2, 'Burn')
-      .withArgs(wallet.address, token0Amount.sub(expectedMinToken0), token1Amount.sub(expectedMinToken1), wallet.address)
-
-    expect(await pairLinearSlope2.balanceOf(wallet.address)).to.eq(0)
-    expect(await pairLinearSlope2.totalSupply()).to.eq(MINIMUM_LIQUIDITY)
-    expect(await token0LinearSlope2.balanceOf(pairLinearSlope2.address)).to.eq(expectedMinToken0)
-    expect(await token1LinearSlope2.balanceOf(pairLinearSlope2.address)).to.eq(expectedMinToken1)
-    const totalSupplyToken0 = await token0LinearSlope2.totalSupply()
-    const totalSupplyToken1 = await token1LinearSlope2.totalSupply()
-    expect(await token0LinearSlope2.balanceOf(wallet.address)).to.eq(totalSupplyToken0.sub(expectedMinToken0))
-    expect(await token1LinearSlope2.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(expectedMinToken1))
-  })
-
-  it('burn:slope 1/2', async () => {
-    const token0Amount = expandTo18Decimals(8)
-    const token1Amount = expandTo18Decimals(1)
-    await addLiquidity(token0LinearSlopeHalf, token0Amount, token1LinearSlopeHalf, token1Amount, pairLinearSlopeHalf)
-
-    const expectedLiquidity = expandTo18Decimals(2)
-    const expectedMinToken0 = 4000
-    const expectedMinToken1 = 500
-    await pairLinearSlopeHalf.transfer(pairLinearSlopeHalf.address, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-    await expect(pairLinearSlopeHalf.burn(wallet.address, overrides))
-      .to.emit(pairLinearSlopeHalf, 'Transfer')
-      .withArgs(pairLinearSlopeHalf.address, AddressZero, expectedLiquidity.sub(MINIMUM_LIQUIDITY))
-      .to.emit(token0LinearSlopeHalf, 'Transfer')
-      .withArgs(pairLinearSlopeHalf.address, wallet.address, token0Amount.sub(expectedMinToken0))
-      .to.emit(token1LinearSlopeHalf, 'Transfer')
-      .withArgs(pairLinearSlopeHalf.address, wallet.address, token1Amount.sub(expectedMinToken1))
-      .to.emit(pairLinearSlopeHalf, 'Sync')
-      .withArgs(expectedMinToken0, expectedMinToken1)
-      .to.emit(pairLinearSlopeHalf, 'Burn')
-      .withArgs(wallet.address, token0Amount.sub(expectedMinToken0), token1Amount.sub(expectedMinToken1), wallet.address)
-
-    expect(await pairLinearSlopeHalf.balanceOf(wallet.address)).to.eq(0)
-    expect(await pairLinearSlopeHalf.totalSupply()).to.eq(MINIMUM_LIQUIDITY)
-    expect(await token0LinearSlopeHalf.balanceOf(pairLinearSlopeHalf.address)).to.eq(expectedMinToken0)
-    expect(await token1LinearSlopeHalf.balanceOf(pairLinearSlopeHalf.address)).to.eq(expectedMinToken1)
-    const totalSupplyToken0 = await token0LinearSlopeHalf.totalSupply()
-    const totalSupplyToken1 = await token1LinearSlopeHalf.totalSupply()
-    expect(await token0LinearSlopeHalf.balanceOf(wallet.address)).to.eq(totalSupplyToken0.sub(expectedMinToken0))
-    expect(await token1LinearSlopeHalf.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(expectedMinToken1))
   })
 
   it('price{0,1}CumulativeLast', async () => {

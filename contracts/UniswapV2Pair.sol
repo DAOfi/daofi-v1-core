@@ -147,25 +147,20 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     // this low-level function should be called from a contract which performs important safety checks
     function mint(address to) external lock returns (uint liquidity) {
-        (uint112 _reserve0, uint112 _reserve1,)  = getReserves(); // gas savings
+        (uint112 _reserve0, uint112 _reserve1,) = getReserves(); // gas savings
         uint balance0 = IERC20(token0).balanceOf(address(this));
         uint balance1 = IERC20(token1).balanceOf(address(this));
         uint amount0 = balance0.sub(_reserve0);
         uint amount1 = balance1.sub(_reserve1);
+
         bool feeOn = _mintFee(_reserve0, _reserve1);
         uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
-        uint112 reserveBase = token0 == baseToken ? _reserve0 : _reserve1;
-        uint112 reserveQuote = token0 == baseToken ? _reserve1 : _reserve0;
-        uint256 liquidityBase = token0 == baseToken ? amount0 : amount1;
-        uint256 liquidityQuote = token0 == baseToken ? (m * amount1) / LIQUIDITY_PRECISION : (m * amount0) / LIQUIDITY_PRECISION;
-
         if (_totalSupply == 0) {
-            liquidity = Math.sqrt(liquidityBase.mul(liquidityQuote)).sub(MINIMUM_LIQUIDITY);
+            liquidity = Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
            _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
         } else {
-            liquidity = Math.min(liquidityBase.mul(_totalSupply) / reserveBase, liquidityQuote.mul(_totalSupply) / reserveQuote);
+            liquidity = Math.min(amount0.mul(_totalSupply) / _reserve0, amount1.mul(_totalSupply) / _reserve1);
         }
-
         require(liquidity > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_MINTED');
         _mint(to, liquidity);
 
