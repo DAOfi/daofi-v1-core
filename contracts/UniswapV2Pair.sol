@@ -8,32 +8,26 @@ import './interfaces/IERC20.sol';
 import './interfaces/IUniswapV2Factory.sol';
 import './interfaces/IUniswapV2Callee.sol';
 
+import { DAOfi } from './libraries/DAOfi.sol';
+
 contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
+    DAOfi.CurveParams public params;
     using SafeMath  for uint;
     using UQ112x112 for uint224;
 
     uint public constant MINIMUM_LIQUIDITY = 10**3;
     uint public constant LIQUIDITY_PRECISION = 10**18; // used to divide scaled quote liquidity
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
-
     address public factory;
     address public token0;
     address public token1;
-    address public baseToken;
     address public pairOwner;
-    //k = sqrt(liquidity base *  (m * (liquidity quote)) / LIQUIDITY_PRECISION);
-    uint public m; // m / LIQUIDITY_PRECISION
-    uint public n; // TODO exponenent n.  Currently NOT used
-    uint public fee;
-
     uint112 private reserve0;           // uses single storage slot, accessible via getReserves
     uint112 private reserve1;           // uses single storage slot, accessible via getReserves
     uint32  public blockTimestampLast; // uses single storage slot, accessible via getReserves
-
     uint public price0CumulativeLast;
     uint public price1CumulativeLast;
     uint public kLast; // reserve0 * reserve1, as of immediately after the most recent liquidity event
-
     uint private unlocked = 1;
 
     modifier lock() {
@@ -47,13 +41,6 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         _reserve0 = reserve0;
         _reserve1 = reserve1;
         _blockTimestampLast = blockTimestampLast;
-    }
-
-    function getCurveParams() public view returns (address _baseToken, uint _m, uint _n, uint _fee) {
-        _baseToken = baseToken;
-        _m = m;
-        _n = n;
-        _fee = fee;
     }
 
     function _safeTransfer(address token, address to, uint value) private {
@@ -75,9 +62,10 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     constructor() public {
         factory = msg.sender;
-        m = LIQUIDITY_PRECISION;
-        n = 1;
-        fee = 3;
+
+        params.m = LIQUIDITY_PRECISION;
+        params.n = 1;
+        params.fee = 3;
     }
 
     // called once by the factory at time of deployment
@@ -88,11 +76,11 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         require(_fee >= 1 && _fee <= 10, 'UniswapV2: fee must be >= 1 and <= 10');
         token0 = _token0;
         token1 = _token1;
-        baseToken = _baseToken;
         pairOwner = _pairOwner;
-        m = _slope;
-        n = _exp;
-        fee = _fee;
+        params.baseToken = _baseToken;
+        params.m = _slope;
+        params.n = _exp;
+        params.fee = _fee;
     }
 
     function setPairOwner(address _nextOwner) external {
@@ -215,8 +203,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         uint amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
         require(amount0In > 0 || amount1In > 0, 'UniswapV2: INSUFFICIENT_INPUT_AMOUNT');
         { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-        uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(fee));
-        uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(fee));
+        uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(params.fee));
+        uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(params.fee));
         require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'UniswapV2: K');
         }
 
