@@ -36,10 +36,6 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     uint private unlocked = 1;
 
-    struct CurveParams {
-
-    }
-
     modifier lock() {
         require(unlocked == 1, 'UniswapV2: LOCKED');
         unlocked = 0;
@@ -101,12 +97,12 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         pairOwner = _nextOwner;
     }
 
-    // function setParams(uint _nextSlope, uint _nextExp, uint _nextFee) external {
-    //     require(msg.sender == pairOwner, 'UniswapV2: FORBIDDEN');
-    //     m = _nextSlope;
-    //     n = _nextExp;
-    //     fee = _nextFee;
-    // }
+    function setParams(uint _nextSlope, uint _nextExp, uint _nextFee) external {
+        require(msg.sender == pairOwner, 'UniswapV2: FORBIDDEN');
+        m = _nextSlope;
+        n = _nextExp;
+        fee = _nextFee;
+    }
 
     // update reserves and, on the first call per block, price accumulators
     function _update(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {
