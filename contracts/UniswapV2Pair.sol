@@ -21,7 +21,6 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     address public token1;
     address public baseToken;
     address public pairOwner;
-    //k = sqrt(liquidity base *  (m * (liquidity quote)) / LIQUIDITY_PRECISION);
     uint public m; // m / LIQUIDITY_PRECISION
     uint public n; // TODO exponenent n.  Currently NOT used
     uint public fee;
