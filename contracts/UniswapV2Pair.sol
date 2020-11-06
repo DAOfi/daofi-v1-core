@@ -1,4 +1,5 @@
 pragma solidity =0.5.16;
+pragma experimental ABIEncoderV2;
 
 import './interfaces/IUniswapV2Pair.sol';
 import './UniswapV2ERC20.sol';
@@ -48,11 +49,8 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         _blockTimestampLast = blockTimestampLast;
     }
 
-    function getCurveParams() public view returns (address _baseToken, uint _m, uint _n, uint _fee) {
-        _baseToken = baseToken;
-        _m = m;
-        _n = n;
-        _fee = fee;
+    function getCurveParams() public view returns (bytes memory packed) {
+        packed = abi.encodePacked(baseToken, m, n, fee);
     }
 
     function _safeTransfer(address token, address to, uint value) private {
