@@ -36,6 +36,10 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
 
     uint private unlocked = 1;
 
+    struct CurveParams {
+
+    }
+
     modifier lock() {
         require(unlocked == 1, 'UniswapV2: LOCKED');
         unlocked = 0;
@@ -97,7 +101,6 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
         pairOwner = _nextOwner;
     }
 
-    // TODO we either have to determine the liquidity needed to not alter price, or alter price :)
     // function setParams(uint _nextSlope, uint _nextExp, uint _nextFee) external {
     //     require(msg.sender == pairOwner, 'UniswapV2: FORBIDDEN');
     //     m = _nextSlope;
