@@ -50,7 +50,7 @@ contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
     }
 
     function getCurveParams() public view returns (bytes memory packed) {
-        packed = abi.encodePacked(baseToken, m, n, fee);
+        packed = abi.encode(baseToken, m, n, fee);
     }
 
     function _safeTransfer(address token, address to, uint value) private {
