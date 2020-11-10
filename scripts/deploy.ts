@@ -4,7 +4,7 @@ import UniswapV2Factory from '../build/UniswapV2Factory.json'
 
 async function main() {
   const provider = new ethers.providers.JsonRpcProvider('https://dai.poa.network', 100)
-  const wallet = new ethers.Wallet('...', provider)
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY || '', provider)
   console.log('wallet', wallet.address)
   const factory = await deployContract(
     wallet,
