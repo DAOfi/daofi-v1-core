@@ -1,4 +1,5 @@
 pragma solidity =0.5.16;
+pragma experimental ABIEncoderV2;
 
 // a library for handling binary fixed point numbers (https://en.wikipedia.org/wiki/Q_(number_format))
 

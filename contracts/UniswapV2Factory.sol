@@ -1,4 +1,5 @@
 pragma solidity =0.5.16;
+pragma experimental ABIEncoderV2;
 
 import './interfaces/IUniswapV2Factory.sol';
 import './UniswapV2Pair.sol';
