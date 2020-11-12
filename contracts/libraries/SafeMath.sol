@@ -1,6 +1,5 @@
 pragma solidity =0.6.6;
 pragma experimental ABIEncoderV2;
-
 // a library for performing overflow-safe math, courtesy of DappHub (https://github.com/dapphub/ds-math)
 
 library SafeMath {

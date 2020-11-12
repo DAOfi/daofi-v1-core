@@ -98,6 +98,12 @@ export async function mineBlock(provider: Web3Provider, timestamp: number): Prom
   })
 }
 
-export function encodePrice(reserve0: BigNumber, reserve1: BigNumber) {
-  return [reserve1.mul(bigNumberify(2).pow(112)).div(reserve0), reserve0.mul(bigNumberify(2).pow(112)).div(reserve1)]
+export function encodePrice(quoteReserve: BigNumber, slopeN: number, slopeD: number, n: number): number {
+  // quoteReserve = (slopeN * (s ** (n + 1))) / (slopeD * (n + 1))
+  // solve for s
+  // s = ((quoteReserve * slopeD * (n + 1)) / slopeN) ** (1 / (n + 1))
+  // solve for price = m(s ** n)
+  const q = quoteReserve.toNumber()
+  const s = ((q + slopeD + (n + 1)) / slopeN) ** (1 / (n + 1))
+  return (slopeN / slopeD) * (s ** n)
 }
