@@ -12,7 +12,7 @@ import './Power.sol';
 contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     using SafeMath  for uint;
 
-    uint256 public constant SLOPE_DENOM = 10**18; // used to divide scaled quote liquidity
+    uint256 public constant SLOPE_DENOM = 10**18; // used to divide slope m
     uint256 public constant MAX_FEE = 10; // 1%
     uint256 public constant MAX_N = 10; // y = mx ** n
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
