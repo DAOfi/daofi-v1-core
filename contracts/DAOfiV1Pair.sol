@@ -123,7 +123,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         s = result >> precision;
         uint output = s - 1;
         if (output > 0) {
-            // return s base to the sender
+            // return s - 1 base to the sender
             _safeTransfer(baseToken, pairOwner, output);
             // update reserves
             reserveBase -= output;

@@ -13,27 +13,19 @@ const overrides = {
   gasLimit: 9999999
 }
 
-describe('DAOfiV1Pair', () => {
+let factory: Contract
+let token0: Contract
+let tokenBase: Contract
+let tokenQuote: Contract
+let pair: Contract
+
+describe('DAOfiV1Pair m = 1, n = 1', () => {
   const provider = new MockProvider({
     hardfork: 'istanbul',
     mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
     gasLimit: 9999999
   })
   const [wallet] = provider.getWallets()
-
-  let factory: Contract
-  let token0: Contract
-  let tokenBase: Contract
-  let tokenQuote: Contract
-  let pair: Contract
-
-  let token0LinearSlope2: Contract
-  let token1LinearSlope2: Contract
-  let pairLinearSlope2: Contract
-
-  let token0LinearSlopeHalf: Contract
-  let token1LinearSlopeHalf: Contract
-  let pairLinearSlopeHalf: Contract
 
   beforeEach(async () => {
     const fixture = await pairFixture(provider, wallet, 1e6, 1, 3)
@@ -236,5 +228,26 @@ describe('DAOfiV1Pair', () => {
     // expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10).add(newPrice[0].mul(10)))
     // expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10).add(newPrice[1].mul(10)))
     // expect((await pair.blockTimestampLast())).to.eq(blockTimestamp + 20)
+  })
+})
+
+describe('DAOfiV1Pair m = 2, n = 1', () => {
+  const provider = new MockProvider({
+    hardfork: 'istanbul',
+    mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
+    gasLimit: 9999999
+  })
+  const [wallet] = provider.getWallets()
+
+  beforeEach(async () => {
+    const fixture = await pairFixture(provider, wallet, 2e6, 1, 3)
+    factory = fixture.factory
+    token0 = fixture.token0
+    tokenBase = fixture.tokenBase
+    tokenQuote = fixture.tokenQuote
+    pair = fixture.pair
+  })
+
+  it('deposit: price 0', async () => {
   })
 })
