@@ -90,6 +90,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         uint32 _fee
     ) external override {
         require(msg.sender == factory, 'DAOfiV1: FORBIDDEN'); // sufficient check
+        require(_pairOwner != address(0), 'DAOfiV1: owner can not be address(0)');
         require(_exp >= 1 && _exp <= MAX_N, 'DAOfiV1: exponent must be >= 1 and <= 10');
         require(_slope >= 1, 'DAOfiV1: slope must be >= 1');
         require(_fee >= 1 && _fee <= MAX_FEE, 'DAOfiV1: fee must be >= 1 and <= 10');
@@ -118,8 +119,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // solve for s
         // s = ((quoteReserve * slopeD * (n + 1)) / slopeN) ** (1 / (n + 1))
         (uint256 result, uint8 precision) = power(reserveQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
-        deposited = true;
         s = result >> precision;
+        // return s base to the sender
+        _safeTransfer(baseToken, pairOwner, s);
+        // update reserves
+        reserveBase -= s;
+        // this function is locked
+        deposited = true;
         emit Deposit(msg.sender, reserveBase, reserveQuote, s);
     }
 

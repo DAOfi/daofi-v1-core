@@ -48,17 +48,19 @@ describe('DAOfiV1Pair', () => {
     const tokenBaseAmount = expandTo18Decimals(1e6)
     const tokenQuoteAmount = bigNumberify(0)
     const expectedS = bigNumberify(1)
+    const expectedBaseAmount = tokenBaseAmount.sub(expectedS)
 
     await tokenBase.transfer(pair.address, tokenBaseAmount)
 
     await expect(pair.deposit(overrides))
       .to.emit(pair, 'Deposit')
-      .withArgs(wallet.address, tokenBaseAmount, tokenQuoteAmount, expectedS)
-    expect(await tokenBase.balanceOf(pair.address)).to.eq(tokenBaseAmount)
+      .withArgs(wallet.address, expectedBaseAmount, tokenQuoteAmount, expectedS)
+    expect(await tokenBase.balanceOf(wallet.address)).to.eq(expectedS)
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(expectedBaseAmount)
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(tokenQuoteAmount)
 
     const reserves = await pair.getReserves()
-    expect(reserves[0]).to.eq(tokenBaseAmount)
+    expect(reserves[0]).to.eq(expectedBaseAmount)
     expect(reserves[1]).to.eq(tokenQuoteAmount)
   })
 
@@ -67,18 +69,20 @@ describe('DAOfiV1Pair', () => {
     const suggestedQuote = getReserveForStartPrice(10, 1, 1, 1)
     const tokenQuoteAmount = bigNumberify(Math.floor(suggestedQuote))
     const expectedS = bigNumberify(9)
+    const expectedBaseAmount = tokenBaseAmount.sub(expectedS)
 
     await tokenBase.transfer(pair.address, tokenBaseAmount)
     await tokenQuote.transfer(pair.address, tokenQuoteAmount)
 
     await expect(pair.deposit(overrides))
       .to.emit(pair, 'Deposit')
-      .withArgs(wallet.address, tokenBaseAmount, tokenQuoteAmount, expectedS)
-    expect(await tokenBase.balanceOf(pair.address)).to.eq(tokenBaseAmount)
+      .withArgs(wallet.address, expectedBaseAmount, tokenQuoteAmount, expectedS)
+    expect(await tokenBase.balanceOf(wallet.address)).to.eq(expectedS)
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(expectedBaseAmount)
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(tokenQuoteAmount)
 
     const reserves = await pair.getReserves()
-    expect(reserves[0]).to.eq(tokenBaseAmount)
+    expect(reserves[0]).to.eq(expectedBaseAmount)
     expect(reserves[1]).to.eq(tokenQuoteAmount)
   })
 
