@@ -19,7 +19,7 @@ describe('DAOfiV1Pair', () => {
     mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
     gasLimit: 9999999
   })
-  const [wallet, other] = provider.getWallets()
+  const [wallet] = provider.getWallets()
 
   let factory: Contract
   let token0: Contract

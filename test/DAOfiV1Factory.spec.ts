@@ -55,16 +55,16 @@ describe('DAOfiV1Factory', () => {
   })
 
   it('createPair', async () => {
-    await createPair(TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, expandTo18Decimals(1), 1, 3)
+    await createPair(TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
   })
 
   it('createPair:reverse', async () => {
-    await createPair(TEST_ADDRESSES.slice().reverse() as [string, string], TEST_ADDRESSES[0], wallet.address, expandTo18Decimals(1), 1, 3)
+    await createPair(TEST_ADDRESSES.slice().reverse() as [string, string], TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
   })
 
   it('createPair:gas', async () => {
-    const tx = await factory.createPair(...TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, expandTo18Decimals(1), 1, 3)
+    const tx = await factory.createPair(...TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(3552279)
+    expect(receipt.gasUsed).to.eq(3609847)
   })
 })

@@ -152,7 +152,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // uint256 amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
         // require(amount0In > 0 || amount1In > 0, 'DAOfiV1: INSUFFICIENT_INPUT_AMOUNT');
 
-        // TODO replace this with our own balance check
+        // // TODO replace this with our own balance check
         // { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
         // uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(fee));
         // uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(fee));
