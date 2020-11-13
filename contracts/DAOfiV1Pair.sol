@@ -116,9 +116,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // quoteReserve = (slopeN * (s ** (n + 1))) / (slopeD * (n + 1))
         // solve for s
         // s = ((quoteReserve * slopeD * (n + 1)) / slopeN) ** (1 / (n + 1))
-        // (uint256 result, uint32 precision) = power(reserveQuote.mul(SLOPE_DENOM).mul(n + 1), m, 1, (n + 1));
+        (uint256 result, uint32 precision) = power(reserveQuote.mul(SLOPE_DENOM).mul(n + 1), m, 1, (n + 1));
         deposited = true;
-        // s = result >> precision;
+        //s = Math.sqrt(reserveQuote.mul(SLOPE_DENOM).mul(n + 1) / m);
+        s = result;
         emit Deposit(msg.sender, reserveBase, reserveQuote, s);
     }
 
