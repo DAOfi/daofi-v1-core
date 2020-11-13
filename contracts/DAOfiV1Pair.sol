@@ -22,16 +22,16 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     address public override token1;
     uint256 public override price0CumulativeLast;
     uint256 public override price1CumulativeLast;
-    address public baseToken;
-    address public pairOwner;
-    uint256 public s; // track base tokens issued
+    address public override baseToken;
+    address public override pairOwner;
+    uint256 public override s; // track base tokens issued
     // price = m(s ** n)
-    uint32 public m; // m / SLOPE_DENOM
-    uint32 public n; //
-    uint32 public fee;
+    uint32 public override m; // m / SLOPE_DENOM
+    uint32 public override n; //
+    uint32 public override fee;
 
-    uint256 private reserveBase;           // uses single storage slot, accessible via getReserves
-    uint256 private reserveQuote;           // uses single storage slot, accessible via getReserves
+    uint256 private reserveBase;       // uses single storage slot, accessible via getReserves
+    uint256 private reserveQuote;      // uses single storage slot, accessible via getReserves
     uint32  public blockTimestampLast; // uses single storage slot, accessible via getReserves
 
     bool private deposited = false;
@@ -121,13 +121,16 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // s = ((quoteReserve * slopeD * (n + 1)) / slopeN) ** (1 / (n + 1))
         (uint256 result, uint8 precision) = power(reserveQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
         s = result >> precision;
-        // return s base to the sender
-        _safeTransfer(baseToken, pairOwner, s);
-        // update reserves
-        reserveBase -= s;
+        uint output = s - 1;
+        if (output > 0) {
+            // return s base to the sender
+            _safeTransfer(baseToken, pairOwner, output);
+            // update reserves
+            reserveBase -= output;
+        }
         // this function is locked
         deposited = true;
-        emit Deposit(msg.sender, reserveBase, reserveQuote, s);
+        emit Deposit(msg.sender, reserveBase, reserveQuote, output);
     }
 
     function withdrawFees(address to) external override lock {
