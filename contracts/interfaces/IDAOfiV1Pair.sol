@@ -3,7 +3,8 @@ pragma experimental ABIEncoderV2;
 
 interface IDAOfiV1Pair {
     event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 s);
-    event Withdraw(address indexed sender, uint256 amountQuote, address indexed to);
+    event WithdrawFees(address indexed sender, uint256 amountQuote, address indexed to);
+    event Close(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
     event Swap(
         address indexed sender,
         uint256 amountBaseIn,
@@ -21,7 +22,8 @@ interface IDAOfiV1Pair {
     function price0CumulativeLast() external view returns (uint256);
     function price1CumulativeLast() external view returns (uint256);
     function deposit() external;
-    function withdraw(address to) external;
+    function withdrawFees(address to) external;
+    function close(address to) external;
     function swap(uint256 amountBaseOut, uint256 amountQuoteOut, address to, bytes calldata data) external;
     function initialize(address, address, address, address, uint32, uint32, uint32) external;
     function setPairOwner(address) external;
