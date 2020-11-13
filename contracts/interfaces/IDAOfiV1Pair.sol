@@ -23,6 +23,6 @@ interface IDAOfiV1Pair {
     function deposit() external;
     function withdraw(address to) external;
     function swap(uint256 amountBaseOut, uint256 amountQuoteOut, address to, bytes calldata data) external;
-    function initialize(address, address, address, address, uint256, uint32, uint32) external;
+    function initialize(address, address, address, address, uint32, uint32, uint32) external;
     function setPairOwner(address) external;
 }

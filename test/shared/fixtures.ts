@@ -2,7 +2,7 @@ import { Contract, Wallet } from 'ethers'
 import { Web3Provider } from 'ethers/providers'
 import { deployContract } from 'ethereum-waffle'
 
-import { expandToMDecimals, expandTo18Decimals } from './utilities'
+import { expandTo18Decimals } from './utilities'
 
 import ERC20 from '../../build/ERC20.json'
 import DAOfiV1Factory from '../../build/DAOfiV1Factory.json'
@@ -31,7 +31,7 @@ interface PairFixture extends FactoryFixture {
 export async function pairFixture(
   provider: Web3Provider,
   wallet: Wallet,
-  slope:number = 10, // * 1e17
+  slope:number = 1e6,
   exp: number = 1,
   fee: number = 3
 ): Promise<PairFixture> {
@@ -39,7 +39,7 @@ export async function pairFixture(
   const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(1e6)], overrides)
   const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(1e6)], overrides)
   await factory.createPair(
-    tokenA.address, tokenB.address, tokenA.address, wallet.address, expandToMDecimals(slope, 17), exp, fee, overrides)
+    tokenA.address, tokenB.address, tokenA.address, wallet.address, slope, exp, fee, overrides)
   const pairAddress = await factory.getPair(tokenA.address, tokenB.address)
   const pair = new Contract(pairAddress, JSON.stringify(DAOfiV1Pair.abi), provider).connect(wallet)
   const token0Address = (await pair.token0()).address

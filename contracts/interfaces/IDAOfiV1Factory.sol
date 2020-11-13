@@ -7,5 +7,5 @@ interface IDAOfiV1Factory {
     function getPair(address tokenA, address tokenB) external view returns (address pair);
     function allPairs(uint) external view returns (address pair);
     function allPairsLength() external view returns (uint);
-    function createPair(address tokenA, address tokenB, address baseToken, address pairOwner, uint256 m, uint32 n, uint32 fee) external returns (address pair);
+    function createPair(address tokenA, address tokenB, address baseToken, address pairOwner, uint32 m, uint32 n, uint32 fee) external returns (address pair);
 }

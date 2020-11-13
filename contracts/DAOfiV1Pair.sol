@@ -12,7 +12,7 @@ import './Power.sol';
 contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     using SafeMath  for uint;
 
-    uint256 public constant SLOPE_DENOM = 10**18; // used to divide slope m
+    uint32 public constant SLOPE_DENOM = 10**6; // used to divide slope m
     uint256 public constant MAX_FEE = 10; // 1%
     uint256 public constant MAX_N = 10; // y = mx ** n
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
@@ -26,7 +26,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     address public pairOwner;
     uint256 public s; // track base tokens issued
     // price = m(s ** n)
-    uint256 public m; // m / SLOPE_DENOM
+    uint32 public m; // m / SLOPE_DENOM
     uint32 public n; //
     uint32 public fee;
 
@@ -37,6 +37,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     bool private deposited = false;
     uint private unlocked = 1;
 
+    event Debug(uint256 value);
     event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 s);
     event Withdraw(address indexed sender, uint256 amountQuote, address indexed to);
     event Swap(
@@ -84,7 +85,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         address _token1,
         address _baseToken,
         address _pairOwner,
-        uint256 _slope,
+        uint32 _slope,
         uint32 _exp,
         uint32 _fee
     ) external override {
@@ -112,14 +113,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         require(deposited == false, 'DAOfiV1: DOUBLE_DEPOSIT');
         reserveBase = IERC20(baseToken).balanceOf(address(this));
         reserveQuote = IERC20(token0 == baseToken ? token1 : token0).balanceOf(address(this));
-        // set initial s
+        // set initial s from quoteReserve
         // quoteReserve = (slopeN * (s ** (n + 1))) / (slopeD * (n + 1))
         // solve for s
         // s = ((quoteReserve * slopeD * (n + 1)) / slopeN) ** (1 / (n + 1))
-        (uint256 result,) = power(reserveQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
+        (uint256 result, uint8 precision) = power(reserveQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
         deposited = true;
-        //s = Math.sqrt(reserveQuote.mul(SLOPE_DENOM).mul(n + 1) / m);
-        s = result;
+        s = result >> precision;
         emit Deposit(msg.sender, reserveBase, reserveQuote, s);
     }
 

@@ -38,7 +38,7 @@ describe('DAOfiV1Pair', () => {
   let pairLinearSlopeHalf: Contract
 
   beforeEach(async () => {
-    const fixture = await pairFixture(provider, wallet, 10, 1, 3)
+    const fixture = await pairFixture(provider, wallet, 1e6, 1, 3)
     factory = fixture.factory
     token0 = fixture.token0
     tokenBase = fixture.tokenBase
@@ -46,21 +46,19 @@ describe('DAOfiV1Pair', () => {
     pair = fixture.pair
   })
 
-  it.only('deposit', async () => {
+  it.only('deposit: price 0', async () => {
     const tokenBaseAmount = expandTo18Decimals(1e6)
-    const tokenQuoteAmount = expandTo18Decimals(1e6)
-    const zero = expandTo18Decimals(0)
+    const tokenQuoteAmount = bigNumberify(0)
+    const expectedS = bigNumberify(0)
+
     await tokenBase.transfer(pair.address, tokenBaseAmount)
-    await tokenQuote.transfer(pair.address, tokenQuoteAmount)
 
     await expect(pair.deposit(overrides))
-      // .to.emit(pair, 'Deposit')
-      // .withArgs(wallet.address, tokenBaseAmount, tokenQuoteAmount, zero)
-      .to.emit(pair, 'Debug')
-      .withArgs(zero)
-
+      .to.emit(pair, 'Deposit')
+      .withArgs(wallet.address, tokenBaseAmount, tokenQuoteAmount, expectedS)
     expect(await tokenBase.balanceOf(pair.address)).to.eq(tokenBaseAmount)
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(tokenQuoteAmount)
+
     const reserves = await pair.getReserves()
     expect(reserves[0]).to.eq(token0 == tokenBase ? tokenBaseAmount : tokenQuoteAmount)
     expect(reserves[1]).to.eq(token0 == tokenBase ? tokenQuoteAmount : tokenBaseAmount)

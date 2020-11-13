@@ -17,7 +17,7 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
         return allPairs.length;
     }
 
-    function createPair(address tokenA, address tokenB, address baseToken, address pairOwner, uint256 m, uint32 n, uint32 fee) external override returns (address pair) {
+    function createPair(address tokenA, address tokenB, address baseToken, address pairOwner, uint32 m, uint32 n, uint32 fee) external override returns (address pair) {
         require(tokenA != tokenB, 'DAOfiV1: IDENTICAL_ADDRESSES');
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         require(token0 != address(0), 'DAOfiV1: ZERO_ADDRESS');
