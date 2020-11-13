@@ -54,8 +54,10 @@ describe('DAOfiV1Pair', () => {
     await tokenQuote.transfer(pair.address, tokenQuoteAmount)
 
     await expect(pair.deposit(overrides))
-      .to.emit(pair, 'Deposit')
-      .withArgs(wallet.address, tokenBaseAmount, tokenQuoteAmount, zero)
+      // .to.emit(pair, 'Deposit')
+      // .withArgs(wallet.address, tokenBaseAmount, tokenQuoteAmount, zero)
+      .to.emit(pair, 'Debug')
+      .withArgs(zero)
 
     expect(await tokenBase.balanceOf(pair.address)).to.eq(tokenBaseAmount)
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(tokenQuoteAmount)

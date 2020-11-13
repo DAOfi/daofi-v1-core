@@ -9,8 +9,11 @@ pragma experimental ABIEncoderV2;
  * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements;
  * and to You under the Apache License, Version 2.0. "
  */
+
+import './libraries/SafeMath.sol';
+
 contract Power {
-  string public version = "0.3";
+  using SafeMath  for uint;
 
   uint256 private constant ONE = 1;
   uint32 private constant MAX_WEIGHT = 1000000;
@@ -38,7 +41,9 @@ contract Power {
   */
   uint256[128] private maxExpArray;
 
-  constructor()  public {
+  event Debug(uint256 value);
+
+  constructor() public {
 //  maxExpArray[  0] = 0x6bffffffffffffffffffffffffffffffff;
 //  maxExpArray[  1] = 0x67ffffffffffffffffffffffffffffffff;
 //  maxExpArray[  2] = 0x637fffffffffffffffffffffffffffffff;
@@ -186,10 +191,11 @@ contract Power {
         Hence we need to determine the highest precision which can be used for the given input, before calling the exponentiation function.
         This allows us to compute "base ^ exp" with maximum accuracy and without exceeding 256 bits in any of the intermediate computations.
 */
-  function power(uint256 _baseN, uint256 _baseD, uint32 _expN, uint32 _expD) internal view returns (uint256, uint8) {
-    uint256 lnBaseTimesExp = ln(_baseN, _baseD) * _expN / _expD;
-    uint8 precision = findPositionInMaxExpArray(lnBaseTimesExp);
-    return (fixedExp(lnBaseTimesExp >> (MAX_PRECISION - precision), precision), precision);
+  function power(uint256 _baseN, uint256 _baseD, uint32 _expN, uint32 _expD) internal returns (uint256, uint8) {
+      // uint256 lnBaseTimesExp = ln(_baseN, _baseD) * _expN / _expD;
+      emit Debug(0);
+      // uint8 precision = findPositionInMaxExpArray(lnBaseTimesExp);
+      // return (fixedExp(lnBaseTimesExp >> (MAX_PRECISION - precision), precision), precision);
   }
 
   /**
@@ -200,7 +206,7 @@ contract Power {
     This functions assumes that the numerator is larger than or equal to the denominator, because the output would be negative otherwise.
   */
   function ln(uint256 _numerator, uint256 _denominator) internal pure returns (uint256) {
-    assert(_numerator <= MAX_NUM);
+    require(_numerator <= MAX_NUM, 'DAOfiV1: power numerator > MAX_NUM');
 
     uint256 res = 0;
     uint256 x = _numerator * FIXED_1 / _denominator;
