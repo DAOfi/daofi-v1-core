@@ -25,26 +25,26 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     address public baseToken;
     address public pairOwner;
     uint256 public s; // track base tokens issued
-    // price y = m(x ** n)
+    // price = m(s ** n)
     uint256 public m; // m / SLOPE_DENOM
     uint32 public n; //
     uint32 public fee;
 
-    uint256 private reserve0;           // uses single storage slot, accessible via getReserves
-    uint256 private reserve1;           // uses single storage slot, accessible via getReserves
+    uint256 private reserveBase;           // uses single storage slot, accessible via getReserves
+    uint256 private reserveQuote;           // uses single storage slot, accessible via getReserves
     uint32  public blockTimestampLast; // uses single storage slot, accessible via getReserves
 
     bool private deposited = false;
     uint private unlocked = 1;
 
-    event Deposit(address indexed sender, uint256 amount0, uint256 amount1);
+    event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 s);
     event Withdraw(address indexed sender, uint256 amountQuote, address indexed to);
     event Swap(
         address indexed sender,
-        uint256 amount0In,
-        uint256 amount1In,
-        uint256 amount0Out,
-        uint256 amount1Out,
+        uint256 amountBaseIn,
+        uint256 amountQuoteIn,
+        uint256 amountBaseOut,
+        uint256 amountQuoteOut,
         address indexed to
     );
 
@@ -55,9 +55,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         unlocked = 1;
     }
 
-    function getReserves() public override view returns (uint256 _reserve0, uint256 _reserve1, uint32 _blockTimestampLast) {
-        _reserve0 = reserve0;
-        _reserve1 = reserve1;
+    function getReserves() public override view returns (uint256 _reserveBase, uint256 _reserveQuote, uint32 _blockTimestampLast) {
+        _reserveBase = reserveBase;
+        _reserveQuote = reserveQuote;
         _blockTimestampLast = blockTimestampLast;
     }
 
@@ -110,48 +110,46 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     function deposit() external override {
         require(msg.sender == pairOwner, 'DAOfiV1: FORBIDDEN');
         require(deposited == false, 'DAOfiV1: DOUBLE_DEPOSIT');
-        reserve0 = IERC20(token0).balanceOf(address(this));
-        reserve1 = IERC20(token1).balanceOf(address(this));
+        reserveBase = IERC20(baseToken).balanceOf(address(this));
+        reserveQuote = IERC20(token0 == baseToken ? token1 : token0).balanceOf(address(this));
         // set initial s
         // quoteReserve = (slopeN * (s ** (n + 1))) / (slopeD * (n + 1))
         // solve for s
         // s = ((quoteReserve * slopeD * (n + 1)) / slopeN) ** (1 / (n + 1))
-        uint256 quoteReserve = token0 == baseToken ? reserve1 : reserve0;
-        (uint256 result, uint32 precision) = power(quoteReserve.mul(SLOPE_DENOM).mul(n + 1), m, 1, (n + 1));
+        // (uint256 result, uint32 precision) = power(reserveQuote.mul(SLOPE_DENOM).mul(n + 1), m, 1, (n + 1));
         deposited = true;
-        s = result >> precision;
-        emit Deposit(msg.sender, reserve0, reserve1, s);
+        // s = result >> precision;
+        emit Deposit(msg.sender, reserveBase, reserveQuote, s);
     }
 
     function withdraw(address to) external override lock {
         require(msg.sender == pairOwner, 'DAOfiV1: FORBIDDEN');
         address quoteToken = token0 == baseToken ? token1 : token0;
-        uint256 quoteReserve = token0 == baseToken ? reserve1 : reserve0;
-        uint256 quoteSurplus = IERC20(quoteToken).balanceOf(address(this)) - quoteReserve;
+        uint256 quoteSurplus = IERC20(quoteToken).balanceOf(address(this)) - reserveQuote;
         _safeTransfer(quoteToken, to, quoteSurplus);
         emit Withdraw(msg.sender, quoteSurplus, to);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
-    function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes calldata data) external override lock {
-        require(amount0Out > 0 || amount1Out > 0, 'DAOfiV1: INSUFFICIENT_OUTPUT_AMOUNT');
-        (uint256 _reserve0, uint256 _reserve1,)  = getReserves(); // gas savings
-        require(amount0Out < _reserve0 && amount1Out < _reserve1, 'DAOfiV1: INSUFFICIENT_LIQUIDITY');
-        uint256 balance0;
-        uint256 balance1;
-        { // scope for _token{0,1}, avoids stack too deep errors
-        address _token0 = token0;
-        address _token1 = token1;
-        require(to != _token0 && to != _token1, 'DAOfiV1: INVALID_TO');
-        if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
-        if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
-        if (data.length > 0) IDAOfiV1Callee(to).daofiV1Call(msg.sender, amount0Out, amount1Out, data);
-        balance0 = IERC20(_token0).balanceOf(address(this));
-        balance1 = IERC20(_token1).balanceOf(address(this));
-        }
-        uint256 amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
-        uint256 amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
-        require(amount0In > 0 || amount1In > 0, 'DAOfiV1: INSUFFICIENT_INPUT_AMOUNT');
+    function swap(uint256 amountBaseOut, uint256 amountQuoteOut, address to, bytes calldata data) external override lock {
+        // require(amount0Out > 0 || amount1Out > 0, 'DAOfiV1: INSUFFICIENT_OUTPUT_AMOUNT');
+        // (uint256 _reserve0, uint256 _reserve1,)  = getReserves(); // gas savings
+        // require(amount0Out < _reserve0 && amount1Out < _reserve1, 'DAOfiV1: INSUFFICIENT_LIQUIDITY');
+        // uint256 balance0;
+        // uint256 balance1;
+        // { // scope for _token{0,1}, avoids stack too deep errors
+        // address _token0 = token0;
+        // address _token1 = token1;
+        // require(to != _token0 && to != _token1, 'DAOfiV1: INVALID_TO');
+        // if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
+        // if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
+        // if (data.length > 0) IDAOfiV1Callee(to).daofiV1Call(msg.sender, amount0Out, amount1Out, data);
+        // balance0 = IERC20(_token0).balanceOf(address(this));
+        // balance1 = IERC20(_token1).balanceOf(address(this));
+        // }
+        // uint256 amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
+        // uint256 amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
+        // require(amount0In > 0 || amount1In > 0, 'DAOfiV1: INSUFFICIENT_INPUT_AMOUNT');
 
         // TODO replace this with our own balance check
         // { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
@@ -160,6 +158,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'DAOfiV1: K');
         // }
 
-        emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
+        emit Swap(msg.sender, 0, 0, amountBaseOut, amountQuoteOut, to);
     }
 }
