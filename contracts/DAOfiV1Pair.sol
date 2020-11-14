@@ -5,16 +5,18 @@ import './interfaces/IDAOfiV1Callee.sol';
 import './interfaces/IDAOfiV1Factory.sol';
 import './interfaces/IDAOfiV1Pair.sol';
 import './interfaces/IERC20.sol';
-import './libraries/Math.sol';
 import './libraries/SafeMath.sol';
 import './Power.sol';
 
 contract DAOfiV1Pair is IDAOfiV1Pair, Power {
-    using SafeMath  for uint;
+    using SafeMath for uint8;
+    using SafeMath for uint32;
+    using SafeMath for uint256;
 
     uint32 public constant SLOPE_DENOM = 10**6; // used to divide slope m
+    uint32 public constant MAX_SLOPE = SLOPE_DENOM * 3; // y = mx ** n, cap m to 3
     uint256 public constant MAX_FEE = 10; // 1%
-    uint256 public constant MAX_N = 10; // y = mx ** n
+    uint256 public constant MAX_N = 10; // y = mx ** n, cap n to 3
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 
     address public override factory;
@@ -33,6 +35,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint256 private reserveBase;       // uses single storage slot, accessible via getReserves
     uint256 private reserveQuote;      // uses single storage slot, accessible via getReserves
     uint32  public blockTimestampLast; // uses single storage slot, accessible via getReserves
+    uint256 private feesBase;       // uses single storage slot, accessible via getFees
+    uint256 private feesQuote;      // uses single storage slot, accessible via getFees
+
 
     bool private deposited = false;
     uint private unlocked = 1;
@@ -77,7 +82,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         m = SLOPE_DENOM;
         n = 1;
         fee = 3;
-        s = 0;
+        s = 1;
     }
 
     // called once by the factory at time of deployment
@@ -93,8 +98,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         require(msg.sender == factory, 'DAOfiV1: FORBIDDEN'); // sufficient check
         require(_pairOwner != address(0), 'DAOfiV1: owner can not be address(0)');
         require(_exp >= 1 && _exp <= MAX_N, 'DAOfiV1: exponent must be >= 1 and <= 10');
-        require(_slope >= 1, 'DAOfiV1: slope must be >= 1');
-        require(_fee >= 1 && _fee <= MAX_FEE, 'DAOfiV1: fee must be >= 1 and <= 10');
+        require(_slope >= 1 && _slope <= MAX_SLOPE, 'DAOfiV1: slope must be >= 1 and <= MAX_SLOPE');
+        require(_fee <= MAX_FEE, 'DAOfiV1: fee must be <= 10');
         token0 = _token0;
         token1 = _token1;
         baseToken = _baseToken;
@@ -102,7 +107,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         m = _slope;
         n = _exp;
         fee = _fee;
-        s = 0;
+        s = 1;
     }
 
     function setPairOwner(address _nextOwner) external override {
@@ -121,12 +126,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // s = ((quoteReserve * slopeD * (n + 1)) / slopeN) ** (1 / (n + 1))
         (uint256 result, uint8 precision) = power(reserveQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
         s = result >> precision;
-        uint output = s - 1;
+        uint256 output = s.sub(1);
         if (output > 0) {
             // return s - 1 base to the sender
             _safeTransfer(baseToken, pairOwner, output);
             // update reserves
-            reserveBase -= output;
+            reserveBase = reserveBase.sub(output);
         }
         // this function is locked
         deposited = true;
@@ -160,15 +165,33 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         if (amountBaseOut > 0) _safeTransfer(_tokenBase, to, amountBaseOut); // optimistically transfer tokens
         if (amountQuoteOut > 0) _safeTransfer(_tokenQuote, to, amountQuoteOut); // optimistically transfer tokens
         if (data.length > 0) IDAOfiV1Callee(to).daofiV1Call(msg.sender, amountBaseOut, amountQuoteOut, data);
-        balanceBase = IERC20(_tokenBase).balanceOf(address(this));
-        balanceQuote = IERC20(_tokenQuote).balanceOf(address(this));
+        balanceBase = IERC20(_tokenBase).balanceOf(address(this)).sub(feesBase);
+        balanceQuote = IERC20(_tokenQuote).balanceOf(address(this)).sub(feesQuote);
         }
         uint256 amountBaseIn = balanceBase > _reserveBase - amountBaseOut ? balanceBase - (_reserveBase - amountBaseOut) : 0;
         uint256 amountQuoteIn = balanceQuote > _reserveQuote - amountQuoteOut ? balanceQuote - (_reserveQuote - amountQuoteOut) : 0;
         require(amountBaseIn > 0 || amountQuoteIn > 0, 'DAOfiV1: INSUFFICIENT_INPUT_AMOUNT');
-
         // Check that inputs equal output
-        require(amountBaseOut == )
+        // start with trading quote to base
+        if (amountQuoteIn > 0) {
+            uint256 amountInWithFee = amountQuoteIn.mul(1000 - fee) / 1000;
+            (uint256 result, uint8 precision) = power((reserveQuote.add(amountInWithFee)).mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
+            require((result >> precision).sub(s) == amountBaseOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
+            s = s.add(amountBaseOut);
+            reserveQuote = reserveQuote.add(amountInWithFee);
+            reserveBase = reserveBase.sub(amountBaseOut);
+            feesQuote = feesQuote.add(amountQuoteIn).sub(amountInWithFee);
+        }
+        // now trade base to quote
+        if (amountBaseIn > 0) {
+            uint256 amountInWithFee = amountBaseIn.mul(1000 - fee) / 1000;
+            (uint256 result, uint8 precision) = power((s.sub(amountInWithFee)).mul(SLOPE_DENOM).mul(n + 1), m, (n + 1), uint32(1));
+            require(reserveQuote.sub(result >> precision) == amountQuoteOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
+            s = s.sub(amountInWithFee);
+            reserveQuote = reserveQuote.sub(amountQuoteOut);
+            reserveBase = reserveBase.add(amountInWithFee);
+            feesBase = feesBase.add(amountBaseIn).sub(amountInWithFee);
+        }
 
         emit Swap(msg.sender, amountBaseIn, amountQuoteIn, amountBaseOut, amountQuoteOut, to);
     }
