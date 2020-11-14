@@ -43,7 +43,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint private unlocked = 1;
 
     event Debug(uint256 value);
-    event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 output);
+    event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 output, address indexed to);
     event WithdrawFees(address indexed sender, uint256 amountQuote, address indexed to);
     event Close(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
     event Swap(
@@ -96,7 +96,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         uint32 _fee
     ) external override {
         require(msg.sender == factory, 'DAOfiV1: FORBIDDEN'); // sufficient check
-        require(_pairOwner != address(0), 'DAOfiV1: owner can not be address(0)');
         require(_exp >= 1 && _exp <= MAX_N, 'DAOfiV1: exponent must be >= 1 and <= 10');
         require(_slope >= 1 && _slope <= MAX_SLOPE, 'DAOfiV1: slope must be >= 1 and <= MAX_SLOPE');
         require(_fee <= MAX_FEE, 'DAOfiV1: fee must be <= 10');
@@ -116,8 +115,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     }
 
     function deposit(address to) external override lock {
-        require(msg.sender == pairOwner, 'DAOfiV1: FORBIDDEN');
-        require(to != baseToken, 'DAOfiV1: INVALID_RECIPIENT');
+        require(to == pairOwner, 'DAOfiV1: FORBIDDEN');
         require(deposited == false, 'DAOfiV1: DOUBLE_DEPOSIT');
         reserveBase = IERC20(baseToken).balanceOf(address(this));
         reserveQuote = IERC20(token0 == baseToken ? token1 : token0).balanceOf(address(this));
@@ -137,13 +135,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         }
         // this function is locked and the contract can not reset reserves
         deposited = true;
-        emit Deposit(msg.sender, reserveBase, reserveQuote, s);
+        emit Deposit(msg.sender, reserveBase, reserveQuote, s, to);
     }
 
     function close(address to) external override lock {
-        require(msg.sender == pairOwner, 'DAOfiV1: FORBIDDEN');
-        require(to != token0, 'DAOfiV1: INVALID_RECIPIENT');
-        require(to != token1, 'DAOfiV1: INVALID_RECIPIENT');
+        require(to == pairOwner, 'DAOfiV1: FORBIDDEN');
         address quoteToken = token0 == baseToken ? token1 : token0;
         uint256 totalBase = IERC20(baseToken).balanceOf(address(this));
         uint256 totalQuote = IERC20(quoteToken).balanceOf(address(this));

@@ -2,7 +2,7 @@ pragma solidity =0.6.6;
 pragma experimental ABIEncoderV2;
 
 interface IDAOfiV1Pair {
-    event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 output);
+    event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 output, address indexed to);
     event WithdrawFees(address indexed sender, uint256 amountQuote, address indexed to);
     event Close(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
     event Swap(
