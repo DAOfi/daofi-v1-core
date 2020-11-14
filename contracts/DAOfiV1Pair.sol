@@ -115,8 +115,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         pairOwner = _nextOwner;
     }
 
-    function deposit() external override lock {
+    function deposit(address to) external override lock {
         require(msg.sender == pairOwner, 'DAOfiV1: FORBIDDEN');
+        require(to != baseToken, 'DAOfiV1: INVALID_RECIPIENT');
         require(deposited == false, 'DAOfiV1: DOUBLE_DEPOSIT');
         reserveBase = IERC20(baseToken).balanceOf(address(this));
         reserveQuote = IERC20(token0 == baseToken ? token1 : token0).balanceOf(address(this));
@@ -129,8 +130,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             s = result >> precision;
         }
         if (s > 0) {
-            // return s - 1 base to the sender
-            _safeTransfer(baseToken, pairOwner, s);
+            // send s initial base to the specified address
+            _safeTransfer(baseToken, to, s);
             // update reserves
             reserveBase = reserveBase.sub(s);
         }
@@ -141,6 +142,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     function close(address to) external override lock {
         require(msg.sender == pairOwner, 'DAOfiV1: FORBIDDEN');
+        require(to != token0, 'DAOfiV1: INVALID_RECIPIENT');
+        require(to != token1, 'DAOfiV1: INVALID_RECIPIENT');
         address quoteToken = token0 == baseToken ? token1 : token0;
         uint256 totalBase = IERC20(baseToken).balanceOf(address(this));
         uint256 totalQuote = IERC20(quoteToken).balanceOf(address(this));

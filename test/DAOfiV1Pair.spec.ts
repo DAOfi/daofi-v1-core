@@ -42,7 +42,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     pair: Contract
   ) {
     await tokenBase.transfer(pair.address, baseReserve)
-    await pair.deposit(overrides)
+    await pair.deposit(wallet.address, overrides)
   }
 
   it('deposit: price 0', async () => {
@@ -50,7 +50,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     const expectedS = bigNumberify(0)
 
     await tokenBase.transfer(pair.address, baseReserve)
-    await expect(pair.deposit(overrides))
+    await expect(pair.deposit(wallet.address, overrides))
       .to.emit(pair, 'Deposit')
       .withArgs(wallet.address, baseReserve, zero, zero)
     expect(await pair.s()).to.eq(expectedS)
@@ -73,7 +73,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
 
     await tokenBase.transfer(pair.address, baseReserve)
     await tokenQuote.transfer(pair.address, quoteReserve)
-    await expect(pair.deposit(overrides))
+    await expect(pair.deposit(wallet.address, overrides))
       .to.emit(pair, 'Deposit')
       .withArgs(wallet.address, expectedBaseReserve, quoteReserve, expectedBaseOutput)
     expect(await pair.s()).to.eq(expectedS)
@@ -95,7 +95,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
 
     await tokenBase.transfer(pair.address, baseReserve)
     await tokenQuote.transfer(pair.address, quoteReserve)
-    await pair.deposit(overrides)
+    await pair.deposit(wallet.address, overrides)
 
     await expect(pair.close(wallet.address, overrides))
       .to.emit(pair, 'Close')
