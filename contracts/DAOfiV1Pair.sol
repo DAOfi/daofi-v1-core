@@ -114,7 +114,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         pairOwner = _nextOwner;
     }
 
-    function deposit(address to) external override lock {
+    function deposit(address to) external override lock returns (uint256 amountBase) {
         require(to == pairOwner, 'DAOfiV1: FORBIDDEN');
         require(deposited == false, 'DAOfiV1: DOUBLE_DEPOSIT');
         reserveBase = IERC20(baseToken).balanceOf(address(this));
@@ -133,21 +133,22 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             // update reserves
             reserveBase = reserveBase.sub(s);
         }
+        amountBase = s;
         // this function is locked and the contract can not reset reserves
         deposited = true;
-        emit Deposit(msg.sender, reserveBase, reserveQuote, s, to);
+        emit Deposit(msg.sender, reserveBase, reserveQuote, amountBase, to);
     }
 
-    function close(address to) external override lock {
+    function close(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(to == pairOwner, 'DAOfiV1: FORBIDDEN');
         address quoteToken = token0 == baseToken ? token1 : token0;
-        uint256 totalBase = IERC20(baseToken).balanceOf(address(this));
-        uint256 totalQuote = IERC20(quoteToken).balanceOf(address(this));
-        _safeTransfer(baseToken, to, totalBase);
-        _safeTransfer(quoteToken, to, totalQuote);
+        amountBase = IERC20(baseToken).balanceOf(address(this));
+        amountQuote = IERC20(quoteToken).balanceOf(address(this));
+        _safeTransfer(baseToken, to, amountBase);
+        _safeTransfer(quoteToken, to, amountQuote);
         reserveBase = 0;
         reserveQuote = 0;
-        emit Close(msg.sender, totalBase, totalQuote, to);
+        emit Close(msg.sender, amountBase, amountQuote, to);
     }
 
     // this low-level function should be called from a contract which performs important safety checks

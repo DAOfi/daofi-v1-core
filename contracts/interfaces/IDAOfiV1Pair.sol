@@ -27,8 +27,8 @@ interface IDAOfiV1Pair {
     function getCurveParams() external view returns (bytes memory params);
     function price0CumulativeLast() external view returns (uint256);
     function price1CumulativeLast() external view returns (uint256);
-    function deposit(address to) external;
-    function close(address to) external;
+    function deposit(address to) external returns (uint256 amountBase);
+    function close(address to) external returns (uint256 amountBase, uint256 amountQuote);
     function swap(uint256 amountBaseOut, uint256 amountQuoteOut, address to, bytes calldata data) external;
     function initialize(address, address, address, address, uint32, uint32, uint32) external;
     function setPairOwner(address) external;
