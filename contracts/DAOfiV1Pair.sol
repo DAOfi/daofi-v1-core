@@ -82,7 +82,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         m = SLOPE_DENOM;
         n = 1;
         fee = 3;
-        s = 1;
+        s = 0;
     }
 
     // called once by the factory at time of deployment
@@ -107,7 +107,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         m = _slope;
         n = _exp;
         fee = _fee;
-        s = 1;
+        s = 0;
     }
 
     function setPairOwner(address _nextOwner) external override {
@@ -124,18 +124,19 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // quoteReserve = (slopeN * (s ** (n + 1))) / (slopeD * (n + 1))
         // solve for s
         // s = ((quoteReserve * slopeD * (n + 1)) / slopeN) ** (1 / (n + 1))
-        (uint256 result, uint8 precision) = power(reserveQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
-        s = result >> precision;
-        uint256 output = s.sub(1);
-        if (output > 0) {
-            // return s - 1 base to the sender
-            _safeTransfer(baseToken, pairOwner, output);
-            // update reserves
-            reserveBase = reserveBase.sub(output);
+        if (reserveQuote > 0) {
+            (uint256 result, uint8 precision) = power(reserveQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
+            s = result >> precision;
         }
-        // this function is locked
+        if (s > 0) {
+            // return s - 1 base to the sender
+            _safeTransfer(baseToken, pairOwner, s);
+            // update reserves
+            reserveBase = reserveBase.sub(s);
+        }
+        // this function is locked and the contract can not reset reserves
         deposited = true;
-        emit Deposit(msg.sender, reserveBase, reserveQuote, output);
+        emit Deposit(msg.sender, reserveBase, reserveQuote, s);
     }
 
     function close(address to) external override lock {
@@ -185,8 +186,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // now trade base to quote
         if (amountBaseIn > 0) {
             uint256 amountInWithFee = amountBaseIn.mul(1000 - fee) / 1000;
-            (uint256 result, uint8 precision) = power((s.sub(amountInWithFee)).mul(SLOPE_DENOM).mul(n + 1), m, (n + 1), uint32(1));
-            require(reserveQuote.sub(result >> precision) == amountQuoteOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
+            (uint256 result, uint8 precision) = power(s.sub(amountInWithFee), uint32(1), (n + 1), uint32(1));
+            uint256 quoteAtS = (result >> precision).mul(m) / (SLOPE_DENOM.mul(n + 1));
+            require(reserveQuote.sub(quoteAtS) == amountQuoteOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
             s = s.sub(amountInWithFee);
             reserveQuote = reserveQuote.sub(amountQuoteOut);
             reserveBase = reserveBase.add(amountInWithFee);

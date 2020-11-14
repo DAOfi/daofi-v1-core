@@ -47,7 +47,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
 
   it('deposit: price 0', async () => {
     const baseReserve = expandTo18Decimals(1e6)
-    const expectedS = bigNumberify(1)
+    const expectedS = bigNumberify(0)
 
     await tokenBase.transfer(pair.address, baseReserve)
     await expect(pair.deposit(overrides))
@@ -67,8 +67,8 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     const baseReserve = expandTo18Decimals(1e6)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
-    const expectedBaseOutput = bigNumberify('9810134193')
-    const expectedS = expectedBaseOutput.add(1)
+    const expectedBaseOutput = bigNumberify('9810134194')
+    const expectedS = expectedBaseOutput
     const expectedBaseReserve = baseReserve.sub(expectedBaseOutput)
 
     await tokenBase.transfer(pair.address, baseReserve)
@@ -90,7 +90,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     const baseReserve = expandTo18Decimals(1e6)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
-    const expectedBaseOutput = bigNumberify('9810134193')
+    const expectedBaseOutput = bigNumberify('9810134194')
     const expectedBaseReserve = baseReserve.sub(expectedBaseOutput)
 
     await tokenBase.transfer(pair.address, baseReserve)
@@ -116,7 +116,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
 
     const quoteAmountIn = expandTo18Decimals(20)
     const quoteAmountInWithFee = expandToMDecimals(1994, 16)
-    const baseAmountOut = bigNumberify('6222312033')
+    const baseAmountOut = bigNumberify('6222312034')
     await tokenQuote.transfer(pair.address, quoteAmountIn)
     await expect(pair.swap(baseAmountOut, 0, wallet.address, '0x', overrides))
       .to.emit(tokenBase, 'Transfer')
@@ -133,8 +133,8 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteAmountIn))
 
     const baseAmountIn = baseAmountOut
-    const baseAmountInWithFee = bigNumberify('6203645096')
-    const quoteAmountOut = bigNumberify('19939416383120769615')
+    const baseAmountInWithFee = bigNumberify('6203645097')
+    const quoteAmountOut = bigNumberify('19939910692066958853')
     await tokenBase.transfer(pair.address, baseAmountIn)
     await expect(pair.swap(0, quoteAmountOut, wallet.address, '0x', overrides))
       .to.emit(tokenQuote, 'Transfer')
