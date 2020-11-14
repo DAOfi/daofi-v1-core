@@ -36,62 +36,71 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     pair = fixture.pair
   })
 
+  async function addLiquidity(
+    tokenBase: Contract,
+    baseReserve: BigNumber,
+    pair: Contract
+  ) {
+    await tokenBase.transfer(pair.address, baseReserve)
+    await pair.deposit(overrides)
+  }
+
   it('deposit: price 0', async () => {
-    const baseAmount = expandTo18Decimals(1e6)
+    const baseReserve = expandTo18Decimals(1e6)
     const expectedS = bigNumberify(1)
 
-    await tokenBase.transfer(pair.address, baseAmount)
+    await tokenBase.transfer(pair.address, baseReserve)
     await expect(pair.deposit(overrides))
       .to.emit(pair, 'Deposit')
-      .withArgs(wallet.address, baseAmount, zero, zero)
+      .withArgs(wallet.address, baseReserve, zero, zero)
     expect(await pair.s()).to.eq(expectedS)
     expect(await tokenBase.balanceOf(wallet.address)).to.eq(zero)
-    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseAmount)
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseReserve)
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(zero)
 
     const reserves = await pair.getReserves()
-    expect(reserves[0]).to.eq(baseAmount)
+    expect(reserves[0]).to.eq(baseReserve)
     expect(reserves[1]).to.eq(zero)
   })
 
   it('deposit: price 10', async () => {
-    const baseAmount = expandTo18Decimals(1e6)
-    const quoteAmountFloat = getReserveForStartPrice(10, 1, 1, 1)
-    const quoteAmount = expandTo18Decimals(quoteAmountFloat)
+    const baseReserve = expandTo18Decimals(1e6)
+    const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
+    const quoteReserve = expandTo18Decimals(quoteReserveFloat)
     const expectedBaseOutput = bigNumberify('9810134193')
     const expectedS = expectedBaseOutput.add(1)
-    const expectedBaseReserve = baseAmount.sub(expectedBaseOutput)
+    const expectedBaseReserve = baseReserve.sub(expectedBaseOutput)
 
-    await tokenBase.transfer(pair.address, baseAmount)
-    await tokenQuote.transfer(pair.address, quoteAmount)
+    await tokenBase.transfer(pair.address, baseReserve)
+    await tokenQuote.transfer(pair.address, quoteReserve)
     await expect(pair.deposit(overrides))
       .to.emit(pair, 'Deposit')
-      .withArgs(wallet.address, expectedBaseReserve, quoteAmount, expectedBaseOutput)
+      .withArgs(wallet.address, expectedBaseReserve, quoteReserve, expectedBaseOutput)
     expect(await pair.s()).to.eq(expectedS)
     expect(await tokenBase.balanceOf(wallet.address)).to.eq(expectedBaseOutput)
     expect(await tokenBase.balanceOf(pair.address)).to.eq(expectedBaseReserve)
-    expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmount)
+    expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteReserve)
 
     const reserves = await pair.getReserves()
     expect(reserves[0]).to.eq(expectedBaseReserve)
-    expect(reserves[1]).to.eq(quoteAmount)
+    expect(reserves[1]).to.eq(quoteReserve)
   })
 
   it('close:', async () => {
-    const baseAmount = expandTo18Decimals(1e6)
-    const quoteAmountFloat = getReserveForStartPrice(10, 1, 1, 1)
-    const quoteAmount = expandTo18Decimals(quoteAmountFloat)
+    const baseReserve = expandTo18Decimals(1e6)
+    const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
+    const quoteReserve = expandTo18Decimals(quoteReserveFloat)
     const expectedBaseOutput = bigNumberify('9810134193')
-    const expectedBaseReserve = baseAmount.sub(expectedBaseOutput)
+    const expectedBaseReserve = baseReserve.sub(expectedBaseOutput)
 
-    await tokenBase.transfer(pair.address, baseAmount)
-    await tokenQuote.transfer(pair.address, quoteAmount)
+    await tokenBase.transfer(pair.address, baseReserve)
+    await tokenQuote.transfer(pair.address, quoteReserve)
     await pair.deposit(overrides)
 
     await expect(pair.close(wallet.address, overrides))
       .to.emit(pair, 'Close')
-      .withArgs(wallet.address, expectedBaseReserve, quoteAmount, wallet.address)
-    expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseAmount)
+      .withArgs(wallet.address, expectedBaseReserve, quoteReserve, wallet.address)
+    expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseReserve)
     expect(await tokenQuote.balanceOf(wallet.address)).to.eq(expandTo18Decimals(1e6)) // all of the quote
     expect(await tokenBase.balanceOf(pair.address)).to.eq(zero)
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(zero)
@@ -102,20 +111,17 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   })
 
   it('swap: quote for base', async () => {
-    // const token0Amount = expandTo18Decimals(5)
-    // const token1Amount = expandTo18Decimals(10)
-    // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
+    const baseReserve = expandTo18Decimals(1e6)
+    await addLiquidity(tokenBase, baseReserve, pair)
 
-    // const swapAmount = expandTo18Decimals(1)
-    // const expectedOutputAmount = bigNumberify('1662497915624478906')
-    // await token0.transfer(pair.address, swapAmount)
-    // await expect(pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides))
-    //   .to.emit(token1, 'Transfer')
-    //   .withArgs(pair.address, wallet.address, expectedOutputAmount)
-    //   .to.emit(pair, 'Sync')
-    //   .withArgs(token0Amount.add(swapAmount), token1Amount.sub(expectedOutputAmount))
-    //   .to.emit(pair, 'Swap')
-    //   .withArgs(wallet.address, swapAmount, 0, 0, expectedOutputAmount, wallet.address)
+    const quoteAmountIn = expandTo18Decimals(10)
+    const expectedOutputAmount = bigNumberify('9810134193')
+    await tokenQuote.transfer(pair.address, quoteAmountIn)
+    await expect(pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides))
+      .to.emit(tokenBase, 'Transfer')
+      .withArgs(pair.address, wallet.address, expectedOutputAmount)
+      .to.emit(pair, 'Swap')
+      .withArgs(wallet.address, 0, quoteAmountIn, expectedOutputAmount, 0, wallet.address)
 
     // const reserves = await pair.getReserves()
     // expect(reserves[0]).to.eq(token0Amount.add(swapAmount))

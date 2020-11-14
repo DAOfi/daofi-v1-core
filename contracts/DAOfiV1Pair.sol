@@ -37,7 +37,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     bool private deposited = false;
     uint private unlocked = 1;
 
-    // event Debug(uint256 value);
+    event Debug(uint256 value);
     event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 output);
     event WithdrawFees(address indexed sender, uint256 amountQuote, address indexed to);
     event Close(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
@@ -147,32 +147,29 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     // this low-level function should be called from a contract which performs important safety checks
     function swap(uint256 amountBaseOut, uint256 amountQuoteOut, address to, bytes calldata data) external override lock {
-        // require(amount0Out > 0 || amount1Out > 0, 'DAOfiV1: INSUFFICIENT_OUTPUT_AMOUNT');
-        // (uint256 _reserve0, uint256 _reserve1,)  = getReserves(); // gas savings
-        // require(amount0Out < _reserve0 && amount1Out < _reserve1, 'DAOfiV1: INSUFFICIENT_LIQUIDITY');
-        // uint256 balance0;
-        // uint256 balance1;
-        // { // scope for _token{0,1}, avoids stack too deep errors
-        // address _token0 = token0;
-        // address _token1 = token1;
-        // require(to != _token0 && to != _token1, 'DAOfiV1: INVALID_TO');
-        // if (amount0Out > 0) _safeTransfer(_token0, to, amount0Out); // optimistically transfer tokens
-        // if (amount1Out > 0) _safeTransfer(_token1, to, amount1Out); // optimistically transfer tokens
-        // if (data.length > 0) IDAOfiV1Callee(to).daofiV1Call(msg.sender, amount0Out, amount1Out, data);
-        // balance0 = IERC20(_token0).balanceOf(address(this));
-        // balance1 = IERC20(_token1).balanceOf(address(this));
-        // }
-        // uint256 amount0In = balance0 > _reserve0 - amount0Out ? balance0 - (_reserve0 - amount0Out) : 0;
-        // uint256 amount1In = balance1 > _reserve1 - amount1Out ? balance1 - (_reserve1 - amount1Out) : 0;
-        // require(amount0In > 0 || amount1In > 0, 'DAOfiV1: INSUFFICIENT_INPUT_AMOUNT');
+        require(amountBaseOut > 0 || amountQuoteOut > 0, 'DAOfiV1: INSUFFICIENT_OUTPUT_AMOUNT');
+        (uint256 _reserveBase, uint256 _reserveQuote,)  = getReserves(); // gas savings
+        require(amountBaseOut <= _reserveBase && amountQuoteOut <= _reserveQuote, 'DAOfiV1: INSUFFICIENT_LIQUIDITY');
 
-        // // TODO replace this with our own balance check
-        // { // scope for reserve{0,1}Adjusted, avoids stack too deep errors
-        // uint balance0Adjusted = balance0.mul(1000).sub(amount0In.mul(fee));
-        // uint balance1Adjusted = balance1.mul(1000).sub(amount1In.mul(fee));
-        // require(balance0Adjusted.mul(balance1Adjusted) >= uint(_reserve0).mul(_reserve1).mul(1000**2), 'DAOfiV1: K');
-        // }
+        uint256 balanceBase;
+        uint256 balanceQuote;
+        { // scope for _token{0,1}, avoids stack too deep errors
+        address _tokenBase = baseToken;
+        address _tokenQuote = token0 == baseToken ? token1 : token0;
+        require(to != _tokenBase && to != _tokenQuote, 'DAOfiV1: INVALID_TO');
+        if (amountBaseOut > 0) _safeTransfer(_tokenBase, to, amountBaseOut); // optimistically transfer tokens
+        if (amountQuoteOut > 0) _safeTransfer(_tokenQuote, to, amountQuoteOut); // optimistically transfer tokens
+        if (data.length > 0) IDAOfiV1Callee(to).daofiV1Call(msg.sender, amountBaseOut, amountQuoteOut, data);
+        balanceBase = IERC20(_tokenBase).balanceOf(address(this));
+        balanceQuote = IERC20(_tokenQuote).balanceOf(address(this));
+        }
+        uint256 amountBaseIn = balanceBase > _reserveBase - amountBaseOut ? balanceBase - (_reserveBase - amountBaseOut) : 0;
+        uint256 amountQuoteIn = balanceQuote > _reserveQuote - amountQuoteOut ? balanceQuote - (_reserveQuote - amountQuoteOut) : 0;
+        require(amountBaseIn > 0 || amountQuoteIn > 0, 'DAOfiV1: INSUFFICIENT_INPUT_AMOUNT');
 
-        emit Swap(msg.sender, 0, 0, amountBaseOut, amountQuoteOut, to);
+        // Check that inputs equal output
+        require(amountBaseOut == )
+
+        emit Swap(msg.sender, amountBaseIn, amountQuoteIn, amountBaseOut, amountQuoteOut, to);
     }
 }
