@@ -38,7 +38,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint private unlocked = 1;
 
     // event Debug(uint256 value);
-    event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 s);
+    event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 output);
     event WithdrawFees(address indexed sender, uint256 amountQuote, address indexed to);
     event Close(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
     event Swap(
@@ -133,14 +133,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         emit Deposit(msg.sender, reserveBase, reserveQuote, output);
     }
 
-    function withdrawFees(address to) external override lock {
-        require(msg.sender == pairOwner, 'DAOfiV1: FORBIDDEN');
-        address quoteToken = token0 == baseToken ? token1 : token0;
-        uint256 quoteSurplus = IERC20(quoteToken).balanceOf(address(this)) - reserveQuote;
-        _safeTransfer(quoteToken, to, quoteSurplus);
-        emit WithdrawFees(msg.sender, quoteSurplus, to);
-    }
-
     function close(address to) external override lock {
         require(msg.sender == pairOwner, 'DAOfiV1: FORBIDDEN');
         address quoteToken = token0 == baseToken ? token1 : token0;
@@ -148,6 +140,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         uint256 totalQuote = IERC20(quoteToken).balanceOf(address(this));
         _safeTransfer(baseToken, to, totalBase);
         _safeTransfer(quoteToken, to, totalQuote);
+        reserveBase = 0;
+        reserveQuote = 0;
         emit Close(msg.sender, totalBase, totalQuote, to);
     }
 

@@ -28,7 +28,6 @@ interface IDAOfiV1Pair {
     function price0CumulativeLast() external view returns (uint256);
     function price1CumulativeLast() external view returns (uint256);
     function deposit() external;
-    function withdrawFees(address to) external;
     function close(address to) external;
     function swap(uint256 amountBaseOut, uint256 amountQuoteOut, address to, bytes calldata data) external;
     function initialize(address, address, address, address, uint32, uint32, uint32) external;

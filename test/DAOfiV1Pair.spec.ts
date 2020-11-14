@@ -3,15 +3,15 @@ import { Contract } from 'ethers'
 import { solidity, MockProvider } from 'ethereum-waffle'
 import { BigNumber, bigNumberify } from 'ethers/utils'
 
-import { getReserveForStartPrice, expandTo18Decimals, mineBlock, encodePrice } from './shared/utilities'
+import { getReserveForStartPrice, expandTo18Decimals } from './shared/utilities'
 import { pairFixture } from './shared/fixtures'
-import { AddressZero } from 'ethers/constants'
 
 chai.use(solidity)
 
 const overrides = {
   gasLimit: 9999999
 }
+const zero = bigNumberify(0)
 
 let factory: Contract
 let token0: Contract
@@ -19,7 +19,7 @@ let tokenBase: Contract
 let tokenQuote: Contract
 let pair: Contract
 
-describe('DAOfiV1Pair m = 1, n = 1', () => {
+describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   const provider = new MockProvider({
     hardfork: 'istanbul',
     mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
@@ -37,95 +37,71 @@ describe('DAOfiV1Pair m = 1, n = 1', () => {
   })
 
   it('deposit: price 0', async () => {
-    const tokenBaseAmount = expandTo18Decimals(1e6)
-    const tokenQuoteAmount = bigNumberify(0)
+    const baseAmount = expandTo18Decimals(1e6)
     const expectedS = bigNumberify(1)
-    const expectedBaseOutput = bigNumberify(0)
-    const expectedBaseReserve = tokenBaseAmount.sub(expectedBaseOutput)
 
-    await tokenBase.transfer(pair.address, tokenBaseAmount)
-
+    await tokenBase.transfer(pair.address, baseAmount)
     await expect(pair.deposit(overrides))
       .to.emit(pair, 'Deposit')
-      .withArgs(wallet.address, expectedBaseReserve, tokenQuoteAmount, expectedBaseOutput)
+      .withArgs(wallet.address, baseAmount, zero, zero)
     expect(await pair.s()).to.eq(expectedS)
-    expect(await tokenBase.balanceOf(wallet.address)).to.eq(expectedBaseOutput)
-    expect(await tokenBase.balanceOf(pair.address)).to.eq(expectedBaseReserve)
-    expect(await tokenQuote.balanceOf(pair.address)).to.eq(tokenQuoteAmount)
+    expect(await tokenBase.balanceOf(wallet.address)).to.eq(zero)
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseAmount)
+    expect(await tokenQuote.balanceOf(pair.address)).to.eq(zero)
 
     const reserves = await pair.getReserves()
-    expect(reserves[0]).to.eq(expectedBaseReserve)
-    expect(reserves[1]).to.eq(tokenQuoteAmount)
+    expect(reserves[0]).to.eq(baseAmount)
+    expect(reserves[1]).to.eq(zero)
   })
 
   it('deposit: price 10', async () => {
-    const tokenBaseAmount = expandTo18Decimals(1e6)
-    const suggestedQuote = getReserveForStartPrice(10, 1, 1, 1)
-    const tokenQuoteAmount = bigNumberify(Math.floor(suggestedQuote))
-    const expectedS = bigNumberify(9)
-    const expectedBaseOutput = bigNumberify(8)
-    const expectedBaseReserve = tokenBaseAmount.sub(expectedBaseOutput)
+    const baseAmount = expandTo18Decimals(1e6)
+    const quoteAmountFloat = getReserveForStartPrice(10, 1, 1, 1)
+    const quoteAmount = expandTo18Decimals(quoteAmountFloat)
+    const expectedBaseOutput = bigNumberify('9810134193')
+    const expectedS = expectedBaseOutput.add(1)
+    const expectedBaseReserve = baseAmount.sub(expectedBaseOutput)
 
-    await tokenBase.transfer(pair.address, tokenBaseAmount)
-    await tokenQuote.transfer(pair.address, tokenQuoteAmount)
-
+    await tokenBase.transfer(pair.address, baseAmount)
+    await tokenQuote.transfer(pair.address, quoteAmount)
     await expect(pair.deposit(overrides))
       .to.emit(pair, 'Deposit')
-      .withArgs(wallet.address, expectedBaseReserve, tokenQuoteAmount, expectedBaseOutput)
+      .withArgs(wallet.address, expectedBaseReserve, quoteAmount, expectedBaseOutput)
     expect(await pair.s()).to.eq(expectedS)
     expect(await tokenBase.balanceOf(wallet.address)).to.eq(expectedBaseOutput)
     expect(await tokenBase.balanceOf(pair.address)).to.eq(expectedBaseReserve)
-    expect(await tokenQuote.balanceOf(pair.address)).to.eq(tokenQuoteAmount)
+    expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmount)
 
     const reserves = await pair.getReserves()
     expect(reserves[0]).to.eq(expectedBaseReserve)
-    expect(reserves[1]).to.eq(tokenQuoteAmount)
+    expect(reserves[1]).to.eq(quoteAmount)
   })
 
-  const swapTestCases: BigNumber[][] = [
-    [1, 5, 10, '1662497915624478906'],
-    [1, 10, 5, '453305446940074565'],
+  it('close:', async () => {
+    const baseAmount = expandTo18Decimals(1e6)
+    const quoteAmountFloat = getReserveForStartPrice(10, 1, 1, 1)
+    const quoteAmount = expandTo18Decimals(quoteAmountFloat)
+    const expectedBaseOutput = bigNumberify('9810134193')
+    const expectedBaseReserve = baseAmount.sub(expectedBaseOutput)
 
-    [2, 5, 10, '2851015155847869602'],
-    [2, 10, 5, '831248957812239453'],
+    await tokenBase.transfer(pair.address, baseAmount)
+    await tokenQuote.transfer(pair.address, quoteAmount)
+    await pair.deposit(overrides)
 
-    [1, 10, 10, '906610893880149131'],
-    [1, 100, 100, '987158034397061298'],
-    [1, 1000, 1000, '996006981039903216']
-  ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
+    await expect(pair.close(wallet.address, overrides))
+      .to.emit(pair, 'Close')
+      .withArgs(wallet.address, expectedBaseReserve, quoteAmount, wallet.address)
+    expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseAmount)
+    expect(await tokenQuote.balanceOf(wallet.address)).to.eq(expandTo18Decimals(1e6)) // all of the quote
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(zero)
+    expect(await tokenQuote.balanceOf(pair.address)).to.eq(zero)
 
-  swapTestCases.forEach((swapTestCase, i) => {
-    it(`getInputPrice:${i}`, async () => {
-      // const [swapAmount, token0Amount, token1Amount, expectedOutputAmount] = swapTestCase
-      // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
-      // await token0.transfer(pair.address, swapAmount)
-      // await expect(pair.swap(0, expectedOutputAmount.add(1), wallet.address, '0x', overrides)).to.be.revertedWith(
-      //   'UniswapV2: K'
-      // )
-      // await pair.swap(0, expectedOutputAmount, wallet.address, '0x', overrides)
-    })
+    const reserves = await pair.getReserves()
+    expect(reserves[0]).to.eq(zero)
+    expect(reserves[1]).to.eq(zero)
   })
 
-  const optimisticTestCases: BigNumber[][] = [
-    ['997000000000000000', 5, 10, 1], // given amountIn, amountOut = floor(amountIn * .997)
-    ['997000000000000000', 10, 5, 1],
-    ['997000000000000000', 5, 5, 1],
-    [1, 5, 5, '1003009027081243732'] // given amountOut, amountIn = ceiling(amountOut / .997)
-  ].map(a => a.map(n => (typeof n === 'string' ? bigNumberify(n) : expandTo18Decimals(n))))
-
-  optimisticTestCases.forEach((optimisticTestCase, i) => {
-    it(`optimistic:${i}`, async () => {
-      // const [outputAmount, token0Amount, token1Amount, inputAmount] = optimisticTestCase
-      // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
-      // await token0.transfer(pair.address, inputAmount)
-      // await expect(pair.swap(outputAmount.add(1), 0, wallet.address, '0x', overrides)).to.be.revertedWith(
-      //   'UniswapV2: K'
-      // )
-      // await pair.swap(outputAmount, 0, wallet.address, '0x', overrides)
-    })
-  })
-
-  it('swap:token0', async () => {
+  it('swap: quote for base', async () => {
     // const token0Amount = expandTo18Decimals(5)
     // const token1Amount = expandTo18Decimals(10)
     // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
@@ -152,7 +128,7 @@ describe('DAOfiV1Pair m = 1, n = 1', () => {
     // expect(await token1.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(token1Amount).add(expectedOutputAmount))
   })
 
-  it('swap:token1', async () => {
+  it('swap: base for quote', async () => {
     // const token0Amount = expandTo18Decimals(5)
     // const token1Amount = expandTo18Decimals(10)
     // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
@@ -179,7 +155,7 @@ describe('DAOfiV1Pair m = 1, n = 1', () => {
     // expect(await token1.balanceOf(wallet.address)).to.eq(totalSupplyToken1.sub(token1Amount).sub(swapAmount))
   })
 
-  it('swap:gas', async () => {
+  it('swap: quote for base gas', async () => {
     // const token0Amount = expandTo18Decimals(5)
     // const token1Amount = expandTo18Decimals(10)
     // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
@@ -197,7 +173,26 @@ describe('DAOfiV1Pair m = 1, n = 1', () => {
     // expect(receipt.gasUsed).to.eq(78465)
   })
 
-  it('price{0,1}CumulativeLast', async () => {
+  it('swap: quote for base gas', async () => {
+    // const token0Amount = expandTo18Decimals(5)
+    // const token1Amount = expandTo18Decimals(10)
+    // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
+
+    // // ensure that setting price{0,1}CumulativeLast for the first time doesn't affect our gas math
+    // await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
+    // await pair.sync(overrides)
+
+    // const swapAmount = expandTo18Decimals(1)
+    // const expectedOutputAmount = bigNumberify('453305446940074565')
+    // await token1.transfer(pair.address, swapAmount)
+    // await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
+    // const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
+    // const receipt = await tx.wait()
+    // expect(receipt.gasUsed).to.eq(78465)
+  })
+
+  it('price{quote,base}CumulativeLast', async () => {
+    console.log('TODO')
     // const token0Amount = expandTo18Decimals(3)
     // const token1Amount = expandTo18Decimals(3)
     // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
@@ -231,7 +226,7 @@ describe('DAOfiV1Pair m = 1, n = 1', () => {
   })
 })
 
-describe('DAOfiV1Pair m = 2, n = 1', () => {
+describe('DAOfiV1Pair: m = 2, n = 1, fee = 3', () => {
   const provider = new MockProvider({
     hardfork: 'istanbul',
     mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
@@ -249,5 +244,6 @@ describe('DAOfiV1Pair m = 2, n = 1', () => {
   })
 
   it('deposit: price 0', async () => {
+    console.log('TODO')
   })
 })

@@ -1,18 +1,19 @@
 {
-  "name": "@daofi/uniswap-v2-core",
-  "description": "🎛 Core contracts for the UniswapV2 protocol",
+  "name": "@daofi/daofi-v1-core",
+  "description": "🎛 Core contracts for the DAOfi V1 protocol",
   "version": "1.3.3",
-  "homepage": "https://uniswap.org",
+  "homepage": "https://github.com/DAOfi",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DAOfi/uniswap-v2-core"
+    "url": "https://github.com/DAOfi/daofi-v1-core"
   },
   "keywords": [
+    "daofi",
     "uniswap",
     "ethereum",
-    "v2",
+    "v1",
     "core",
-    "uniswap-v2"
+    "daofi-v1"
   ],
   "files": [
     "contracts",
