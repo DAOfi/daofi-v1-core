@@ -23,6 +23,8 @@ interface IDAOfiV1Pair {
     function n() external view returns (uint32);
     function fee() external view returns (uint32);
     function s() external view returns (uint256);
+    function initialize(address, address, address, address, uint32, uint32, uint32) external;
+    function setPairOwner(address) external;
     function getReserves() external view returns (uint256 reserveBase, uint256 reserveQuote, uint32 blockTimestampLast);
     function getCurveParams() external view returns (bytes memory params);
     function price0CumulativeLast() external view returns (uint256);
@@ -30,10 +32,6 @@ interface IDAOfiV1Pair {
     function deposit(address to) external returns (uint256 amountBase);
     function close(address to) external returns (uint256 amountBase, uint256 amountQuote);
     function swap(uint256 amountBaseOut, uint256 amountQuoteOut, address to, bytes calldata data) external;
-    function initialize(address, address, address, address, uint32, uint32, uint32) external;
-    function setPairOwner(address) external;
-    function quote(uint256 amountBaseIn) external view returns (uint256 amountQuoteOut);
-    function base(uint256 amountQuoteIn) external view returns (uint256 amountBaseOut);
     function getBaseOut(uint256 amountQuoteIn) external view returns (uint256 amountBaseOut);
     function getQuoteOut(uint256 amountBaseIn) external view returns (uint256 amountQuoteOut);
     function getBaseIn(uint256 amountQuoteOut) external view returns (uint256 amountBaseIn);

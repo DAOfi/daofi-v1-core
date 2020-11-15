@@ -176,8 +176,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // start with trading quote to base
         if (amountQuoteIn > 0) {
             uint256 amountInWithFee = amountQuoteIn.mul(1000 - fee) / 1000;
-            (uint256 result, uint8 precision) = power((reserveQuote.add(amountInWithFee)).mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
-            require((result >> precision).sub(s) == amountBaseOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
+            require(getBaseOut(amountInWithFee) == amountBaseOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
             s = s.add(amountBaseOut);
             reserveQuote = reserveQuote.add(amountInWithFee);
             reserveBase = reserveBase.sub(amountBaseOut);
@@ -186,9 +185,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // now trade base to quote
         if (amountBaseIn > 0) {
             uint256 amountInWithFee = amountBaseIn.mul(1000 - fee) / 1000;
-            (uint256 result, uint8 precision) = power(s.sub(amountInWithFee), uint32(1), (n + 1), uint32(1));
-            uint256 quoteAtS = (result >> precision).mul(m) / (SLOPE_DENOM.mul(n + 1));
-            require(reserveQuote.sub(quoteAtS) == amountQuoteOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
+            require(getQuoteOut(amountInWithFee) == amountQuoteOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
             s = s.sub(amountInWithFee);
             reserveQuote = reserveQuote.sub(amountQuoteOut);
             reserveBase = reserveBase.add(amountInWithFee);
@@ -196,5 +193,49 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         }
 
         emit Swap(msg.sender, amountBaseIn, amountQuoteIn, amountBaseOut, amountQuoteOut, to);
+    }
+
+    function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut)
+    {
+        (uint256 result, uint8 precision) = power(
+            (reserveQuote.add(amountQuoteIn)).mul(SLOPE_DENOM).mul(n + 1),
+            m,
+            uint32(1),
+            (n + 1)
+        );
+        amountBaseOut = (result >> precision).sub(s);
+    }
+
+    function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut)
+    {
+        (uint256 result, uint8 precision) = power(
+            s.sub(amountBaseIn),
+            uint32(1),
+            (n + 1),
+            uint32(1
+        ));
+        amountQuoteOut = reserveQuote.sub((result >> precision).mul(m) / SLOPE_DENOM.mul(n + 1));
+    }
+
+    function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn)
+    {
+        (uint256 result, uint8 precision) = power(
+            (reserveQuote.sub(amountQuoteOut)).mul(SLOPE_DENOM).mul(n + 1),
+            m,
+            uint32(1),
+            (n + 1)
+        );
+        amountBaseIn = s.sub(result >> precision);
+    }
+
+    function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn)
+    {
+        (uint256 result, uint8 precision) = power(
+            s.add(amountBaseOut),
+            uint32(1),
+            (n + 1),
+            uint32(1
+        ));
+        amountQuoteIn = ((result >> precision).mul(m) / SLOPE_DENOM.mul(n + 1)).sub(reserveQuote);
     }
 }
