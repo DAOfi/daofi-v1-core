@@ -8,7 +8,15 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
     mapping(address => mapping(address => mapping(bytes => address))) public pairs;
     address[] public override allPairs;
 
-    event PairCreated(address indexed token0, address indexed token1, address pair, uint);
+    event PairCreated(
+        address indexed token0,
+        address indexed token1,
+        uint32 m,
+        uint32 n,
+        uint32 fee,
+        address pair,
+        uint length
+    );
 
     constructor() public {
     }
@@ -42,6 +50,6 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
         pairs[token0][token1][abi.encode(m, n, fee)] = pair;
         pairs[token1][token0][abi.encode(m, n, fee)] = pair; // populate mapping in the reverse direction
         allPairs.push(pair);
-        emit PairCreated(token0, token1, pair, allPairs.length);
+        emit PairCreated(token0, token1, m, n, fee, pair, allPairs.length);
     }
 }

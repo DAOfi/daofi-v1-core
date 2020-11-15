@@ -29,17 +29,25 @@ describe('DAOfiV1Factory', () => {
   const loadFixture = createFixtureLoader(provider, [wallet, other])
   let factory: Contract
 
-  async function createPair(tokens: [string, string], baseToken: string, owner:string, slope: any, exp: number, fee:number) {
+  async function createPair(tokens: [string, string], baseToken: string, owner:string, m: any, n: number, fee:number) {
     const bytecode = `0x${DAOfiV1Pair.evm.bytecode.object}`
-    const create2Address = getCreate2Address(factory.address, tokens, bytecode)
-    await expect(factory.createPair(...tokens, tokens[1], owner, slope, exp, fee))
+    const create2Address = getCreate2Address(factory.address, tokens, m, n, fee, bytecode)
+    await expect(factory.createPair(...tokens, tokens[1], owner, m, n, fee))
       .to.emit(factory, 'PairCreated')
-      .withArgs(TEST_ADDRESSES[0], TEST_ADDRESSES[1], create2Address, bigNumberify(1))
+      .withArgs(
+        TEST_ADDRESSES[0],
+        TEST_ADDRESSES[1],
+        bigNumberify(m),
+        bigNumberify(n),
+        bigNumberify(fee),
+        create2Address,
+        bigNumberify(1)
+      )
 
-    await expect(factory.createPair(...tokens, tokens[1], owner, slope, exp, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
-    await expect(factory.createPair(...tokens.slice().reverse(), tokens[1], owner, slope, exp, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
-    expect(await factory.getPair(...tokens)).to.eq(create2Address)
-    expect(await factory.getPair(...tokens.slice().reverse())).to.eq(create2Address)
+    await expect(factory.createPair(...tokens, tokens[1], owner, m, n, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
+    await expect(factory.createPair(...tokens.slice().reverse(), tokens[1], owner, m, n, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
+    expect(await factory.getPair(...tokens, m, n, fee)).to.eq(create2Address)
+    expect(await factory.getPair(...tokens.slice().reverse(), m, n, fee)).to.eq(create2Address)
     expect(await factory.allPairs(0)).to.eq(create2Address)
     expect(await factory.allPairsLength()).to.eq(1)
 
@@ -65,6 +73,6 @@ describe('DAOfiV1Factory', () => {
   it('createPair:gas', async () => {
     const tx = await factory.createPair(...TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(4228353)
+    expect(receipt.gasUsed).to.eq(4914508)
   })
 })

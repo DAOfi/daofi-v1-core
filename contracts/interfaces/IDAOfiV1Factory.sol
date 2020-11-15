@@ -8,7 +8,8 @@ interface IDAOfiV1Factory {
         uint32 m,
         uint32 n,
         uint32 fee,
-        address pair
+        address pair,
+        uint length
     );
 
     function getPair(address tokenA, address tokenB, uint32 m, uint32 n, uint32 fee)

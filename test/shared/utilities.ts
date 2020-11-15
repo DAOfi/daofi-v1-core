@@ -40,13 +40,14 @@ function getDomainSeparator(name: string, tokenAddress: string) {
 export function getCreate2Address(
   factoryAddress: string,
   [tokenA, tokenB]: [string, string],
+  m: number, n: number, fee: number,
   bytecode: string
 ): string {
   const [token0, token1] = tokenA < tokenB ? [tokenA, tokenB] : [tokenB, tokenA]
   const create2Inputs = [
     '0xff',
     factoryAddress,
-    keccak256(solidityPack(['address', 'address'], [token0, token1])),
+    keccak256(solidityPack(['address', 'address', 'uint32','uint32','uint32'], [token0, token1, m, n, fee])),
     keccak256(bytecode)
   ]
   const sanitizedInputs = `0x${create2Inputs.map(i => i.slice(2)).join('')}`
