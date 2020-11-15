@@ -32,4 +32,10 @@ interface IDAOfiV1Pair {
     function swap(uint256 amountBaseOut, uint256 amountQuoteOut, address to, bytes calldata data) external;
     function initialize(address, address, address, address, uint32, uint32, uint32) external;
     function setPairOwner(address) external;
+    function quote(uint256 amountBaseIn) external view returns (uint256 amountQuoteOut);
+    function base(uint256 amountQuoteIn) external view returns (uint256 amountBaseOut);
+    function getBaseOut(uint256 amountQuoteIn) external view returns (uint256 amountBaseOut);
+    function getQuoteOut(uint256 amountBaseIn) external view returns (uint256 amountQuoteOut);
+    function getBaseIn(uint256 amountQuoteOut) external view returns (uint256 amountBaseIn);
+    function getQuoteIn(uint256 amountBaseOut) external view returns (uint256 amountQuoteIn);
 }
