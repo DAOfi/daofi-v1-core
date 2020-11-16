@@ -16,7 +16,6 @@ const TEST_ADDRESSES: [string, string] = [
   '0x2000000000000000000000000000000000000000'
 ]
 
-
 describe('DAOfiV1Factory', () => {
   const provider = new MockProvider({
     hardfork: 'istanbul',
