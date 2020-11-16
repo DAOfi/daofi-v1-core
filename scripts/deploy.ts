@@ -1,6 +1,6 @@
 import { ethers } from 'ethers'
 import { deployContract } from 'ethereum-waffle'
-import UniswapV2Factory from '../build/UniswapV2Factory.json'
+import DAOfiV1Factory from '../build/DAOfiV1Factory.json'
 
 async function main() {
   const provider = new ethers.providers.JsonRpcProvider('https://dai.poa.network', 100)
@@ -8,10 +8,8 @@ async function main() {
   console.log('wallet', wallet.address)
   const factory = await deployContract(
     wallet,
-    UniswapV2Factory,
-    [
-      wallet.address
-    ],
+    DAOfiV1Factory,
+    [],
     {
       chainId: 100,
       gasLimit: 9999999,
