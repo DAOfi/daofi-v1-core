@@ -1,4 +1,5 @@
-pragma solidity =0.6.6;
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
 
 import './interfaces/IDAOfiV1Factory.sol';
@@ -8,17 +9,7 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
     mapping(address => mapping(address => mapping(bytes => address))) public pairs;
     address[] public override allPairs;
 
-    event PairCreated(
-        address indexed token0,
-        address indexed token1,
-        uint32 m,
-        uint32 n,
-        uint32 fee,
-        address pair,
-        uint length
-    );
-
-    constructor() public {
+    constructor() {
     }
 
     function getPair(address token0, address token1, uint32 m, uint32 n, uint32 fee)

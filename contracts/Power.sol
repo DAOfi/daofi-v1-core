@@ -1,5 +1,8 @@
-pragma solidity =0.6.6;
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
+
+import './libraries/SafeMath.sol';
 
 /**
  * bancor formula by bancor
@@ -10,8 +13,6 @@ pragma experimental ABIEncoderV2;
  * and to You under the Apache License, Version 2.0. "
  */
 
-import './libraries/SafeMath.sol';
-
 contract Power {
     using SafeMath  for uint8;
     using SafeMath  for uint32;
@@ -21,7 +22,7 @@ contract Power {
     uint8 private constant MIN_PRECISION = 32;
     uint8 private constant MAX_PRECISION = 127;
 
-    /**
+    /*
       The values below depend on MAX_PRECISION. If you choose to change it:
       Apply the same change in file 'PrintIntScalingFactors.py', run it and paste the results below.
     */
@@ -29,14 +30,14 @@ contract Power {
     uint256 private constant FIXED_2 = 0x100000000000000000000000000000000;
     uint256 private constant MAX_NUM = 0x1ffffffffffffffffffffffffffffffff;
 
-    /**
+    /*
       The values below depend on MAX_PRECISION. If you choose to change it:
       Apply the same change in file 'PrintLn2ScalingFactors.py', run it and paste the results below.
     */
     uint256 private constant LN2_MANTISSA = 0x2c5c85fdf473de6af278ece600fcbda;
     uint8   private constant LN2_EXPONENT = 122;
 
-    /**
+    /*
       The values below depend on MIN_PRECISION and MAX_PRECISION. If you choose to change either one of them:
       Apply the same change in file 'PrintFunctionBancorFormula.py', run it and paste the results below.
     */
@@ -44,7 +45,7 @@ contract Power {
 
     // event Debug(uint256 value);
 
-    constructor() public {
+    constructor() {
         maxExpArray[  0] = 0x6bffffffffffffffffffffffffffffffff;
         maxExpArray[  1] = 0x67ffffffffffffffffffffffffffffffff;
         maxExpArray[  2] = 0x637fffffffffffffffffffffffffffffff;

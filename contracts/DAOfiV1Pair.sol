@@ -1,4 +1,5 @@
-pragma solidity =0.6.6;
+// SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
 
 import './interfaces/IDAOfiV1Callee.sol';
@@ -42,18 +43,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     bool private deposited = false;
     uint private unlocked = 1;
 
-    event Debug(uint256 value);
-    event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 output, address indexed to);
-    event WithdrawFees(address indexed sender, uint256 amountQuote, address indexed to);
-    event Close(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
-    event Swap(
-        address indexed sender,
-        uint256 amountBaseIn,
-        uint256 amountQuoteIn,
-        uint256 amountBaseOut,
-        uint256 amountQuoteOut,
-        address indexed to
-    );
+    // event Debug(uint256 value);
 
     modifier lock() {
         require(unlocked == 1, 'DAOfiV1: LOCKED');
@@ -77,7 +67,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'DAOfiV1: TRANSFER_FAILED');
     }
 
-    constructor() public {
+    constructor() {
         factory = msg.sender;
         m = SLOPE_DENOM;
         n = 1;
