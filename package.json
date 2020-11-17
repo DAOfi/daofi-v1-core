@@ -1,18 +1,19 @@
 {
-  "name": "@defiinvest.tech/uniswap-v2-xdai",
-  "description": "🎛 Core contracts for the UniswapV2 protocol",
-  "version": "1.0.1-beta.5",
-  "homepage": "https://uniswap.org",
+  "name": "@daofi/daofi-v1-core",
+  "description": "🎛 Core contracts for the DAOfi V1 protocol",
+  "version": "1.4.0-rc.3",
+  "homepage": "https://github.com/DAOfi",
   "repository": {
     "type": "git",
-    "url": "https://github.com/alexanvl/uniswap-v2-xdai"
+    "url": "https://github.com/DAOfi/daofi-v1-core"
   },
   "keywords": [
+    "daofi",
     "uniswap",
     "ethereum",
-    "v2",
+    "v1",
     "core",
-    "uniswap-v2"
+    "daofi-v1"
   ],
   "files": [
     "contracts",
@@ -30,7 +31,7 @@
     "mocha": "^6.2.2",
     "prettier": "^1.19.1",
     "rimraf": "^3.0.0",
-    "solc": "0.5.16",
+    "solc": "0.7.4",
     "ts-node": "^8.5.4",
     "typescript": "^3.7.3"
   },

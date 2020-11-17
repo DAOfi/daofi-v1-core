@@ -15,7 +15,11 @@ const PERMIT_TYPEHASH = keccak256(
 )
 
 export function expandTo18Decimals(n: number): BigNumber {
-  return bigNumberify(n).mul(bigNumberify(10).pow(18))
+  return expandToMDecimals(n, 18)
+}
+
+export function expandToMDecimals(n: number, m: number): BigNumber {
+  return bigNumberify(n).mul(bigNumberify(10).pow(m))
 }
 
 function getDomainSeparator(name: string, tokenAddress: string) {
@@ -36,13 +40,14 @@ function getDomainSeparator(name: string, tokenAddress: string) {
 export function getCreate2Address(
   factoryAddress: string,
   [tokenA, tokenB]: [string, string],
+  m: number, n: number, fee: number,
   bytecode: string
 ): string {
   const [token0, token1] = tokenA < tokenB ? [tokenA, tokenB] : [tokenB, tokenA]
   const create2Inputs = [
     '0xff',
     factoryAddress,
-    keccak256(solidityPack(['address', 'address'], [token0, token1])),
+    keccak256(solidityPack(['address', 'address', 'uint32','uint32','uint32'], [token0, token1, m, n, fee])),
     keccak256(bytecode)
   ]
   const sanitizedInputs = `0x${create2Inputs.map(i => i.slice(2)).join('')}`
@@ -94,6 +99,12 @@ export async function mineBlock(provider: Web3Provider, timestamp: number): Prom
   })
 }
 
-export function encodePrice(reserve0: BigNumber, reserve1: BigNumber) {
-  return [reserve1.mul(bigNumberify(2).pow(112)).div(reserve0), reserve0.mul(bigNumberify(2).pow(112)).div(reserve1)]
+// y = mx ** n
+// given y = price and x = s, solve for s
+// then plug s into the antiderivative
+// y' = (slopeN * x ** (n + 1)) / (slopeD * (n + 1))
+// y' = quote reserve at price
+export function getReserveForStartPrice(price: number, slopeN: number, slopeD: number, n: number): number {
+  const s = (price * (slopeD / slopeN)) ** (1 / n)
+  return (slopeN * (s ** (n + 1))) / (slopeD * (n + 1))
 }
