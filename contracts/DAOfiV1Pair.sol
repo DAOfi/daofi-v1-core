@@ -39,7 +39,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint32  public blockTimestampLast; // uses single storage slot, accessible via getReserves
     uint256 private feesBase;
     uint256 private feesQuote;
-    uint256 private scale;
 
     bool private deposited = false;
     uint private unlocked = 1;
@@ -100,10 +99,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         n = _exp;
         fee = _fee;
         s = 0;
-        // uint8 decimals = IERC20(baseToken).decimals();
-        // require(decimals > 8, 'DAOfiV1: INVALID_PRECISION');
-        // scale = (10 ** (IERC20(baseToken).decimals() - 9));
-        scale = 1;
     }
 
     function setPairOwner(address _nextOwner) external override {
