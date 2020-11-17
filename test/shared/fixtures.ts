@@ -39,7 +39,16 @@ export async function pairFixture(
   const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(1e6)], overrides)
   const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(1e6)], overrides)
   await factory.createPair(
-    tokenA.address, tokenB.address, tokenA.address, wallet.address, m, n, fee, overrides)
+    wallet.address, // router is ourself in tests
+    tokenA.address,
+    tokenB.address,
+    tokenA.address, // base token
+    wallet.address,
+    m,
+    n,
+    fee,
+    overrides
+  )
   const pairAddress = await factory.getPair(tokenA.address, tokenB.address, m, n, fee)
   const pair = new Contract(pairAddress, JSON.stringify(DAOfiV1Pair.abi), provider).connect(wallet)
   const token0Address = (await pair.token0()).address

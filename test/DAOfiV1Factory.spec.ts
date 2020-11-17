@@ -28,10 +28,10 @@ describe('DAOfiV1Factory', () => {
   const loadFixture = createFixtureLoader(provider, [wallet, other])
   let factory: Contract
 
-  async function createPair(tokens: [string, string], baseToken: string, owner:string, m: any, n: number, fee:number) {
+  async function createPair(router: string, tokenA:string, tokenB: string, baseToken: string, owner:string, m: any, n: number, fee:number) {
     const bytecode = `0x${DAOfiV1Pair.evm.bytecode.object}`
-    const create2Address = getCreate2Address(factory.address, tokens, m, n, fee, bytecode)
-    await expect(factory.createPair(...tokens, tokens[1], owner, m, n, fee))
+    const create2Address = getCreate2Address(factory.address, [tokenA, tokenB], m, n, fee, bytecode)
+    await expect(factory.createPair(owner, tokenA, tokenB, tokenA, owner, m, n, fee))
       .to.emit(factory, 'PairCreated')
       .withArgs(
         TEST_ADDRESSES[0],
@@ -43,10 +43,10 @@ describe('DAOfiV1Factory', () => {
         bigNumberify(1)
       )
 
-    await expect(factory.createPair(...tokens, tokens[1], owner, m, n, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
-    await expect(factory.createPair(...tokens.slice().reverse(), tokens[1], owner, m, n, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
-    expect(await factory.getPair(...tokens, m, n, fee)).to.eq(create2Address)
-    expect(await factory.getPair(...tokens.slice().reverse(), m, n, fee)).to.eq(create2Address)
+    await expect(factory.createPair(owner, tokenA, tokenB, tokenA, owner, m, n, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
+    await expect(factory.createPair(owner, tokenB, tokenA, tokenA, owner, m, n, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
+    expect(await factory.getPair(tokenA, tokenB, m, n, fee)).to.eq(create2Address)
+    expect(await factory.getPair(tokenB, tokenA, m, n, fee)).to.eq(create2Address)
     expect(await factory.allPairs(0)).to.eq(create2Address)
     expect(await factory.allPairsLength()).to.eq(1)
 
@@ -62,16 +62,16 @@ describe('DAOfiV1Factory', () => {
   })
 
   it('createPair', async () => {
-    await createPair(TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
+    await createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
   })
 
   it('createPair:reverse', async () => {
-    await createPair(TEST_ADDRESSES.slice().reverse() as [string, string], TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
+    await createPair(wallet.address, TEST_ADDRESSES[1], TEST_ADDRESSES[0], TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
   })
 
   it('createPair:gas', async () => {
-    const tx = await factory.createPair(...TEST_ADDRESSES, TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
+    const tx = await factory.createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(4893403)
+    expect(receipt.gasUsed).to.eq(4275683)
   })
 })

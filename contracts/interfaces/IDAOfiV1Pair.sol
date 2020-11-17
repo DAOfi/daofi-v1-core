@@ -24,7 +24,7 @@ interface IDAOfiV1Pair {
     function n() external view returns (uint32);
     function fee() external view returns (uint32);
     function s() external view returns (uint256);
-    function initialize(address, address, address, address, uint32, uint32, uint32) external;
+    function initialize(address, address, address, address, address, uint32, uint32, uint32) external;
     function setPairOwner(address) external;
     function getReserves() external view returns (uint256 reserveBase, uint256 reserveQuote, uint32 blockTimestampLast);
     function getCurveParams() external view returns (bytes memory params);

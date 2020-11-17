@@ -18,6 +18,7 @@ interface IDAOfiV1Factory {
     function allPairs(uint) external view returns (address pair);
     function allPairsLength() external view returns (uint);
     function createPair(
+        address router,
         address tokenA,
         address tokenB,
         address baseToken,

@@ -23,10 +23,12 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
     }
 
     function createPair(
+        address router,
         address tokenA,
         address tokenB,
         address baseToken,
-        address pairOwner, uint32 m, uint32 n, uint32 fee
+        address pairOwner,
+        uint32 m, uint32 n, uint32 fee
     ) external override returns (address pair) {
         require(tokenA != tokenB, 'DAOfiV1: IDENTICAL_ADDRESSES');
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
@@ -37,7 +39,7 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
         assembly {
             pair := create2(0, add(bytecode, 32), mload(bytecode), salt)
         }
-        IDAOfiV1Pair(pair).initialize(token0, token1, baseToken, pairOwner, m, n, fee);
+        IDAOfiV1Pair(pair).initialize(router, token0, token1, baseToken, pairOwner, m, n, fee);
         pairs[token0][token1][abi.encode(m, n, fee)] = pair;
         pairs[token1][token0][abi.encode(m, n, fee)] = pair; // populate mapping in the reverse direction
         allPairs.push(pair);

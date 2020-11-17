@@ -33,12 +33,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint32 public override n; //
     uint32 public override fee;
 
+    address private router;
     uint256 private reserveBase;       // uses single storage slot, accessible via getReserves
     uint256 private reserveQuote;      // uses single storage slot, accessible via getReserves
     uint32  public blockTimestampLast; // uses single storage slot, accessible via getReserves
-    uint256 private feesBase;       // uses single storage slot, accessible via getFees
-    uint256 private feesQuote;      // uses single storage slot, accessible via getFees
-
+    uint256 private feesBase;
+    uint256 private feesQuote;
+    uint256 private scale;
 
     bool private deposited = false;
     uint private unlocked = 1;
@@ -77,6 +78,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     // called once by the factory at time of deployment
     function initialize(
+        address _router,
         address _token0,
         address _token1,
         address _baseToken,
@@ -86,9 +88,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         uint32 _fee
     ) external override {
         require(msg.sender == factory, 'DAOfiV1: FORBIDDEN'); // sufficient check
-        require(_exp >= 1 && _exp <= MAX_N, 'DAOfiV1: exponent must be >= 1 and <= 10');
-        require(_slope >= 1 && _slope <= MAX_SLOPE, 'DAOfiV1: slope must be >= 1 and <= MAX_SLOPE');
-        require(_fee <= MAX_FEE, 'DAOfiV1: fee must be <= 10');
+        require(_exp >= 1 && _exp <= MAX_N, 'DAOfiV1: INVALID_EXPONENT');
+        require(_slope >= 1 && _slope <= MAX_SLOPE, 'DAOfiV1: INVALID_SLOPE');
+        require(_fee <= MAX_FEE, 'DAOfiV1: INVALID_FEE');
+        router = _router;
         token0 = _token0;
         token1 = _token1;
         baseToken = _baseToken;
@@ -97,6 +100,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         n = _exp;
         fee = _fee;
         s = 0;
+        // uint8 decimals = IERC20(baseToken).decimals();
+        // require(decimals > 8, 'DAOfiV1: INVALID_PRECISION');
+        // scale = (10 ** (IERC20(baseToken).decimals() - 9));
+        scale = 1;
     }
 
     function setPairOwner(address _nextOwner) external override {
@@ -105,10 +112,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     }
 
     function deposit(address to) external override lock returns (uint256 amountBase) {
-        require(to == pairOwner, 'DAOfiV1: FORBIDDEN');
+        require(msg.sender == router, 'DAOfiV1: FORBIDDEN');
         require(deposited == false, 'DAOfiV1: DOUBLE_DEPOSIT');
         reserveBase = IERC20(baseToken).balanceOf(address(this));
         reserveQuote = IERC20(token0 == baseToken ? token1 : token0).balanceOf(address(this));
+
         // set initial s from quoteReserve
         // quoteReserve = (slopeN * (s ** (n + 1))) / (slopeD * (n + 1))
         // solve for s
@@ -117,20 +125,22 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             (uint256 result, uint8 precision) = power(reserveQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
             s = result >> precision;
         }
+
         if (s > 0) {
+            amountBase = s;
             // send s initial base to the specified address
-            _safeTransfer(baseToken, to, s);
+            _safeTransfer(baseToken, to, amountBase);
             // update reserves
-            reserveBase = reserveBase.sub(s);
+            reserveBase = reserveBase.sub(amountBase);
         }
-        amountBase = s;
+
         // this function is locked and the contract can not reset reserves
         deposited = true;
         emit Deposit(msg.sender, reserveBase, reserveQuote, amountBase, to);
     }
 
     function close(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
-        require(to == pairOwner, 'DAOfiV1: FORBIDDEN');
+        require(msg.sender == router, 'DAOfiV1: FORBIDDEN');
         address quoteToken = token0 == baseToken ? token1 : token0;
         amountBase = IERC20(baseToken).balanceOf(address(this));
         amountQuote = IERC20(quoteToken).balanceOf(address(this));
@@ -215,7 +225,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             uint32(1),
             (n + 1)
         );
-        amountBaseIn = s.sub(result >> precision);
+        amountBaseIn = (result >> precision);
     }
 
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn)
