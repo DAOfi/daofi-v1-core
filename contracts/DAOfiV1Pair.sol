@@ -2,14 +2,18 @@
 pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
 
+import '@uniswap/lib/contracts/libraries/FixedPoint.sol';
 import './interfaces/IDAOfiV1Callee.sol';
 import './interfaces/IDAOfiV1Factory.sol';
 import './interfaces/IDAOfiV1Pair.sol';
 import './interfaces/IERC20.sol';
+import './libraries/Math.sol';
 import './libraries/SafeMath.sol';
 import './Power.sol';
 
 contract DAOfiV1Pair is IDAOfiV1Pair, Power {
+    using SafeMath for int;
+    using SafeMath for uint;
     using SafeMath for uint8;
     using SafeMath for uint32;
     using SafeMath for uint256;
@@ -19,13 +23,14 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint256 public constant MAX_FEE = 10; // 1%
     uint256 public constant MAX_N = 10; // y = mx ** n, cap n to 3
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
-
+    uint8 private constant INTERNAL_DECIMALS = 9;
     address public override factory;
     address public override token0;
     address public override token1;
     uint256 public override price0CumulativeLast;
     uint256 public override price1CumulativeLast;
     address public override baseToken;
+    address public override quoteToken;
     address public override pairOwner;
     uint256 public override s; // track base tokens issued
     // price = m(s ** n)
@@ -42,6 +47,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     bool private deposited = false;
     uint private unlocked = 1;
+    uint8 private baseDecimals;
+    uint8 private quoteDecimals;
 
     // event Debug(uint256 value);
 
@@ -87,18 +94,56 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         uint32 _fee
     ) external override {
         require(msg.sender == factory, 'DAOfiV1: FORBIDDEN'); // sufficient check
-        require(_exp >= 1 && _exp <= MAX_N, 'DAOfiV1: INVALID_EXPONENT');
+        require(_baseToken == _token0 || _baseToken == _token1, 'DAOfiV1: INVALID_BASETOKEN');
         require(_slope >= 1 && _slope <= MAX_SLOPE, 'DAOfiV1: INVALID_SLOPE');
+        require(_exp >= 1 && _exp <= MAX_N, 'DAOfiV1: INVALID_EXPONENT');
         require(_fee <= MAX_FEE, 'DAOfiV1: INVALID_FEE');
         router = _router;
         token0 = _token0;
         token1 = _token1;
         baseToken = _baseToken;
+        quoteToken = token0 == baseToken ? token1 : token0;
         pairOwner = _pairOwner;
         m = _slope;
         n = _exp;
         fee = _fee;
         s = 0;
+    }
+
+        // update reserves and, on the first call per block, price accumulators
+    // function _update(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {
+    //     require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
+    //     uint32 blockTimestamp = uint32(block.timestamp % 2**32);
+    //     uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
+    //     if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
+    //         // * never overflows, and + overflow is desired
+    //         price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
+    //         price1CumulativeLast += uint(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
+    //     }
+    //     reserve0 = uint112(balance0);
+    //     reserve1 = uint112(balance1);
+    //     blockTimestampLast = blockTimestamp;
+    //     emit Sync(reserve0, reserve1);
+    // }
+
+    function _convertSDecimals(uint256 amountIn, uint8 decimals, bool toInternal) internal pure returns (uint256 amountOut) {
+        amountOut = amountIn;
+        if (amountIn > 0) {
+            int diff = decimals - INTERNAL_DECIMALS;
+            if (!toInternal) {
+                diff = -diff;
+            }
+            if (diff > 0) {
+                amountOut = FixedPoint.decode(
+                    FixedPoint.fraction(
+                        uint112(amountIn),
+                        uint112(10 ** Math.abs(diff))
+                    )
+                );
+            } else if (diff < 0 ) {
+                amountOut = amountIn * (10 ** Math.abs(diff));
+            }
+        }
     }
 
     function setPairOwner(address _nextOwner) external override {
@@ -109,8 +154,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     function deposit(address to) external override lock returns (uint256 amountBase) {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN');
         require(deposited == false, 'DAOfiV1: DOUBLE_DEPOSIT');
+        baseDecimals = IERC20(baseToken).decimals();
+        quoteDecimals = IERC20(quoteToken).decimals();
         reserveBase = IERC20(baseToken).balanceOf(address(this));
-        reserveQuote = IERC20(token0 == baseToken ? token1 : token0).balanceOf(address(this));
+        reserveQuote = IERC20(quoteToken).balanceOf(address(this));
 
         // set initial s from quoteReserve
         // quoteReserve = (slopeN * (s ** (n + 1))) / (slopeD * (n + 1))
@@ -122,7 +169,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         }
 
         if (s > 0) {
-            amountBase = s;
+            amountBase = _convertSDecimals(s, baseDecimals, false);
             // send s initial base to the specified address
             _safeTransfer(baseToken, to, amountBase);
             // update reserves
@@ -136,7 +183,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     function close(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN');
-        address quoteToken = token0 == baseToken ? token1 : token0;
         amountBase = IERC20(baseToken).balanceOf(address(this));
         amountQuote = IERC20(quoteToken).balanceOf(address(this));
         _safeTransfer(baseToken, to, amountBase);
@@ -172,7 +218,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         if (amountQuoteIn > 0) {
             uint256 amountInWithFee = amountQuoteIn.mul(1000 - fee) / 1000;
             require(getBaseOut(amountInWithFee) == amountBaseOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
-            s = s.add(amountBaseOut);
+            s = s.add(_convertSDecimals(amountBaseOut, baseDecimals, true));
             reserveQuote = reserveQuote.add(amountInWithFee);
             reserveBase = reserveBase.sub(amountBaseOut);
             feesQuote = feesQuote.add(amountQuoteIn).sub(amountInWithFee);
@@ -181,11 +227,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         if (amountBaseIn > 0) {
             uint256 amountInWithFee = amountBaseIn.mul(1000 - fee) / 1000;
             require(getQuoteOut(amountInWithFee) == amountQuoteOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
-            s = s.sub(amountInWithFee);
+            s = s.sub(_convertSDecimals(amountInWithFee, baseDecimals, true));
             reserveQuote = reserveQuote.sub(amountQuoteOut);
             reserveBase = reserveBase.add(amountInWithFee);
             feesBase = feesBase.add(amountBaseIn).sub(amountInWithFee);
         }
+
+        require(_convertSDecimals(s, baseDecimals, false) <= IERC20(baseToken).totalSupply(), 'DAOfiV1: INSUFFICIENT_SUPPLY');
 
         emit Swap(msg.sender, amountBaseIn, amountQuoteIn, amountBaseOut, amountQuoteOut, to);
     }
@@ -198,11 +246,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             uint32(1),
             (n + 1)
         );
-        amountBaseOut = (result >> precision).sub(s);
+        amountBaseOut = _convertSDecimals((result >> precision).sub(s), baseDecimals, false);
     }
 
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut)
     {
+        amountBaseIn = _convertSDecimals(amountBaseIn, baseDecimals, true);
         (uint256 result, uint8 precision) = power(
             s.sub(amountBaseIn),
             uint32(1),
@@ -220,11 +269,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             uint32(1),
             (n + 1)
         );
-        amountBaseIn = (result >> precision);
+        amountBaseIn = _convertSDecimals((result >> precision), baseDecimals, false);
     }
 
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn)
     {
+        amountBaseOut = _convertSDecimals(amountBaseOut, baseDecimals, true);
         (uint256 result, uint8 precision) = power(
             s.add(amountBaseOut),
             uint32(1),

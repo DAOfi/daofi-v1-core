@@ -12,6 +12,7 @@ const overrides = {
   gasLimit: 9999999
 }
 const zero = bigNumberify(0)
+const DECIMALS = 18
 
 let factory: Contract
 let token0: Contract
@@ -38,69 +39,95 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
 
   async function addLiquidity(
     tokenBase: Contract,
-    baseReserve: BigNumber,
+    baseSupply: BigNumber,
     pair: Contract
   ) {
-    await tokenBase.transfer(pair.address, baseReserve)
+    await tokenBase.transfer(pair.address, baseSupply)
     await pair.deposit(wallet.address, overrides)
   }
 
-  it('deposit: price 0', async () => {
-    const baseReserve = expandTo18Decimals(1e6)
+  it('deposit: only once', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    const expectedBaseReserve = baseSupply
     const expectedS = bigNumberify(0)
 
-    await tokenBase.transfer(pair.address, baseReserve)
+    await tokenBase.transfer(pair.address, baseSupply)
     await expect(pair.deposit(wallet.address, overrides))
       .to.emit(pair, 'Deposit')
-      .withArgs(wallet.address, baseReserve, zero, zero, wallet.address)
+      .withArgs(wallet.address, expectedBaseReserve, zero, zero, wallet.address)
     expect(await pair.s()).to.eq(expectedS)
     expect(await tokenBase.balanceOf(wallet.address)).to.eq(zero)
-    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseReserve)
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply)
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(zero)
 
     const reserves = await pair.getReserves()
-    expect(reserves[0]).to.eq(baseReserve)
+    expect(reserves[0]).to.eq(expectedBaseReserve)
     expect(reserves[1]).to.eq(zero)
+
+    await expect(pair.deposit(wallet.address, overrides))
+      .to.be.revertedWith('DOUBLE_DEPOSIT')
   })
 
-  it('deposit: price 10', async () => {
-    const baseReserve = expandTo18Decimals(1e6)
-    const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
-    const quoteReserve = expandTo18Decimals(quoteReserveFloat)
-    const expectedBaseOutput = bigNumberify('9810134194')
-    const expectedS = expectedBaseOutput
-    const expectedBaseReserve = baseReserve.sub(expectedBaseOutput)
 
-    await tokenBase.transfer(pair.address, baseReserve)
-    await tokenQuote.transfer(pair.address, quoteReserve)
-    await expect(pair.deposit(wallet.address, overrides))
-      .to.emit(pair, 'Deposit')
-      .withArgs(wallet.address, expectedBaseReserve, quoteReserve, expectedBaseOutput, wallet.address)
-    expect(await pair.s()).to.eq(expectedS)
-    expect(await tokenBase.balanceOf(wallet.address)).to.eq(expectedBaseOutput)
-    expect(await tokenBase.balanceOf(pair.address)).to.eq(expectedBaseReserve)
-    expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteReserve)
+  // price in quote
+  // sacle for big num conversion
+  // decimals for bignum conversion
+  // expected base output
+  // expected s
+  const depositTestCases: any[][] = [
+    [0.1,   100,  16, '0',                        '0'],
+    [0.2,   100,  16, '199734438000000000',       '199734438'],
+    [1,     10,   17, '995443602000000000',       '995443602'],
+    [10,    1,    18, '9810134194000000000',      '9810134194'],
+    [100,   1,    18, '94272026473000000000',     '94272026473'],
+    [1000,  1,    18, '866695866786000000000',    '866695866786'],
+    [10000, 1,    18, '7484129637737000000000',   '7484129637737'],
+    [40000, 1,    18, '26432889401827000000000',  '26432889401827'],
+  ]
 
-    const reserves = await pair.getReserves()
-    expect(reserves[0]).to.eq(expectedBaseReserve)
-    expect(reserves[1]).to.eq(quoteReserve)
+  // Deposit tests which return base:
+  depositTestCases.forEach((depositTestCase, i) => {
+    it.only(`deposit: ${i}`, async () => {
+      const [price, priceFactor, M, baseOutput, s] = depositTestCase
+      const baseSupply = expandTo18Decimals(1e9)
+      const quoteReserveFloat = getReserveForStartPrice(price, 1, 1, 1)
+      const quoteReserve = expandToMDecimals(Math.floor(quoteReserveFloat * priceFactor), M)
+      const expectedQuoteReserve = quoteReserve
+      const expectedBaseOutput = bigNumberify(baseOutput)
+      const expectedS = bigNumberify(s)
+      const expectedBaseReserve = baseSupply.sub(baseOutput)
+
+      await tokenBase.transfer(pair.address, baseSupply)
+      await tokenQuote.transfer(pair.address, quoteReserve)
+      await expect(pair.deposit(wallet.address, overrides))
+        .to.emit(pair, 'Deposit')
+        .withArgs(wallet.address, expectedBaseReserve, expectedQuoteReserve, expectedBaseOutput, wallet.address)
+      expect(await pair.s()).to.eq(expectedS)
+      expect(await tokenBase.balanceOf(wallet.address)).to.eq(expectedBaseOutput)
+      expect(await tokenBase.balanceOf(pair.address)).to.eq(expectedBaseReserve)
+      expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteReserve)
+
+      const reserves = await pair.getReserves()
+      expect(reserves[0]).to.eq(expectedBaseReserve)
+      expect(reserves[1]).to.eq(expectedQuoteReserve)
+    })
   })
 
   it('close:', async () => {
-    const baseReserve = expandTo18Decimals(1e6)
+    const baseSupply = expandTo18Decimals(1e9)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
     const expectedBaseOutput = bigNumberify('9810134194')
-    const expectedBaseReserve = baseReserve.sub(expectedBaseOutput)
+    const expectedBaseReserve = baseSupply.sub(expectedBaseOutput)
 
-    await tokenBase.transfer(pair.address, baseReserve)
+    await tokenBase.transfer(pair.address, baseSupply)
     await tokenQuote.transfer(pair.address, quoteReserve)
     await pair.deposit(wallet.address, overrides)
 
     await expect(pair.close(wallet.address, overrides))
       .to.emit(pair, 'Close')
       .withArgs(wallet.address, expectedBaseReserve, quoteReserve, wallet.address)
-    expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseReserve)
+    expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseSupply)
     expect(await tokenQuote.balanceOf(wallet.address)).to.eq(await tokenQuote.totalSupply())
     expect(await tokenBase.balanceOf(pair.address)).to.eq(zero)
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(zero)
@@ -111,8 +138,8 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   })
 
   it('swap: quote for base and back to quote', async () => {
-    const baseReserve = expandTo18Decimals(1e6)
-    await addLiquidity(tokenBase, baseReserve, pair)
+    const baseSupply = expandTo18Decimals(1e9)
+    await addLiquidity(tokenBase, baseSupply, pair)
 
     const quoteAmountIn = expandTo18Decimals(20)
     const quoteAmountInWithFee = expandToMDecimals(1994, 16)
@@ -125,9 +152,9 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
       .withArgs(wallet.address, 0, quoteAmountIn, baseAmountOut, 0, wallet.address)
 
     const reservesA = await pair.getReserves()
-    expect(reservesA[0]).to.eq(baseReserve.sub(baseAmountOut))
+    expect(reservesA[0]).to.eq(baseSupply.sub(baseAmountOut))
     expect(reservesA[1]).to.eq(quoteAmountInWithFee)
-    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseReserve.sub(baseAmountOut))
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply.sub(baseAmountOut))
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn)
     expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseAmountOut)
     expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteAmountIn))
@@ -143,9 +170,9 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
       .withArgs(wallet.address, baseAmountIn, 0, 0, quoteAmountOut, wallet.address)
 
     const reservesB = await pair.getReserves()
-    expect(reservesB[0]).to.eq(baseReserve.sub(baseAmountOut).add(baseAmountInWithFee))
+    expect(reservesB[0]).to.eq(baseSupply.sub(baseAmountOut).add(baseAmountInWithFee))
     expect(reservesB[1]).to.eq(quoteAmountInWithFee.sub(quoteAmountOut))
-    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseReserve)
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply)
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn.sub(quoteAmountOut))
     expect(await tokenBase.balanceOf(wallet.address)).to.eq(zero)
     expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteAmountIn).add(quoteAmountOut))

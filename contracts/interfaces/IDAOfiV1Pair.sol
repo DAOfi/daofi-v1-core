@@ -19,6 +19,7 @@ interface IDAOfiV1Pair {
     function token0() external view returns (address);
     function token1() external view returns (address);
     function baseToken() external view returns (address);
+    function quoteToken() external view returns (address);
     function pairOwner() external view returns (address);
     function m() external view returns (uint32);
     function n() external view returns (uint32);
