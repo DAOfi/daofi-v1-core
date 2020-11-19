@@ -50,7 +50,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint8 private baseDecimals;
     uint8 private quoteDecimals;
 
-    // event Debug(uint256 value);
+    event Debug(uint256 value);
 
     modifier lock() {
         require(unlocked == 1, 'DAOfiV1: LOCKED');
@@ -181,7 +181,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         emit Deposit(msg.sender, reserveBase, reserveQuote, amountBase, to);
     }
 
-    function close(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
+    function withdraw(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN');
         amountBase = IERC20(baseToken).balanceOf(address(this));
         amountQuote = IERC20(quoteToken).balanceOf(address(this));
@@ -189,7 +189,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         _safeTransfer(quoteToken, to, amountQuote);
         reserveBase = 0;
         reserveQuote = 0;
-        emit Close(msg.sender, amountBase, amountQuote, to);
+        emit Withdraw(msg.sender, amountBase, amountQuote, to);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
