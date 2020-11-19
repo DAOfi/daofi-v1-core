@@ -24,12 +24,12 @@ library Math {
     }
 
     function abs(int256 x) internal pure returns (uint256 y) {
-      if (x < 0) {
-          y = uint256(-x);
-      } else if (x > 0) {
-          y = uint256(x);
-      } else {
-          y = 0;
-      }
+        if (x < 0) {
+            y = uint256(-x);
+        } else if (x > 0) {
+            y = uint256(x);
+        } else {
+            y = 0;
+        }
     }
 }

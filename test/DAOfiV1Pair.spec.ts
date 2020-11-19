@@ -28,6 +28,15 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   })
   const [wallet] = provider.getWallets()
 
+  async function addLiquidity(
+    tokenBase: Contract,
+    baseReserve: BigNumber,
+    pair: Contract
+  ) {
+    await tokenBase.transfer(pair.address, baseReserve)
+    await pair.deposit(wallet.address, overrides)
+  }
+
   beforeEach(async () => {
     const fixture = await pairFixture(provider, wallet, 1e6, 1, 3)
     factory = fixture.factory
@@ -36,15 +45,6 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     tokenQuote = fixture.tokenQuote
     pair = fixture.pair
   })
-
-  async function addLiquidity(
-    tokenBase: Contract,
-    baseSupply: BigNumber,
-    pair: Contract
-  ) {
-    await tokenBase.transfer(pair.address, baseSupply)
-    await pair.deposit(wallet.address, overrides)
-  }
 
   it('deposit: only once', async () => {
     const baseSupply = expandTo18Decimals(1e9)
