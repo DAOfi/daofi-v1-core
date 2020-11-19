@@ -12,7 +12,6 @@ const overrides = {
   gasLimit: 9999999
 }
 const zero = bigNumberify(0)
-const DECIMALS = 18
 
 let factory: Contract
 let token0: Contract
