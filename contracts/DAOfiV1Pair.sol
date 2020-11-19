@@ -126,7 +126,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     //     emit Sync(reserve0, reserve1);
     // }
 
-    function _convertDecimals(uint256 amountIn, uint8 decimals, uint8 target, bool toTarget) internal pure returns (uint256 amountOut) {
+    function _convertToDecimals(uint256 amountIn, uint8 decimals, uint8 target, bool toTarget) internal pure returns (uint256 amountOut) {
         amountOut = amountIn;
         if (amountIn > 0) {
             int diff = decimals - target;
@@ -157,7 +157,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         baseDecimals = IERC20(baseToken).decimals();
         quoteDecimals = IERC20(quoteToken).decimals();
         reserveBase = IERC20(baseToken).balanceOf(address(this));
-        reserveQuote = IERC20(quoteToken).balanceOf(address(this));
+        reserveQuote = _convertToDecimals(IERC20(quoteToken).balanceOf(address(this)), quoteDecimals, baseDecimals, true);
 
         // set initial s from quoteReserve
         // quoteReserve = (slopeN * (s ** (n + 1))) / (slopeD * (n + 1))
@@ -169,7 +169,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         }
 
         if (s > 0) {
-            amountBase = _convertDecimals(s, baseDecimals, INTERNAL_DECIMALS, false);
+            amountBase = _convertToDecimals(s, baseDecimals, INTERNAL_DECIMALS, false);
             // send s initial base to the specified address
             _safeTransfer(baseToken, to, amountBase);
             // update reserves
@@ -208,17 +208,18 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         if (amountQuoteOut > 0) _safeTransfer(_tokenQuote, to, amountQuoteOut); // optimistically transfer tokens
         if (data.length > 0) IDAOfiV1Callee(to).daofiV1Call(msg.sender, amountBaseOut, amountQuoteOut, data);
         balanceBase = IERC20(_tokenBase).balanceOf(address(this)).sub(feesBase);
-        balanceQuote = IERC20(_tokenQuote).balanceOf(address(this)).sub(feesQuote);
+        balanceQuote = _convertToDecimals(IERC20(_tokenQuote).balanceOf(address(this)).sub(feesQuote), quoteDecimals, baseDecimals, true);
         }
+        uint256 amountQuoteOutScaled = _convertToDecimals(amountQuoteOut, quoteDecimals, baseDecimals, true);
         uint256 amountBaseIn = balanceBase > _reserveBase - amountBaseOut ? balanceBase - (_reserveBase - amountBaseOut) : 0;
-        uint256 amountQuoteIn = balanceQuote > _reserveQuote - amountQuoteOut ? balanceQuote - (_reserveQuote - amountQuoteOut) : 0;
+        uint256 amountQuoteIn = balanceQuote > _reserveQuote - amountQuoteOutScaled ? balanceQuote - (_reserveQuote - amountQuoteOutScaled) : 0;
         require(amountBaseIn > 0 || amountQuoteIn > 0, 'DAOfiV1: INSUFFICIENT_INPUT_AMOUNT');
         // Check that inputs equal output
         // start with trading quote to base
         if (amountQuoteIn > 0) {
             uint256 amountInWithFee = amountQuoteIn.mul(1000 - fee) / 1000;
             require(getBaseOut(amountInWithFee) == amountBaseOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
-            s = s.add(_convertDecimals(amountBaseOut, baseDecimals, INTERNAL_DECIMALS, true));
+            s = s.add(_convertToDecimals(amountBaseOut, baseDecimals, INTERNAL_DECIMALS, true));
             reserveQuote = reserveQuote.add(amountInWithFee);
             reserveBase = reserveBase.sub(amountBaseOut);
             feesQuote = feesQuote.add(amountQuoteIn).sub(amountInWithFee);
@@ -227,13 +228,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         if (amountBaseIn > 0) {
             uint256 amountInWithFee = amountBaseIn.mul(1000 - fee) / 1000;
             require(getQuoteOut(amountInWithFee) == amountQuoteOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
-            s = s.sub(_convertDecimals(amountInWithFee, baseDecimals, INTERNAL_DECIMALS, true));
+            s = s.sub(_convertToDecimals(amountInWithFee, baseDecimals, INTERNAL_DECIMALS, true));
             reserveQuote = reserveQuote.sub(amountQuoteOut);
             reserveBase = reserveBase.add(amountInWithFee);
             feesBase = feesBase.add(amountBaseIn).sub(amountInWithFee);
         }
 
-        require(_convertDecimals(s, baseDecimals, INTERNAL_DECIMALS, false) <= IERC20(baseToken).totalSupply(), 'DAOfiV1: INSUFFICIENT_SUPPLY');
+        require(_convertToDecimals(s, baseDecimals, INTERNAL_DECIMALS, false) <= IERC20(baseToken).totalSupply(), 'DAOfiV1: INSUFFICIENT_SUPPLY');
 
         emit Swap(msg.sender, amountBaseIn, amountQuoteIn, amountBaseOut, amountQuoteOut, to);
     }
@@ -246,12 +247,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             uint32(1),
             (n + 1)
         );
-        amountBaseOut = _convertDecimals((result >> precision).sub(s), baseDecimals, INTERNAL_DECIMALS, false);
+        amountBaseOut = _convertToDecimals((result >> precision).sub(s), baseDecimals, INTERNAL_DECIMALS, false);
     }
 
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut)
     {
-        amountBaseIn = _convertDecimals(amountBaseIn, baseDecimals, INTERNAL_DECIMALS, true);
+        amountBaseIn = _convertToDecimals(amountBaseIn, baseDecimals, INTERNAL_DECIMALS, true);
         (uint256 result, uint8 precision) = power(
             s.sub(amountBaseIn),
             uint32(1),
@@ -269,12 +270,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             uint32(1),
             (n + 1)
         );
-        amountBaseIn = _convertDecimals((result >> precision), baseDecimals, INTERNAL_DECIMALS, false);
+        amountBaseIn = _convertToDecimals((result >> precision), baseDecimals, INTERNAL_DECIMALS, false);
     }
 
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn)
     {
-        amountBaseOut = _convertDecimals(amountBaseOut, baseDecimals, INTERNAL_DECIMALS, true);
+        amountBaseOut = _convertToDecimals(amountBaseOut, baseDecimals, INTERNAL_DECIMALS, true);
         (uint256 result, uint8 precision) = power(
             s.add(amountBaseOut),
             uint32(1),
