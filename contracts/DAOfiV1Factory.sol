@@ -6,7 +6,7 @@ import './interfaces/IDAOfiV1Factory.sol';
 import './DAOfiV1Pair.sol';
 
 contract DAOfiV1Factory is IDAOfiV1Factory {
-    mapping(address => mapping(address => mapping(bytes => address))) public pairs;
+    mapping(address => mapping(address => mapping(bytes => address))) public override pairs;
     address[] public override allPairs;
 
     constructor() {
