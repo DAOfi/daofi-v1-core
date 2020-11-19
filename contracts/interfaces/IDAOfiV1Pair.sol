@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 interface IDAOfiV1Pair {
     event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 output, address indexed to);
     event WithdrawFees(address indexed sender, uint256 amountQuote, address indexed to);
-    event Close(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
+    event Withdraw(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
     event Swap(
         address indexed sender,
         uint256 amountBaseIn,
@@ -19,6 +19,7 @@ interface IDAOfiV1Pair {
     function token0() external view returns (address);
     function token1() external view returns (address);
     function baseToken() external view returns (address);
+    function quoteToken() external view returns (address);
     function pairOwner() external view returns (address);
     function m() external view returns (uint32);
     function n() external view returns (uint32);
@@ -31,7 +32,7 @@ interface IDAOfiV1Pair {
     function price0CumulativeLast() external view returns (uint256);
     function price1CumulativeLast() external view returns (uint256);
     function deposit(address to) external returns (uint256 amountBase);
-    function close(address to) external returns (uint256 amountBase, uint256 amountQuote);
+    function withdraw(address to) external returns (uint256 amountBase, uint256 amountQuote);
     function swap(uint256 amountBaseOut, uint256 amountQuoteOut, address to, bytes calldata data) external;
     function getBaseOut(uint256 amountQuoteIn) external view returns (uint256 amountBaseOut);
     function getQuoteOut(uint256 amountBaseIn) external view returns (uint256 amountQuoteOut);

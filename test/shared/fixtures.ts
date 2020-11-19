@@ -36,8 +36,8 @@ export async function pairFixture(
   fee: number = 3
 ): Promise<PairFixture> {
   const { factory } = await factoryFixture(provider, [wallet])
-  const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(1e6)], overrides)
-  const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(1e6)], overrides)
+  const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(1e9)], overrides)
+  const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(1e9)], overrides)
   await factory.createPair(
     wallet.address, // router is ourself in tests
     tokenA.address,
