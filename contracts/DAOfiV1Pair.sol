@@ -50,7 +50,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint8 private baseDecimals;
     uint8 private quoteDecimals;
 
-    event Debug(uint256 value);
+    //event Debug(uint256 value);
 
     modifier lock() {
         require(unlocked == 1, 'DAOfiV1: LOCKED');
@@ -130,9 +130,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         amountOut = amountIn;
         if (amountIn > 0) {
             int diff = decimals - target;
+            // coming from the target
             if (!toTarget) {
                 diff = -diff;
             }
+            // expand or contract resolution
             if (diff > 0) {
                 amountOut = FixedPoint.decode(
                     FixedPoint.fraction(
@@ -157,14 +159,14 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         baseDecimals = IERC20(baseToken).decimals();
         quoteDecimals = IERC20(quoteToken).decimals();
         reserveBase = IERC20(baseToken).balanceOf(address(this));
-        reserveQuote = _convertToDecimals(IERC20(quoteToken).balanceOf(address(this)), quoteDecimals, baseDecimals, true);
-
+        reserveQuote = IERC20(quoteToken).balanceOf(address(this));
         // set initial s from quoteReserve
         // quoteReserve = (slopeN * (s ** (n + 1))) / (slopeD * (n + 1))
         // solve for s
         // s = ((quoteReserve * slopeD * (n + 1)) / slopeN) ** (1 / (n + 1))
         if (reserveQuote > 0) {
-            (uint256 result, uint8 precision) = power(reserveQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
+            uint256 scaledQuote = _convertToDecimals(reserveQuote, quoteDecimals, baseDecimals, true);
+            (uint256 result, uint8 precision) = power(scaledQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
             s = result >> precision;
         }
 
@@ -208,11 +210,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         if (amountQuoteOut > 0) _safeTransfer(_tokenQuote, to, amountQuoteOut); // optimistically transfer tokens
         if (data.length > 0) IDAOfiV1Callee(to).daofiV1Call(msg.sender, amountBaseOut, amountQuoteOut, data);
         balanceBase = IERC20(_tokenBase).balanceOf(address(this)).sub(feesBase);
-        balanceQuote = _convertToDecimals(IERC20(_tokenQuote).balanceOf(address(this)).sub(feesQuote), quoteDecimals, baseDecimals, true);
+        balanceQuote = IERC20(_tokenQuote).balanceOf(address(this)).sub(feesQuote);
         }
-        uint256 amountQuoteOutScaled = _convertToDecimals(amountQuoteOut, quoteDecimals, baseDecimals, true);
         uint256 amountBaseIn = balanceBase > _reserveBase - amountBaseOut ? balanceBase - (_reserveBase - amountBaseOut) : 0;
-        uint256 amountQuoteIn = balanceQuote > _reserveQuote - amountQuoteOutScaled ? balanceQuote - (_reserveQuote - amountQuoteOutScaled) : 0;
+        uint256 amountQuoteIn = balanceQuote > _reserveQuote - amountQuoteOut ? balanceQuote - (_reserveQuote - amountQuoteOut) : 0;
         require(amountBaseIn > 0 || amountQuoteIn > 0, 'DAOfiV1: INSUFFICIENT_INPUT_AMOUNT');
         // Check that inputs equal output
         // start with trading quote to base
@@ -241,8 +242,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut)
     {
+        uint256 scaledReserveQuote = _convertToDecimals(
+            reserveQuote.add(amountQuoteIn), quoteDecimals, baseDecimals, true
+        );
         (uint256 result, uint8 precision) = power(
-            (reserveQuote.add(amountQuoteIn)).mul(SLOPE_DENOM).mul(n + 1),
+            scaledReserveQuote.mul(SLOPE_DENOM).mul(n + 1),
             m,
             uint32(1),
             (n + 1)
@@ -259,18 +263,26 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             (n + 1),
             uint32(1
         ));
-        amountQuoteOut = reserveQuote.sub((result >> precision).mul(m) / SLOPE_DENOM.mul(n + 1));
+        amountQuoteOut = _convertToDecimals(
+            reserveQuote.sub((result >> precision).mul(m) / SLOPE_DENOM.mul(n + 1)),
+            quoteDecimals,
+            baseDecimals,
+            false
+        );
     }
 
     function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn)
     {
+        uint256 scaledReserveQuote = _convertToDecimals(
+            reserveQuote.sub(amountQuoteOut), quoteDecimals, baseDecimals, true
+        );
         (uint256 result, uint8 precision) = power(
-            (reserveQuote.sub(amountQuoteOut)).mul(SLOPE_DENOM).mul(n + 1),
+            scaledReserveQuote.mul(SLOPE_DENOM).mul(n + 1),
             m,
             uint32(1),
             (n + 1)
         );
-        amountBaseIn = _convertToDecimals((result >> precision), baseDecimals, INTERNAL_DECIMALS, false);
+        amountBaseIn = _convertToDecimals(s.sub(result >> precision), baseDecimals, INTERNAL_DECIMALS, false);
     }
 
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn)
@@ -282,6 +294,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             (n + 1),
             uint32(1
         ));
-        amountQuoteIn = ((result >> precision).mul(m) / SLOPE_DENOM.mul(n + 1)).sub(reserveQuote);
+        amountQuoteIn = _convertToDecimals(
+            ((result >> precision).mul(m) / SLOPE_DENOM.mul(n + 1)).sub(reserveQuote),
+            quoteDecimals,
+            baseDecimals,
+            false
+        );
     }
 }
