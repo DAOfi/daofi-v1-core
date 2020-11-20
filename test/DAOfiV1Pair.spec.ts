@@ -27,26 +27,13 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   })
   const [wallet] = provider.getWallets()
 
-  async function addLiquidityForPrice(
-    price: number,
+  async function addLiquidity(
     tokenBase: Contract,
-    tokenQuote: Contract,
     baseReserve: BigNumber,
     pair: Contract
   ) {
-    // solve for s as a float, then convert to bignum
-    const slopeN = await pair.m()
-    const n = await pair.n()
-    const s = (price * (1e6 / slopeN)) ** (1 / n)
-    const quoteReserveFloat = Math.floor((slopeN * (s ** (n + 1))) / (1e6 * (n + 1)))
-    const quoteReserve = expandTo18Decimals(quoteReserveFloat)
-    const baseAmountOut = await pair.getBaseOut(quoteReserve)
     await tokenBase.transfer(pair.address, baseReserve)
-    await tokenQuote.transfer(pair.address, quoteReserve)
     await pair.deposit(wallet.address, overrides)
-    const reserves = await pair.getReserves()
-    expect(reserves[0]).to.eq(baseReserve.sub(baseAmountOut))
-    expect(reserves[1]).to.eq(quoteReserve)
   }
 
   beforeEach(async () => {
@@ -150,24 +137,59 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   })
 
   it.only('getBaseOut:', async () => {
-    const quoteInFloat = getReserveForStartPrice(10, 1, 1, 1)
-    const quoteIn = expandTo18Decimals(Math.floor(quoteInFloat))
+    const baseSupply = expandTo18Decimals(1e9)
+    await addLiquidity(tokenBase, baseSupply, pair)
+
+    const quoteIn = expandTo18Decimals(50)
+    const baseOut = await pair.getBaseOut(quoteIn)
+
+    expect(bigNumberify('9810134194000000000')).to.eq(baseOut)
+  })
+
+  it.only('getQuoteOut:', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
+    const quoteReserve = expandTo18Decimals(quoteReserveFloat)
+    const baseIn = bigNumberify('9810134194000000000')
+
+    await tokenBase.transfer(pair.address, baseSupply)
+    await tokenQuote.transfer(pair.address, quoteReserve)
+    await pair.deposit(wallet.address, overrides)
+
+    const quoteOut = await pair.getQuoteOut(baseIn)
+    expect(bigNumberify('49997612824503473714')).to.eq(quoteOut)
+  })
+
+  it.only('getBaseIn:', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
+    const quoteReserve = expandTo18Decimals(quoteReserveFloat)
+    const quoteOut = expandTo18Decimals(50)
+
+    await tokenBase.transfer(pair.address, baseSupply)
+    await tokenQuote.transfer(pair.address, quoteReserve)
+    await pair.deposit(wallet.address, overrides)
+
+    const baseIn = await pair.getBaseIn(quoteOut)
+    expect(bigNumberify('9810134193000000000')).to.eq(baseIn)
+  })
+
+  it.only('getQuoteIn:', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    await addLiquidity(tokenBase, baseSupply, pair)
+
     const baseOut = bigNumberify('9810134194000000000')
-    await expect(pair.getBaseOut(quoteIn)).to.eq(baseOut)
-  })
+    const quoteIn = await pair.getQuoteIn(baseOut)
+    expect(bigNumberify('49997612824503473714')).to.eq(quoteIn)
 
-  it('getQuoteOut:', async () => {
-  })
-
-  it('getBaseIn:', async () => {
-  })
-
-  it('getQuoteIn:', async () => {
+    // await expect(pair.getQuoteIn(baseOut))
+    //   .to.emit(pair, 'Debug')
+    //   .withArgs(baseOut)
   })
 
   it('swap: quote for base and back to quote', async () => {
     const baseSupply = expandTo18Decimals(1e9)
-    await addLiquidityForPrice(0, tokenBase, tokenQuote, baseSupply, pair)
+    await addLiquidity(tokenBase, baseSupply, pair)
 
     const quoteAmountIn = expandTo18Decimals(50)
     const quoteMinusFee = bigNumberify('49850000000000000000')
