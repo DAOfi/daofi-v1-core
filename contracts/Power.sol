@@ -19,8 +19,8 @@ contract Power {
     using SafeMath  for uint256;
 
     uint256 private constant ONE = 1;
-    uint8 private constant MIN_PRECISION = 32;
-    uint8 private constant MAX_PRECISION = 127;
+    uint8 private constant MIN_PRECISION = 0;
+    uint8 private constant MAX_PRECISION = 255;
 
     /*
       The values below depend on MAX_PRECISION. If you choose to change it:
@@ -208,7 +208,7 @@ contract Power {
       This functions assumes that the numerator is larger than or equal to the denominator, because the output would be negative otherwise.
     */
     function ln(uint256 _numerator, uint256 _denominator) internal pure returns (uint256) {
-        require(_numerator <= MAX_NUM, 'DAOfiV1: power numerator > MAX_NUM');
+        require(_numerator <= MAX_NUM, 'Power: power numerator > MAX_NUM');
 
         uint256 res = 0;
         uint256 x = _numerator * FIXED_1 / _denominator;
