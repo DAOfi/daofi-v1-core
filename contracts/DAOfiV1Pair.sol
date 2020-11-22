@@ -19,8 +19,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     using SafeMath for uint32;
     using SafeMath for uint256;
 
-    uint32 public constant SLOPE_DENOM = 10**6; // used to divide slope m
-    uint32 public constant MAX_SLOPE = SLOPE_DENOM * 3; // y = mx ** n, cap m to 3
+    uint256 public constant SLOPE_DENOM = 10**18; // used to divide slope m
+    uint256 public constant MAX_SLOPE = SLOPE_DENOM * 3; // y = mx ** n, cap m to 3
     uint256 public constant MAX_FEE = 10; // 1%
     uint256 public constant MAX_N = 10; // y = mx ** n, cap n to 3
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
@@ -36,7 +36,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     address public override pairOwner;
     uint256 public override s; // track base tokens issued
     // price = m(s ** n)
-    uint32 public override m; // m / SLOPE_DENOM
+    uint256 public override m; // m / SLOPE_DENOM
     uint32 public override n; //
     uint32 public override fee;
 
@@ -91,7 +91,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         address _token1,
         address _baseToken,
         address _pairOwner,
-        uint32 _slope,
+        uint256 _slope,
         uint32 _exp,
         uint32 _fee
     ) external override {
@@ -127,6 +127,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     //     blockTimestampLast = blockTimestamp;
     //     emit Sync(reserve0, reserve1);
     // }
+
     function _fixedDiv(uint256 numer, uint256 denom) private pure returns (uint256) {
         return FixedPoint.decode(
             FixedPoint.fraction(
@@ -136,7 +137,16 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         );
     }
 
-    function _convertToDecimals(uint256 amountIn, uint8 from, uint8 to) private pure returns (uint256 amountOut) {
+    function _fixedMul(uint256 x, uint256 y) internal pure returns (uint256 result) {
+        result = FixedPoint.decode144(
+            FixedPoint.mul(
+                FixedPoint.encode(uint112(x)),
+                y
+            )
+        );
+    }
+
+    function _convertToDecimals(uint256 amountIn, uint8 from, uint8 to) internal pure returns (uint256 amountOut) {
         amountOut = amountIn;
         if (amountIn > 0) {
             int diff = to - from;
@@ -326,5 +336,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             INTERNAL_DECIMALS,
             quoteDecimals
         );
+        uint256 reserveAtSupply = _fixedDiv(result.mul(m), SLOPE_DENOM.mul(n + 1));
+        if (reserveAtSupply >= reserveQuote) {
+            amountQuoteIn = _convertToDecimals(
+                reserveAtSupply.sub(reserveQuote),
+                baseDecimals,
+                quoteDecimals
+            );
+        }
     }
 }
