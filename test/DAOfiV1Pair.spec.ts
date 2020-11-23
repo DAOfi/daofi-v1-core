@@ -166,7 +166,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
 
     const baseOut = ethers.BigNumber.from('9999960000000000000')
     const quoteIn = await pair.getQuoteIn(baseOut)
-    expect(ethers.BigNumber.from('43334463623300000000')).to.eq(quoteIn)
+    expect(ethers.BigNumber.from('50000000000000000000')).to.eq(quoteIn)
   })
 
   // it('swap: quote for base and back to quote', async () => {
