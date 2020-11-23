@@ -24,7 +24,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint256 public constant MAX_FEE = 10; // 1%
     uint256 public constant MAX_N = 3; // y = mx ** n, cap n to 3
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
-    int8 private constant INTERNAL_DECIMALS = 9;
+    int8 private constant INTERNAL_DECIMALS = 10;
     int8 private constant S_DECIMALS = 5;
     address public override factory;
     address public override token0;
@@ -186,10 +186,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         if (reserveQuote > 0) {
             uint256 scaledQuote = _convertToDecimals(reserveQuote, quoteDecimals, INTERNAL_DECIMALS);
             s = _power(scaledQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
+            console.log("Scaled quote input: %s", scaledQuote);
         }
-
+        console.log("s: %s", s);
         if (s > 0) {
             amountBase = _convertToDecimals(s, S_DECIMALS, baseDecimals);
+            console.log("Base output: %s", amountBase);
             // send s initial base to the specified address
             _safeTransfer(baseToken, to, amountBase);
             // update reserves
