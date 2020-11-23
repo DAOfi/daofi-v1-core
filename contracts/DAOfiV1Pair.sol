@@ -19,10 +19,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     using SafeMath for uint32;
     using SafeMath for uint256;
 
-    uint256 public constant SLOPE_DENOM = 10**18; // used to divide slope m
+    uint32 public constant SLOPE_DENOM = 10**5; // used to divide slope m
     uint256 public constant MAX_SLOPE = SLOPE_DENOM * 3; // y = mx ** n, cap m to 3
     uint256 public constant MAX_FEE = 10; // 1%
-    uint256 public constant MAX_N = 10; // y = mx ** n, cap n to 3
+    uint256 public constant MAX_N = 3; // y = mx ** n, cap n to 3
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
     uint8 private constant INTERNAL_DECIMALS = 18;
     uint8 private constant S_DECIMALS = 9;
@@ -36,7 +36,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     address public override pairOwner;
     uint256 public override s; // track base tokens issued
     // price = m(s ** n)
-    uint256 public override m; // m / SLOPE_DENOM
+    uint32 public override m; // m / SLOPE_DENOM
     uint32 public override n; //
     uint32 public override fee;
 
@@ -91,7 +91,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         address _token1,
         address _baseToken,
         address _pairOwner,
-        uint256 _slope,
+        uint32 _slope,
         uint32 _exp,
         uint32 _fee
     ) external override {

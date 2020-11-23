@@ -1,23 +1,20 @@
+import { ethers } from 'hardhat'
 import { Contract, Wallet } from 'ethers'
-import { Web3Provider } from 'ethers/providers'
 import { deployContract } from 'ethereum-waffle'
 
 import { expandTo18Decimals, expandToMDecimals } from './utilities'
 
-import ERC20 from '../../build/ERC20.json'
-import DAOfiV1Factory from '../../build/DAOfiV1Factory.json'
-import DAOfiV1Pair from '../../build/DAOfiV1Pair.json'
+import ERC20 from '../../build/contracts/test/ERC20.sol/ERC20.json'
+import DAOfiV1Factory from '../../build/contracts/DAOfiV1Factory.sol/DAOfiV1Factory.json'
+import DAOfiV1Pair from '../../build/contracts/DAOfiV1Pair.sol/DAOfiV1Pair.json'
 
 interface FactoryFixture {
   factory: Contract
 }
 
-const overrides = {
-  gasLimit: 9999999
-}
-
-export async function factoryFixture(_: Web3Provider, [wallet]: Wallet[]): Promise<FactoryFixture> {
-  const factory = await deployContract(wallet, DAOfiV1Factory, [], overrides)
+export async function factoryFixture(): Promise<FactoryFixture> {
+  const Factory = await ethers.getContractFactory("DAOfiV1Factory")
+  const factory = await Factory.deploy()
   return { factory }
 }
 
@@ -29,28 +26,27 @@ interface PairFixture extends FactoryFixture {
 }
 
 export async function pairFixture(
-  provider: Web3Provider,
   wallet: Wallet,
-  m: number = 1e6, // expand to 1e18
+  m: number = 1e5,
   n: number = 1,
   fee: number = 3
 ): Promise<PairFixture> {
-  const { factory } = await factoryFixture(provider, [wallet])
-  const tokenA = await deployContract(wallet, ERC20, [expandTo18Decimals(1e9)], overrides)
-  const tokenB = await deployContract(wallet, ERC20, [expandTo18Decimals(1e9)], overrides)
+  const { factory } = await factoryFixture()
+  const Token = await ethers.getContractFactory("ERC20")
+  const tokenA = await Token.deploy([expandTo18Decimals(1e9)])
+  const tokenB = await Token.deploy([expandTo18Decimals(1e9)])
   await factory.createPair(
     wallet.address, // router is ourself in tests
     tokenA.address,
     tokenB.address,
     tokenA.address, // base token
     wallet.address,
-    expandToMDecimals(m, 12),
+    m,
     n,
-    fee,
-    overrides
+    fee
   )
   const pairAddress = await factory.getPair(tokenA.address, tokenB.address, expandToMDecimals(m, 12), n, fee)
-  const pair = new Contract(pairAddress, JSON.stringify(DAOfiV1Pair.abi), provider).connect(wallet)
+  const pair = new Contract(pairAddress, JSON.stringify(DAOfiV1Pair.abi)).connect(wallet)
   const token0Address = (await pair.token0()).address
   const token0 = tokenA.address === token0Address ? tokenA : tokenB
   return { factory, token0, tokenBase: tokenA, tokenQuote: tokenB, pair }
