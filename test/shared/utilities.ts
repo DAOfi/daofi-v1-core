@@ -1,17 +1,16 @@
-import { Hexable } from "@ethersproject/bytes";
 import { ethers } from 'hardhat'
-import { Contract } from 'ethers'
+import { BigNumber, Contract } from 'ethers'
 const { getAddress, keccak256, defaultAbiCoder, toUtf8Bytes, solidityPack } = ethers.utils;
 
 const PERMIT_TYPEHASH = keccak256(
   toUtf8Bytes('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
 )
 
-export function expandTo18Decimals(n: number): Hexable { // TODO bignumber type?
+export function expandTo18Decimals(n: number): BigNumber { 
   return expandToMDecimals(n, 18)
 }
 
-export function expandToMDecimals(n: number, m: number): Hexable {
+export function expandToMDecimals(n: number, m: number): BigNumber {
   return ethers.BigNumber.from(n).mul(ethers.BigNumber.from(10).pow(m))
 }
 
@@ -52,10 +51,10 @@ export async function getApprovalDigest(
   approve: {
     owner: string
     spender: string
-    value: Hexable
+    value: BigNumber
   },
-  nonce: Hexable,
-  deadline: Hexable
+  nonce: BigNumber,
+  deadline: BigNumber
 ): Promise<string> {
   const name = await token.name
   const DOMAIN_SEPARATOR = getDomainSeparator(name, token.address)

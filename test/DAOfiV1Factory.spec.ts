@@ -1,3 +1,4 @@
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
 import { Contract } from 'ethers'
 import { ethers } from 'hardhat'
@@ -6,17 +7,18 @@ import DAOfiV1Pair from '../build/contracts/DAOfiV1Pair.sol/DAOfiV1Pair.json'
 import { getCreate2Address } from './shared/utilities'
 import { factoryFixture } from './shared/fixtures'
 
+
 const TEST_ADDRESSES: [string, string] = [
   '0x1000000000000000000000000000000000000000',
   '0x2000000000000000000000000000000000000000'
 ]
 
-describe('DAOfiV1Factory', async () => {
+let wallet: SignerWithAddress
 
+describe('DAOfiV1Factory', async () => {
   let factory: Contract
 
   async function createPair(router: string, tokenA:string, tokenB: string, baseToken: string, owner:string, m: any, n: number, fee:number) {
-    const wallet = (await ethers.getSigners())[0]
     const bytecode = `${DAOfiV1Pair.bytecode}`
     const create2Address = getCreate2Address(factory.address, [tokenA, tokenB], m, n, fee, bytecode)
     await expect(factory.createPair(owner, tokenA, tokenB, baseToken, owner, m, n, fee))
@@ -47,21 +49,19 @@ describe('DAOfiV1Factory', async () => {
   }
 
   beforeEach(async () => {
+    wallet  = (await ethers.getSigners())[0]
     factory = (await factoryFixture()).factory
   })
 
   it('createPair', async () => {
-    const wallet = (await ethers.getSigners())[0]
     await createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], TEST_ADDRESSES[0], wallet.address, 1e5, 1, 3)
   })
 
   it('createPair:reverse', async () => {
-    const wallet = (await ethers.getSigners())[0]
     await createPair(wallet.address, TEST_ADDRESSES[1], TEST_ADDRESSES[0], TEST_ADDRESSES[0], wallet.address, 1e5, 1, 3)
   })
 
   it('createPair:gas', async () => {
-    const wallet = (await ethers.getSigners())[0]
     const tx = await factory.createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], TEST_ADDRESSES[0], wallet.address, 1e5, 1, 3)
     const receipt = await tx.wait()
     expect(receipt.gasUsed).to.eq(4266225)

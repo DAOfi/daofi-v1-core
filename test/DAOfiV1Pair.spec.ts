@@ -1,16 +1,11 @@
-import chai, { expect } from 'chai'
-import { Contract } from 'ethers'
-import { solidity, MockProvider } from 'ethereum-waffle'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
+import { expect } from 'chai'
+import { BigNumber, Contract } from 'ethers'
 import { ethers } from 'hardhat'
-
 import { getReserveForStartPrice, expandTo18Decimals, expandToMDecimals } from './shared/utilities'
 import { pairFixture } from './shared/fixtures'
 
-chai.use(solidity)
 
-const overrides = {
-  gasLimit: 9999999
-}
 const zero = ethers.BigNumber.from(0)
 
 let factory: Contract
@@ -18,101 +13,96 @@ let token0: Contract
 let tokenBase: Contract
 let tokenQuote: Contract
 let pair: Contract
+let wallet: SignerWithAddress
 
 describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
-  // const provider = new MockProvider({
-  //   hardfork: 'istanbul',
-  //   mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
-  //   gasLimit: 9999999
-  // })
-  // const [wallet] = provider.getWallets()
+  async function addLiquidity(
+    tokenBase: Contract,
+    baseReserve: BigNumber,
+    pair: Contract
+  ) {
+    await tokenBase.transfer(pair.address, baseReserve)
+    await pair.deposit(wallet.address)
+  }
 
-  // async function addLiquidity(
-  //   tokenBase: Contract,
-  //   baseReserve: BigNumber,
-  //   pair: Contract
-  // ) {
-  //   await tokenBase.transfer(pair.address, baseReserve)
-  //   await pair.deposit(wallet.address, overrides)
-  // }
+  beforeEach(async () => {
+    wallet = (await ethers.getSigners())[0]
+    const fixture = await pairFixture(wallet, 1e5, 1, 3)
 
-  // beforeEach(async () => {
-  //   const fixture = await pairFixture(provider, wallet, 1e6, 1, 3)
-  //   factory = fixture.factory
-  //   token0 = fixture.token0
-  //   tokenBase = fixture.tokenBase
-  //   tokenQuote = fixture.tokenQuote
-  //   pair = fixture.pair
-  // })
+    factory = fixture.factory
+    token0 = fixture.token0
+    tokenBase = fixture.tokenBase
+    tokenQuote = fixture.tokenQuote
+    pair = fixture.pair
+  })
 
-  // it.only('deposit: only once', async () => {
-  //   const baseSupply = expandTo18Decimals(1e9)
-  //   const expectedBaseReserve = baseSupply
-  //   const expectedS = ethers.BigNumber.from(0)
+  it('deposit: only once', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    const expectedBaseReserve = baseSupply
+    const expectedS = ethers.BigNumber.from(0)
 
-  //   await tokenBase.transfer(pair.address, baseSupply)
-  //   await expect(pair.deposit(wallet.address, overrides))
-  //     .to.emit(pair, 'Deposit')
-  //     .withArgs(wallet.address, expectedBaseReserve, zero, zero, wallet.address)
-  //   expect(await pair.s()).to.eq(expectedS)
-  //   expect(await tokenBase.balanceOf(wallet.address)).to.eq(zero)
-  //   expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply)
-  //   expect(await tokenQuote.balanceOf(pair.address)).to.eq(zero)
+    await tokenBase.transfer(pair.address, baseSupply)
+    await expect(pair.deposit(wallet.address))
+      .to.emit(pair, 'Deposit')
+      .withArgs(wallet.address, expectedBaseReserve, zero, zero, wallet.address)
+    expect(await pair.s()).to.eq(expectedS)
+    expect(await tokenBase.balanceOf(wallet.address)).to.eq(zero)
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply)
+    expect(await tokenQuote.balanceOf(pair.address)).to.eq(zero)
 
-  //   const reserves = await pair.getReserves()
-  //   expect(reserves[0]).to.eq(expectedBaseReserve)
-  //   expect(reserves[1]).to.eq(zero)
+    const reserves = await pair.getReserves()
+    expect(reserves[0]).to.eq(expectedBaseReserve)
+    expect(reserves[1]).to.eq(zero)
 
-  //   await expect(pair.deposit(wallet.address, overrides))
-  //     .to.be.revertedWith('DOUBLE_DEPOSIT')
-  // })
+    await expect(pair.deposit(wallet.address))
+      .to.be.revertedWith('DOUBLE_DEPOSIT')
+  })
 
+  // price in quote, determines initial quote liquidity using getReserveForStartPrice
+  // sacle for big num conversion, allows for fractional price converstion to bignum
+  // decimals for bignum conversion
+  // expected base output is the amount of base returned from initial quote liqudity provided
+  // expected s
+  const depositTestCases: any[][] = [
+    // [0.1,   100,  16, '0',                         '0'],
+    // [0.2,   100,  16, '0',       '0'],
+    [1,     10,   17, '994832322000000000',       '994832322'],
+    [10,    1,    18, '9748972525000000000',      '9748972525'],
+    // [100,   1,    18, '94272026473000000000',     '94272026473'],
+    // [1000,  1,    18, '866695866786000000000',    '866695866786'],
+    // [10000, 1,    18, '7484129637737000000000',   '7484129637737'],
+    // [40000, 1,    18, '26432889401827000000000',  '26432889401827'],
+  ]
 
-  // // price in quote, determines initial quote liquidity using getReserveForStartPrice
-  // // sacle for big num conversion, allows for fractional price converstion to bignum
-  // // decimals for bignum conversion
-  // // expected base output is the amount of base returned from initial quote liqudity provided
-  // // expected s
-  // const depositTestCases: any[][] = [
-  //   // [0.1,   100,  16, '0',                         '0'],
-  //   // [0.2,   100,  16, '0',       '0'],
-  //   [1,     10,   17, '995443602000000000',       '995443602'],
-  //   [10,    1,    18, '9810134194000000000',      '9810134194'],
-  //   // [100,   1,    18, '94272026473000000000',     '94272026473'],
-  //   // [1000,  1,    18, '866695866786000000000',    '866695866786'],
-  //   // [10000, 1,    18, '7484129637737000000000',   '7484129637737'],
-  //   // [40000, 1,    18, '26432889401827000000000',  '26432889401827'],
-  // ]
+  // Deposit tests which return base:
+  depositTestCases.forEach((depositTestCase, i) => {
+    it(`deposit: ${i}`, async () => {
+      const [price, priceFactor, M, baseOutput, s] = depositTestCase
+      const baseSupply = expandTo18Decimals(1e9)
+      const quoteReserveFloat = getReserveForStartPrice(price, 1, 1, 1)
+      const quoteReserve = expandToMDecimals(Math.floor(quoteReserveFloat * priceFactor), M)
+      const expectedQuoteReserve = quoteReserve
+      const expectedBaseOutput = ethers.BigNumber.from(baseOutput)
+      const expectedS = ethers.BigNumber.from(s)
+      const expectedBaseReserve = baseSupply.sub(baseOutput)
 
-  // // Deposit tests which return base:
-  // depositTestCases.forEach((depositTestCase, i) => {
-  //   it.only(`deposit: ${i}`, async () => {
-  //     const [price, priceFactor, M, baseOutput, s] = depositTestCase
-  //     const baseSupply = expandTo18Decimals(1e9)
-  //     const quoteReserveFloat = getReserveForStartPrice(price, 1, 1, 1)
-  //     const quoteReserve = expandToMDecimals(Math.floor(quoteReserveFloat * priceFactor), M)
-  //     const expectedQuoteReserve = quoteReserve
-  //     const expectedBaseOutput = ethers.BigNumber.from(baseOutput)
-  //     const expectedS = ethers.BigNumber.from(s)
-  //     const expectedBaseReserve = baseSupply.sub(baseOutput)
+      await tokenBase.transfer(pair.address, baseSupply)
+      await tokenQuote.transfer(pair.address, quoteReserve)
+      await expect(pair.deposit(wallet.address))
+        .to.emit(pair, 'Debug')
+        .withArgs(expectedBaseOutput)
+      //   .to.emit(pair, 'Deposit')
+      //   .withArgs(wallet.address, expectedBaseReserve, expectedQuoteReserve, expectedBaseOutput, wallet.address)
+      // expect(await pair.s()).to.eq(expectedS)
+      // expect(await tokenBase.balanceOf(wallet.address)).to.eq(expectedBaseOutput)
+      // expect(await tokenBase.balanceOf(pair.address)).to.eq(expectedBaseReserve)
+      // expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteReserve)
 
-  //     await tokenBase.transfer(pair.address, baseSupply)
-  //     await tokenQuote.transfer(pair.address, quoteReserve)
-  //     await expect(pair.deposit(wallet.address, overrides))
-  //       .to.emit(pair, 'Debug')
-  //       .withArgs(expectedBaseOutput)
-  //     //   .to.emit(pair, 'Deposit')
-  //     //   .withArgs(wallet.address, expectedBaseReserve, expectedQuoteReserve, expectedBaseOutput, wallet.address)
-  //     // expect(await pair.s()).to.eq(expectedS)
-  //     // expect(await tokenBase.balanceOf(wallet.address)).to.eq(expectedBaseOutput)
-  //     // expect(await tokenBase.balanceOf(pair.address)).to.eq(expectedBaseReserve)
-  //     // expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteReserve)
-
-  //     // const reserves = await pair.getReserves()
-  //     // expect(reserves[0]).to.eq(expectedBaseReserve)
-  //     // expect(reserves[1]).to.eq(expectedQuoteReserve)
-  //   })
-  // })
+      // const reserves = await pair.getReserves()
+      // expect(reserves[0]).to.eq(expectedBaseReserve)
+      // expect(reserves[1]).to.eq(expectedQuoteReserve)
+    })
+  })
 
   // it('withdraw:', async () => {
   //   const baseSupply = expandTo18Decimals(1e9)
