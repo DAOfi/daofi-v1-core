@@ -19,23 +19,24 @@ contract Power {
     using SafeMath  for uint256;
 
     uint256 private constant ONE = 1;
-    uint8 private constant MIN_PRECISION = 0;
-    uint8 private constant MAX_PRECISION = 8;
+    uint8 private constant MIN_PRECISION = 32;
+    uint8 private constant MAX_PRECISION = 64;
 
     /*
       The values below depend on MAX_PRECISION. If you choose to change it:
       Apply the same change in file 'PrintIntScalingFactors.py', run it and paste the results below.
     */
-    uint256 private constant FIXED_1 = 0x000000000000000000000000000000000000000000000000000000000000100;
-    uint256 private constant FIXED_2 = 0x000000000000000000000000000000000000000000000000000000000000200;
-    uint256 private constant MAX_NUM = 0x100000000000000000000000000000000000000000000000000000000000000;
+    uint256 private constant FIXED_1 = 0x0000000000000000000000000000000010000000000000000;
+    uint256 private constant FIXED_2 = 0x0000000000000000000000000000000020000000000000000;
+    uint256 private constant MAX_NUM = 0x1000000000000000000000000000000000000000000000000;
 
     /*
       The values below depend on MAX_PRECISION. If you choose to change it:
       Apply the same change in file 'PrintLn2ScalingFactors.py', run it and paste the results below.
     */
-    uint256 private constant LN2_NUMERATOR   = 0x10843214d8dbb6903852cec917854191d012632bc1356c9a3e8eb43035df2;
-    uint256 private constant LN2_DENOMINATOR = 0x17d3ff32c0bb9bb09843b5cc24104e540c1ffb4f93998b3e912c98c034991;
+    uint256 private constant LN2_NUMERATOR   = 0x15555555555555555571c71c71c71c71c71c97b425ed097;
+    uint256 private constant LN2_DENOMINATOR = 0x1ec709dc3a03fd749fea5e8537278fbe180e779a2bdb192;
+
 
     /*
       The values below depend on MIN_PRECISION and MAX_PRECISION. If you choose to change either one of them:
@@ -43,18 +44,72 @@ contract Power {
     */
     uint256[128] private maxExpArray;
 
-    // event Debug(uint256 value);
-
     constructor() {
-        maxExpArray[0] = 0xd7ff;
-        maxExpArray[1] = 0xcfff;
-        maxExpArray[2] = 0xc6ff;
-        maxExpArray[3] = 0xbedf;
-        maxExpArray[4] = 0xb6ef;
-        maxExpArray[5] = 0xaf67;
-        maxExpArray[6] = 0xa833;
-        maxExpArray[7] = 0xa145;
-        maxExpArray[8] = 0x9aa2;
+        //  maxExpArray[ 0] = 0xd7ffffffffffffffff;
+        //  maxExpArray[ 1] = 0xcfffffffffffffffff;
+        //  maxExpArray[ 2] = 0xc6ffffffffffffffff;
+        //  maxExpArray[ 3] = 0xbedfffffffffffffff;
+        //  maxExpArray[ 4] = 0xb6efffffffffffffff;
+        //  maxExpArray[ 5] = 0xaf67ffffffffffffff;
+        //  maxExpArray[ 6] = 0xa833ffffffffffffff;
+        //  maxExpArray[ 7] = 0xa145ffffffffffffff;
+        //  maxExpArray[ 8] = 0x9aa2ffffffffffffff;
+        //  maxExpArray[ 9] = 0x94467fffffffffffff;
+        //  maxExpArray[10] = 0x8e2cbfffffffffffff;
+        //  maxExpArray[11] = 0x88535fffffffffffff;
+        //  maxExpArray[12] = 0x82b78fffffffffffff;
+        //  maxExpArray[13] = 0x7d56e7ffffffffffff;
+        //  maxExpArray[14] = 0x782ee3ffffffffffff;
+        //  maxExpArray[15] = 0x733d2dffffffffffff;
+        //  maxExpArray[16] = 0x6e7f88ffffffffffff;
+        //  maxExpArray[17] = 0x69f3d1ffffffffffff;
+        //  maxExpArray[18] = 0x6597fabfffffffffff;
+        //  maxExpArray[19] = 0x616a0affffffffffff;
+        //  maxExpArray[20] = 0x5d681f3fffffffffff;
+        //  maxExpArray[21] = 0x5990681fffffffffff;
+        //  maxExpArray[22] = 0x55e12903ffffffffff;
+        //  maxExpArray[23] = 0x5258b7bbffffffffff;
+        //  maxExpArray[24] = 0x4ef57b9bffffffffff;
+        //  maxExpArray[25] = 0x4bb5eccaffffffffff;
+        //  maxExpArray[26] = 0x4898938cbfffffffff;
+        //  maxExpArray[27] = 0x459c079abfffffffff;
+        //  maxExpArray[28] = 0x42beef808fffffffff;
+        //  maxExpArray[29] = 0x3fffffffffffffffff;
+        //  maxExpArray[30] = 0x3d5dfb7b57ffffffff;
+        //  maxExpArray[31] = 0x3ad7b165d7ffffffff;
+        maxExpArray[32] = 0x386bfdba29ffffffff;
+        maxExpArray[33] = 0x3619c876647fffffff;
+        maxExpArray[34] = 0x33e0051d83ffffffff;
+        maxExpArray[35] = 0x31bdb23e1cffffffff;
+        maxExpArray[36] = 0x2fb1d8fe082fffffff;
+        maxExpArray[37] = 0x2dbb8caad9b7ffffff;
+        maxExpArray[38] = 0x2bd9ea4eed43ffffff;
+        maxExpArray[39] = 0x2a0c184ad965ffffff;
+        maxExpArray[40] = 0x285145f31ae5ffffff;
+        maxExpArray[41] = 0x26a8ab31cb847fffff;
+        maxExpArray[42] = 0x2511882c39c3bfffff;
+        maxExpArray[43] = 0x238b24ec38ccdfffff;
+        maxExpArray[44] = 0x2214d10d014eafffff;
+        maxExpArray[45] = 0x20ade36b7dbeefffff;
+        maxExpArray[46] = 0x1f55b9d9ddff17ffff;
+        maxExpArray[47] = 0x1e0bb8d64fdb5bffff;
+        maxExpArray[48] = 0x1ccf4b44bb4820ffff;
+        maxExpArray[49] = 0x1b9fe22b629ddbffff;
+        maxExpArray[50] = 0x1a7cf4724862473fff;
+        maxExpArray[51] = 0x1965fea53d6e3c9fff;
+        maxExpArray[52] = 0x185a82b87b72e95fff;
+        maxExpArray[53] = 0x175a07cfb107ed37ff;
+        maxExpArray[54] = 0x16641a07658687abff;
+        maxExpArray[55] = 0x15784a409c05051bff;
+        maxExpArray[56] = 0x14962dee9dc97640ff;
+        maxExpArray[57] = 0x13bd5ee6d583ead3ff;
+        maxExpArray[58] = 0x12ed7b32a58f552aff;
+        maxExpArray[59] = 0x122624e3245d54c0df;
+        maxExpArray[60] = 0x116701e6ab0cd188df;
+        maxExpArray[61] = 0x10afbbe022fdf442b7;
+        maxExpArray[62] = 0x0fffffffffffffffff;
+        maxExpArray[63] = 0x0f577eded5773a10ff;
+        maxExpArray[64] = 0x0eb5ec597592befbf4;
     }
 
 

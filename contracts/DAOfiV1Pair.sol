@@ -24,8 +24,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint256 public constant MAX_FEE = 10; // 1%
     uint256 public constant MAX_N = 3; // y = mx ** n, cap n to 3
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
-    int8 private constant INTERNAL_DECIMALS = 18;
-    int8 private constant S_DECIMALS = 9;
+    int8 private constant INTERNAL_DECIMALS = 9;
+    int8 private constant S_DECIMALS = 5;
     address public override factory;
     address public override token0;
     address public override token1;
@@ -314,7 +314,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn)
     {
-        amountBaseOut = _convertToDecimals(amountBaseOut, baseDecimals, S_DECIMALS);
+        amountBaseOut = _convertToDecimals(amountBaseOut, baseDecimals, 5);
         console.log("amountBaseOut: %s",amountBaseOut);
         console.log("S: %s", s);
         uint256 result = _power(
