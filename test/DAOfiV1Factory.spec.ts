@@ -54,16 +54,16 @@ describe('DAOfiV1Factory', async () => {
   })
 
   it('createPair', async () => {
-    await createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], TEST_ADDRESSES[0], wallet.address, 1e5, 1, 3)
+    await createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
   })
 
   it('createPair:reverse', async () => {
-    await createPair(wallet.address, TEST_ADDRESSES[1], TEST_ADDRESSES[0], TEST_ADDRESSES[0], wallet.address, 1e5, 1, 3)
+    await createPair(wallet.address, TEST_ADDRESSES[1], TEST_ADDRESSES[0], TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
   })
 
   it('createPair:gas', async () => {
-    const tx = await factory.createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], TEST_ADDRESSES[0], wallet.address, 1e5, 1, 3)
+    const tx = await factory.createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(4266225)
+    expect(receipt.gasUsed).to.eq(4023967)
   })
 })

@@ -24,7 +24,7 @@ interface PairFixture extends FactoryFixture {
 
 export async function pairFixture(
   wallet: SignerWithAddress,
-  m: number = 1e5,
+  m: number = 1e6,
   n: number = 1,
   fee: number = 3
 ): Promise<PairFixture> {
