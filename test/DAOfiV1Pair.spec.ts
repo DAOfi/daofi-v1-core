@@ -65,10 +65,10 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   // expected s
   const depositTestCases: any[][] = [
     [0.1,    100,  16, '0',                        '0'], // amount is below power min num
-    [0.2,    100,  16, '199990000000000000',       '19999'],
-    [1,      10,   17, '999990000000000000',       '99999'],
-    [10,     1,    18, '9999960000000000000',      '999996'],
-    [100,    1,    18, '99993100000000000000',     '9999310']
+    [0.2,    100,  16, '199900000000000000',       '1999'],
+    [1,      10,   17, '999900000000000000',       '9999'],
+    [10,     1,    18, '9999900000000000000',      '99999'],
+    [100,    1,    18, '99999600000000000000',     '999996']
   ]
 
   // Deposit tests which return base:
@@ -103,7 +103,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     const baseSupply = expandTo18Decimals(1e9)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
-    const expectedBaseOutput = ethers.BigNumber.from('9999960000000000000')
+    const expectedBaseOutput = ethers.BigNumber.from('9999900000000000000')
     const expectedBaseReserve = baseSupply.sub(expectedBaseOutput)
 
     await tokenBase.transfer(pair.address, baseSupply)
@@ -129,21 +129,21 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
 
     const quoteIn = expandTo18Decimals(50)
     const baseOut = await pair.getBaseOut(quoteIn)
-    expect(ethers.BigNumber.from('9999960000000000000')).to.eq(baseOut)
+    expect(ethers.BigNumber.from('9999900000000000000')).to.eq(baseOut)
   })
 
   it('getQuoteOut:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
-    const baseIn = ethers.BigNumber.from('9999960000000000000')
+    const baseIn = ethers.BigNumber.from('9999900000000000000')
 
     await tokenBase.transfer(pair.address, baseSupply)
     await tokenQuote.transfer(pair.address, quoteReserve)
     await pair.deposit(wallet.address)
 
     const quoteOut = await pair.getQuoteOut(baseIn)
-    expect(ethers.BigNumber.from('5000000000000000000000000000')).to.eq(quoteOut)
+    expect(ethers.BigNumber.from('50000000000000000000')).to.eq(quoteOut)
   })
 
   it('getBaseIn:', async () => {
@@ -157,58 +157,58 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     await pair.deposit(wallet.address)
 
     const baseIn = await pair.getBaseIn(quoteOut)
-    expect(ethers.BigNumber.from('9999950000000000000')).to.eq(baseIn)
+    expect(ethers.BigNumber.from('9999800000000000000')).to.eq(baseIn)
   })
 
   it('getQuoteIn:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     await addLiquidity(tokenBase, baseSupply, pair)
 
-    const baseOut = ethers.BigNumber.from('9999960000000000000')
+    const baseOut = ethers.BigNumber.from('9999900000000000000')
     const quoteIn = await pair.getQuoteIn(baseOut)
-    expect(ethers.BigNumber.from('50000000000000000000')).to.eq(quoteIn)
+    expect(ethers.BigNumber.from('49049700290000000000')).to.eq(quoteIn)
   })
 
-  // it('swap: quote for base and back to quote', async () => {
-  //   const baseSupply = expandTo18Decimals(1e9)
-  //   await addLiquidity(tokenBase, baseSupply, pair)
+  it('swap: quote for base and back to quote', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    await addLiquidity(tokenBase, baseSupply, pair)
 
-  //   const quoteAmountIn = expandTo18Decimals(50)
-  //   const quoteMinusFee = ethers.BigNumber.from('49850000000000000000')
-  //   const baseAmountOut = ethers.BigNumber.from('9795562957000000000')
-  //   await tokenQuote.transfer(pair.address, quoteAmountIn)
-  //   await expect(pair.swap(baseAmountOut, 0, wallet.address, '0x', overrides))
-  //     .to.emit(tokenBase, 'Transfer')
-  //     .withArgs(pair.address, wallet.address, baseAmountOut)
-  //     .to.emit(pair, 'Swap')
-  //     .withArgs(wallet.address, 0, quoteAmountIn, baseAmountOut, 0, wallet.address)
+    const quoteAmountIn = expandTo18Decimals(50)
+    const quoteMinusFee = ethers.BigNumber.from('49850000000000000000')
+    const baseAmountOut = ethers.BigNumber.from('9984900000000000000')
+    await tokenQuote.transfer(pair.address, quoteAmountIn)
+    await expect(pair.swap(baseAmountOut, 0, wallet.address, '0x'))
+      .to.emit(tokenBase, 'Transfer')
+      .withArgs(pair.address, wallet.address, baseAmountOut)
+      .to.emit(pair, 'Swap')
+      .withArgs(wallet.address, 0, quoteAmountIn, baseAmountOut, 0, wallet.address)
 
-  //   const reservesA = await pair.getReserves()
-  //   expect(reservesA[0]).to.eq(baseSupply.sub(baseAmountOut))
-  //   expect(reservesA[1]).to.eq(quoteMinusFee)
-  //   expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply.sub(baseAmountOut))
-  //   expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn)
-  //   expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseAmountOut)
-  //   expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteAmountIn))
+    const reservesA = await pair.getReserves()
+    expect(reservesA[0]).to.eq(baseSupply.sub(baseAmountOut))
+    expect(reservesA[1]).to.eq(quoteMinusFee)
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply.sub(baseAmountOut))
+    expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn)
+    expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseAmountOut)
+    expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteAmountIn))
 
-  //   const baseAmountIn = baseAmountOut
-  //   const baseMinusFee = ethers.BigNumber.from('9766176268129000000')
-  //   const quoteAmountOut = ethers.BigNumber.from('49849805435065357240')
-  //   await tokenBase.transfer(pair.address, baseAmountIn)
-  //   await expect(pair.swap(0, quoteAmountOut, wallet.address, '0x', overrides))
-  //     .to.emit(tokenQuote, 'Transfer')
-  //     .withArgs(pair.address, wallet.address, quoteAmountOut)
-  //     .to.emit(pair, 'Swap')
-  //     .withArgs(wallet.address, baseAmountIn, 0, 0, quoteAmountOut, wallet.address)
+    const baseAmountIn = baseAmountOut
+    const baseMinusFee = ethers.BigNumber.from('9954945300000000000')
+    const quoteAmountOut = ethers.BigNumber.from('49849999999999955001')
+    await tokenBase.transfer(pair.address, baseAmountIn)
+    await expect(pair.swap(0, quoteAmountOut, wallet.address, '0x'))
+      .to.emit(tokenQuote, 'Transfer')
+      .withArgs(pair.address, wallet.address, quoteAmountOut)
+      .to.emit(pair, 'Swap')
+      .withArgs(wallet.address, baseAmountIn, 0, 0, quoteAmountOut, wallet.address)
 
-  //   const reservesB = await pair.getReserves()
-  //   expect(reservesB[0]).to.eq(baseSupply.sub(baseAmountOut).add(baseMinusFee))
-  //   expect(reservesB[1]).to.eq(quoteMinusFee.sub(quoteAmountOut))
-  //   expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply)
-  //   expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn.sub(quoteAmountOut))
-  //   expect(await tokenBase.balanceOf(wallet.address)).to.eq(zero)
-  //   expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteAmountIn).add(quoteAmountOut))
-  // })
+    const reservesB = await pair.getReserves()
+    expect(reservesB[0]).to.eq(baseSupply.sub(baseAmountOut).add(baseMinusFee))
+    expect(reservesB[1]).to.eq(quoteMinusFee.sub(quoteAmountOut))
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply)
+    expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn.sub(quoteAmountOut))
+    expect(await tokenBase.balanceOf(wallet.address)).to.eq(zero)
+    expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteAmountIn).add(quoteAmountOut))
+  })
 
   // it('swap: quote for base gas', async () => {
   //   console.log('TODO')

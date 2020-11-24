@@ -64,6 +64,6 @@ describe('DAOfiV1Factory', async () => {
   it('createPair:gas', async () => {
     const tx = await factory.createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], TEST_ADDRESSES[0], wallet.address, 1e6, 1, 3)
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(4185241)
+    expect(receipt.gasUsed).to.eq(4827045)
   })
 })
