@@ -1,8 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { ethers } from 'hardhat'
 import { Contract } from 'ethers'
-
-import { expandTo18Decimals, expandToMDecimals } from './utilities'
 import DAOfiV1Pair from '../../build/contracts/DAOfiV1Pair.sol/DAOfiV1Pair.json'
 
 interface FactoryFixture {
