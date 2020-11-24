@@ -59,7 +59,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   })
 
   // price in quote, determines initial quote liquidity using getReserveForStartPrice
-  // sacle for big num conversion, allows for fractional price converstion to bignum
+  // sacle factor for big num conversion, allows for fractional price converstion to bignum
   // decimals for bignum conversion
   // expected base output is the amount of base returned from initial quote liqudity provided
   // expected s

@@ -30,8 +30,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     address public override factory;
     address public override token0;
     address public override token1;
-    uint256 public override price0CumulativeLast;
-    uint256 public override price1CumulativeLast;
+    // uint256 public override price0CumulativeLast;
+    // uint256 public override price1CumulativeLast;
     address public override baseToken;
     address public override quoteToken;
     address public override pairOwner;
