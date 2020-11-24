@@ -65,10 +65,10 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   // expected s
   const depositTestCases: any[][] = [
     [0.1,    100,  16, '0',                        '0'], // amount is below power min num
-    [0.2,    100,  16, '199900000000000000',       '1999'],
-    [1,      10,   17, '999900000000000000',       '9999'],
-    [10,     1,    18, '9999900000000000000',      '99999'],
-    [100,    1,    18, '99999600000000000000',     '999996']
+    [0.2,    100,  16, '199000000000000000',       '199'],
+    [1,      10,   17, '999000000000000000',       '999'],
+    [10,     1,    18, '9999000000000000000',      '9999'],
+    [100,    1,    18, '99999000000000000000',     '99999']
   ]
 
   // Deposit tests which return base:
@@ -103,7 +103,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     const baseSupply = expandTo18Decimals(1e9)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
-    const expectedBaseOutput = ethers.BigNumber.from('9999900000000000000')
+    const expectedBaseOutput = ethers.BigNumber.from('9999000000000000000')
     const expectedBaseReserve = baseSupply.sub(expectedBaseOutput)
 
     await tokenBase.transfer(pair.address, baseSupply)
@@ -129,14 +129,14 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
 
     const quoteIn = expandTo18Decimals(50)
     const baseOut = await pair.getBaseOut(quoteIn)
-    expect(ethers.BigNumber.from('9999900000000000000')).to.eq(baseOut)
+    expect(ethers.BigNumber.from('9999000000000000000')).to.eq(baseOut)
   })
 
   it('getQuoteOut:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
-    const baseIn = ethers.BigNumber.from('9999900000000000000')
+    const baseIn = ethers.BigNumber.from('9999000000000000000')
 
     await tokenBase.transfer(pair.address, baseSupply)
     await tokenQuote.transfer(pair.address, quoteReserve)
@@ -157,16 +157,16 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     await pair.deposit(wallet.address)
 
     const baseIn = await pair.getBaseIn(quoteOut)
-    expect(ethers.BigNumber.from('9999800000000000000')).to.eq(baseIn)
+    expect(ethers.BigNumber.from('9998000000000000000')).to.eq(baseIn)
   })
 
   it('getQuoteIn:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     await addLiquidity(tokenBase, baseSupply, pair)
 
-    const baseOut = ethers.BigNumber.from('9999900000000000000')
+    const baseOut = ethers.BigNumber.from('9999000000000000000')
     const quoteIn = await pair.getQuoteIn(baseOut)
-    expect(ethers.BigNumber.from('49049700290000000000')).to.eq(quoteIn)
+    expect(ethers.BigNumber.from('49953614000000000000')).to.eq(quoteIn)
   })
 
   it('swap: quote for base and back to quote', async () => {
@@ -175,7 +175,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
 
     const quoteAmountIn = expandTo18Decimals(50)
     const quoteMinusFee = ethers.BigNumber.from('49850000000000000000')
-    const baseAmountOut = ethers.BigNumber.from('9984900000000000000')
+    const baseAmountOut = ethers.BigNumber.from('9984000000000000000')
     await tokenQuote.transfer(pair.address, quoteAmountIn)
     await expect(pair.swap(baseAmountOut, 0, wallet.address, '0x'))
       .to.emit(tokenBase, 'Transfer')
@@ -192,8 +192,8 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteAmountIn))
 
     const baseAmountIn = baseAmountOut
-    const baseMinusFee = ethers.BigNumber.from('9954945300000000000')
-    const quoteAmountOut = ethers.BigNumber.from('49849999999999955001')
+    const baseMinusFee = ethers.BigNumber.from('9954048000000000000')
+    const quoteAmountOut = ethers.BigNumber.from('49849999999999999551')
     await tokenBase.transfer(pair.address, baseAmountIn)
     await expect(pair.swap(0, quoteAmountOut, wallet.address, '0x'))
       .to.emit(tokenQuote, 'Transfer')

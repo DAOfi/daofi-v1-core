@@ -24,8 +24,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint256 public constant MAX_FEE = 10; // 1%
     uint256 public constant MAX_N = 3; // y = mx ** n, cap n to 3
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
-    int8 private constant INTERNAL_DECIMALS = 8;
-    int8 private constant S_DECIMALS = 4;
+    int8 private constant INTERNAL_DECIMALS = 6;
+    int8 private constant S_DECIMALS = 3;
     int8 private constant OUTPUT_DECIMALS = 18;
     address public override factory;
     address public override token0;
@@ -138,15 +138,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         );
     }
 
-    // function _fixedMul(uint256 x, uint256 y) internal pure returns (uint256 result) {
-    //     result = FixedPoint.decode144(
-    //         FixedPoint.mul(
-    //             FixedPoint.encode(uint112(x)),
-    //             y
-    //         )
-    //     );
-    // }
-
     function _convertToDecimals(uint256 amountIn, int8 from, int8 to) internal pure returns (uint256 amountOut) {
         amountOut = amountIn;
         if (amountIn > 0) {
@@ -188,6 +179,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         }
         if (s > 0) {
             amountBase = _convertToDecimals(s, S_DECIMALS, baseDecimals);
+            // console.log("base output: %s", amountBase);
             // send s initial base to the specified address
             _safeTransfer(baseToken, to, amountBase);
             // update reserves
