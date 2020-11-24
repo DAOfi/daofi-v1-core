@@ -1,43 +1,34 @@
-import chai, { expect } from 'chai'
-import { Contract } from 'ethers'
-import { solidity, MockProvider } from 'ethereum-waffle'
-import { BigNumber, bigNumberify } from 'ethers/utils'
-
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
+import { expect } from 'chai'
+import { BigNumber, Contract } from 'ethers'
+import { ethers } from 'hardhat'
 import { getReserveForStartPrice, expandTo18Decimals, expandToMDecimals } from './shared/utilities'
 import { pairFixture } from './shared/fixtures'
 
-chai.use(solidity)
 
-const overrides = {
-  gasLimit: 9999999
-}
-const zero = bigNumberify(0)
+const zero = ethers.BigNumber.from(0)
 
 let factory: Contract
 let token0: Contract
 let tokenBase: Contract
 let tokenQuote: Contract
 let pair: Contract
+let wallet: SignerWithAddress
 
 describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
-  const provider = new MockProvider({
-    hardfork: 'istanbul',
-    mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
-    gasLimit: 9999999
-  })
-  const [wallet] = provider.getWallets()
-
   async function addLiquidity(
     tokenBase: Contract,
     baseReserve: BigNumber,
     pair: Contract
   ) {
     await tokenBase.transfer(pair.address, baseReserve)
-    await pair.deposit(wallet.address, overrides)
+    await pair.deposit(wallet.address)
   }
 
   beforeEach(async () => {
-    const fixture = await pairFixture(provider, wallet, 1e6, 1, 3)
+    wallet = (await ethers.getSigners())[0]
+    const fixture = await pairFixture(wallet, 1e6, 1, 3)
+
     factory = fixture.factory
     token0 = fixture.token0
     tokenBase = fixture.tokenBase
@@ -48,10 +39,10 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   it('deposit: only once', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     const expectedBaseReserve = baseSupply
-    const expectedS = bigNumberify(0)
+    const expectedS = ethers.BigNumber.from(0)
 
     await tokenBase.transfer(pair.address, baseSupply)
-    await expect(pair.deposit(wallet.address, overrides))
+    await expect(pair.deposit(wallet.address))
       .to.emit(pair, 'Deposit')
       .withArgs(wallet.address, expectedBaseReserve, zero, zero, wallet.address)
     expect(await pair.s()).to.eq(expectedS)
@@ -63,10 +54,9 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(reserves[0]).to.eq(expectedBaseReserve)
     expect(reserves[1]).to.eq(zero)
 
-    await expect(pair.deposit(wallet.address, overrides))
+    await expect(pair.deposit(wallet.address))
       .to.be.revertedWith('DOUBLE_DEPOSIT')
   })
-
 
   // price in quote, determines initial quote liquidity using getReserveForStartPrice
   // sacle for big num conversion, allows for fractional price converstion to bignum
@@ -74,14 +64,11 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   // expected base output is the amount of base returned from initial quote liqudity provided
   // expected s
   const depositTestCases: any[][] = [
-    [0.1,   100,  16, '0',                        '0'],
-    [0.2,   100,  16, '199734438000000000',       '199734438'],
-    [1,     10,   17, '995443602000000000',       '995443602'],
-    [10,    1,    18, '9810134194000000000',      '9810134194'],
-    [100,   1,    18, '94272026473000000000',     '94272026473'],
-    [1000,  1,    18, '866695866786000000000',    '866695866786'],
-    [10000, 1,    18, '7484129637737000000000',   '7484129637737'],
-    [40000, 1,    18, '26432889401827000000000',  '26432889401827'],
+    [0.1,    100,  16, '0',                        '0'], // amount is below power min num
+    [0.2,    100,  16, '199000000000000000',       '199'],
+    [1,      10,   17, '999000000000000000',       '999'],
+    [10,     1,    18, '9999000000000000000',      '9999'],
+    [100,    1,    18, '99999000000000000000',     '99999']
   ]
 
   // Deposit tests which return base:
@@ -92,13 +79,13 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
       const quoteReserveFloat = getReserveForStartPrice(price, 1, 1, 1)
       const quoteReserve = expandToMDecimals(Math.floor(quoteReserveFloat * priceFactor), M)
       const expectedQuoteReserve = quoteReserve
-      const expectedBaseOutput = bigNumberify(baseOutput)
-      const expectedS = bigNumberify(s)
+      const expectedBaseOutput = ethers.BigNumber.from(baseOutput)
+      const expectedS = ethers.BigNumber.from(s)
       const expectedBaseReserve = baseSupply.sub(baseOutput)
 
       await tokenBase.transfer(pair.address, baseSupply)
       await tokenQuote.transfer(pair.address, quoteReserve)
-      await expect(pair.deposit(wallet.address, overrides))
+      await expect(pair.deposit(wallet.address))
         .to.emit(pair, 'Deposit')
         .withArgs(wallet.address, expectedBaseReserve, expectedQuoteReserve, expectedBaseOutput, wallet.address)
       expect(await pair.s()).to.eq(expectedS)
@@ -116,14 +103,14 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     const baseSupply = expandTo18Decimals(1e9)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
-    const expectedBaseOutput = bigNumberify('9810134194000000000')
+    const expectedBaseOutput = ethers.BigNumber.from('9999000000000000000')
     const expectedBaseReserve = baseSupply.sub(expectedBaseOutput)
 
     await tokenBase.transfer(pair.address, baseSupply)
     await tokenQuote.transfer(pair.address, quoteReserve)
-    await pair.deposit(wallet.address, overrides)
+    await pair.deposit(wallet.address)
 
-    await expect(pair.withdraw(wallet.address, overrides))
+    await expect(pair.withdraw(wallet.address))
       .to.emit(pair, 'Withdraw')
       .withArgs(wallet.address, expectedBaseReserve, quoteReserve, wallet.address)
     expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseSupply)
@@ -136,15 +123,61 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(reserves[1]).to.eq(zero)
   })
 
+  it('getBaseOut:', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    await addLiquidity(tokenBase, baseSupply, pair)
+
+    const quoteIn = expandTo18Decimals(50)
+    const baseOut = await pair.getBaseOut(quoteIn)
+    expect(ethers.BigNumber.from('9999000000000000000')).to.eq(baseOut)
+  })
+
+  it('getQuoteOut:', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
+    const quoteReserve = expandTo18Decimals(quoteReserveFloat)
+    const baseIn = ethers.BigNumber.from('9999000000000000000')
+
+    await tokenBase.transfer(pair.address, baseSupply)
+    await tokenQuote.transfer(pair.address, quoteReserve)
+    await pair.deposit(wallet.address)
+
+    const quoteOut = await pair.getQuoteOut(baseIn)
+    expect(ethers.BigNumber.from('50000000000000000000')).to.eq(quoteOut)
+  })
+
+  it('getBaseIn:', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
+    const quoteReserve = expandTo18Decimals(quoteReserveFloat)
+    const quoteOut = expandTo18Decimals(50)
+
+    await tokenBase.transfer(pair.address, baseSupply)
+    await tokenQuote.transfer(pair.address, quoteReserve)
+    await pair.deposit(wallet.address)
+
+    const baseIn = await pair.getBaseIn(quoteOut)
+    expect(ethers.BigNumber.from('9998000000000000000')).to.eq(baseIn)
+  })
+
+  it('getQuoteIn:', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    await addLiquidity(tokenBase, baseSupply, pair)
+
+    const baseOut = ethers.BigNumber.from('9999000000000000000')
+    const quoteIn = await pair.getQuoteIn(baseOut)
+    expect(ethers.BigNumber.from('49953614000000000000')).to.eq(quoteIn)
+  })
+
   it('swap: quote for base and back to quote', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     await addLiquidity(tokenBase, baseSupply, pair)
 
     const quoteAmountIn = expandTo18Decimals(50)
-    const quoteMinusFee = bigNumberify('49850000000000000000')
-    const baseAmountOut = bigNumberify('9795562957000000000')
+    const quoteMinusFee = ethers.BigNumber.from('49850000000000000000')
+    const baseAmountOut = ethers.BigNumber.from('9984000000000000000')
     await tokenQuote.transfer(pair.address, quoteAmountIn)
-    await expect(pair.swap(baseAmountOut, 0, wallet.address, '0x', overrides))
+    await expect(pair.swap(baseAmountOut, 0, wallet.address, '0x'))
       .to.emit(tokenBase, 'Transfer')
       .withArgs(pair.address, wallet.address, baseAmountOut)
       .to.emit(pair, 'Swap')
@@ -159,10 +192,10 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteAmountIn))
 
     const baseAmountIn = baseAmountOut
-    const baseMinusFee = bigNumberify('9766176268129000000')
-    const quoteAmountOut = bigNumberify('49849805435065357240')
+    const baseMinusFee = ethers.BigNumber.from('9954048000000000000')
+    const quoteAmountOut = ethers.BigNumber.from('49849999999999999551')
     await tokenBase.transfer(pair.address, baseAmountIn)
-    await expect(pair.swap(0, quoteAmountOut, wallet.address, '0x', overrides))
+    await expect(pair.swap(0, quoteAmountOut, wallet.address, '0x'))
       .to.emit(tokenQuote, 'Transfer')
       .withArgs(pair.address, wallet.address, quoteAmountOut)
       .to.emit(pair, 'Swap')
@@ -177,97 +210,97 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteAmountIn).add(quoteAmountOut))
   })
 
-  it('swap: quote for base gas', async () => {
-    console.log('TODO')
-    // const token0Amount = expandTo18Decimals(5)
-    // const token1Amount = expandTo18Decimals(10)
-    // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
+  // it('swap: quote for base gas', async () => {
+  //   console.log('TODO')
+  //   // const token0Amount = expandTo18Decimals(5)
+  //   // const token1Amount = expandTo18Decimals(10)
+  //   // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
 
-    // // ensure that setting price{0,1}CumulativeLast for the first time doesn't affect our gas math
-    // await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
-    // await pair.sync(overrides)
+  //   // // ensure that setting price{0,1}CumulativeLast for the first time doesn't affect our gas math
+  //   // await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
+  //   // await pair.sync(overrides)
 
-    // const swapAmount = expandTo18Decimals(1)
-    // const expectedOutputAmount = bigNumberify('453305446940074565')
-    // await token1.transfer(pair.address, swapAmount)
-    // await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
-    // const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
-    // const receipt = await tx.wait()
-    // expect(receipt.gasUsed).to.eq(78465)
-  })
+  //   // const swapAmount = expandTo18Decimals(1)
+  //   // const expectedOutputAmount = ethers.BigNumber.from('453305446940074565')
+  //   // await token1.transfer(pair.address, swapAmount)
+  //   // await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
+  //   // const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
+  //   // const receipt = await tx.wait()
+  //   // expect(receipt.gasUsed).to.eq(78465)
+  // })
 
-  it('swap: quote for base gas', async () => {
-    console.log('TODO')
-    // const token0Amount = expandTo18Decimals(5)
-    // const token1Amount = expandTo18Decimals(10)
-    // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
+  // it('swap: quote for base gas', async () => {
+  //   console.log('TODO')
+  //   // const token0Amount = expandTo18Decimals(5)
+  //   // const token1Amount = expandTo18Decimals(10)
+  //   // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
 
-    // // ensure that setting price{0,1}CumulativeLast for the first time doesn't affect our gas math
-    // await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
-    // await pair.sync(overrides)
+  //   // // ensure that setting price{0,1}CumulativeLast for the first time doesn't affect our gas math
+  //   // await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
+  //   // await pair.sync(overrides)
 
-    // const swapAmount = expandTo18Decimals(1)
-    // const expectedOutputAmount = bigNumberify('453305446940074565')
-    // await token1.transfer(pair.address, swapAmount)
-    // await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
-    // const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
-    // const receipt = await tx.wait()
-    // expect(receipt.gasUsed).to.eq(78465)
-  })
+  //   // const swapAmount = expandTo18Decimals(1)
+  //   // const expectedOutputAmount = ethers.BigNumber.from('453305446940074565')
+  //   // await token1.transfer(pair.address, swapAmount)
+  //   // await mineBlock(provider, (await provider.getBlock('latest')).timestamp + 1)
+  //   // const tx = await pair.swap(expectedOutputAmount, 0, wallet.address, '0x', overrides)
+  //   // const receipt = await tx.wait()
+  //   // expect(receipt.gasUsed).to.eq(78465)
+  // })
 
-  it('price{quote,base}CumulativeLast', async () => {
-    console.log('TODO')
-    // const token0Amount = expandTo18Decimals(3)
-    // const token1Amount = expandTo18Decimals(3)
-    // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
+  // it('price{quote,base}CumulativeLast', async () => {
+  //   console.log('TODO')
+  //   // const token0Amount = expandTo18Decimals(3)
+  //   // const token1Amount = expandTo18Decimals(3)
+  //   // await addLiquidity(token0, token0Amount, token1, token1Amount, pair)
 
-    // const blockTimestamp = (await pair.blockTimestampLast())
-    // await mineBlock(provider, blockTimestamp + 1)
-    // await pair.sync(overrides)
+  //   // const blockTimestamp = (await pair.blockTimestampLast())
+  //   // await mineBlock(provider, blockTimestamp + 1)
+  //   // await pair.sync(overrides)
 
-    // const initialPrice = encodePrice(token0Amount, token1Amount)
-    // expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0])
-    // expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1])
-    // expect((await pair.blockTimestampLast())).to.eq(blockTimestamp + 1)
+  //   // const initialPrice = encodePrice(token0Amount, token1Amount)
+  //   // expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0])
+  //   // expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1])
+  //   // expect((await pair.blockTimestampLast())).to.eq(blockTimestamp + 1)
 
-    // const swapAmount = expandTo18Decimals(3)
-    // await token0.transfer(pair.address, swapAmount)
-    // await mineBlock(provider, blockTimestamp + 10)
-    // // swap to a new price eagerly instead of syncing
-    // await pair.swap(0, expandTo18Decimals(1), wallet.address, '0x', overrides) // make the price nice
+  //   // const swapAmount = expandTo18Decimals(3)
+  //   // await token0.transfer(pair.address, swapAmount)
+  //   // await mineBlock(provider, blockTimestamp + 10)
+  //   // // swap to a new price eagerly instead of syncing
+  //   // await pair.swap(0, expandTo18Decimals(1), wallet.address, '0x', overrides) // make the price nice
 
-    // expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10))
-    // expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10))
-    // expect((await pair.blockTimestampLast())).to.eq(blockTimestamp + 10)
+  //   // expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10))
+  //   // expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10))
+  //   // expect((await pair.blockTimestampLast())).to.eq(blockTimestamp + 10)
 
-    // await mineBlock(provider, blockTimestamp + 20)
-    // await pair.sync(overrides)
+  //   // await mineBlock(provider, blockTimestamp + 20)
+  //   // await pair.sync(overrides)
 
-    // const newPrice = encodePrice(expandTo18Decimals(6), expandTo18Decimals(2))
-    // expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10).add(newPrice[0].mul(10)))
-    // expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10).add(newPrice[1].mul(10)))
-    // expect((await pair.blockTimestampLast())).to.eq(blockTimestamp + 20)
-  })
+  //   // const newPrice = encodePrice(expandTo18Decimals(6), expandTo18Decimals(2))
+  //   // expect(await pair.price0CumulativeLast()).to.eq(initialPrice[0].mul(10).add(newPrice[0].mul(10)))
+  //   // expect(await pair.price1CumulativeLast()).to.eq(initialPrice[1].mul(10).add(newPrice[1].mul(10)))
+  //   // expect((await pair.blockTimestampLast())).to.eq(blockTimestamp + 20)
+  // })
 })
 
 describe('DAOfiV1Pair: m = 2, n = 1, fee = 3', () => {
-  const provider = new MockProvider({
-    hardfork: 'istanbul',
-    mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
-    gasLimit: 9999999
-  })
-  const [wallet] = provider.getWallets()
+  // const provider = new MockProvider({
+  //   hardfork: 'istanbul',
+  //   mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
+  //   gasLimit: 9999999
+  // })
+  // const [wallet] = provider.getWallets()
 
-  beforeEach(async () => {
-    const fixture = await pairFixture(provider, wallet, 2e6, 1, 3)
-    factory = fixture.factory
-    token0 = fixture.token0
-    tokenBase = fixture.tokenBase
-    tokenQuote = fixture.tokenQuote
-    pair = fixture.pair
-  })
+  // beforeEach(async () => {
+  //   const fixture = await pairFixture(provider, wallet, 2e6, 1, 3)
+  //   factory = fixture.factory
+  //   token0 = fixture.token0
+  //   tokenBase = fixture.tokenBase
+  //   tokenQuote = fixture.tokenQuote
+  //   pair = fixture.pair
+  // })
 
-  it('deposit: price 0', async () => {
-    console.log('TODO')
-  })
+  // it('deposit: price 0', async () => {
+  //   console.log('TODO')
+  // })
 })

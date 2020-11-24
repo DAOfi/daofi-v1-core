@@ -43,6 +43,6 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
         pairs[token0][token1][abi.encode(m, n, fee)] = pair;
         pairs[token1][token0][abi.encode(m, n, fee)] = pair; // populate mapping in the reverse direction
         allPairs.push(pair);
-        emit PairCreated(token0, token1, m, n, fee, pair, allPairs.length);
+        emit PairCreated(token0, token1, baseToken, pairOwner, m, n, fee, pair, allPairs.length);
     }
 }

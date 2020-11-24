@@ -1,25 +1,17 @@
-import { Contract } from 'ethers'
-import { Web3Provider } from 'ethers/providers'
-import {
-  BigNumber,
-  bigNumberify,
-  getAddress,
-  keccak256,
-  defaultAbiCoder,
-  toUtf8Bytes,
-  solidityPack
-} from 'ethers/utils'
+import { ethers } from 'hardhat'
+import { BigNumber, Contract } from 'ethers'
+const { getAddress, keccak256, defaultAbiCoder, toUtf8Bytes, solidityPack } = ethers.utils;
 
 const PERMIT_TYPEHASH = keccak256(
   toUtf8Bytes('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
 )
 
-export function expandTo18Decimals(n: number): BigNumber {
+export function expandTo18Decimals(n: number): BigNumber { 
   return expandToMDecimals(n, 18)
 }
 
 export function expandToMDecimals(n: number, m: number): BigNumber {
-  return bigNumberify(n).mul(bigNumberify(10).pow(m))
+  return ethers.BigNumber.from(n).mul(ethers.BigNumber.from(10).pow(m))
 }
 
 function getDomainSeparator(name: string, tokenAddress: string) {
@@ -55,7 +47,7 @@ export function getCreate2Address(
 }
 
 export async function getApprovalDigest(
-  token: Contract,
+  token: Contract, // y no contract type
   approve: {
     owner: string
     spender: string
@@ -64,7 +56,7 @@ export async function getApprovalDigest(
   nonce: BigNumber,
   deadline: BigNumber
 ): Promise<string> {
-  const name = await token.name()
+  const name = await token.name
   const DOMAIN_SEPARATOR = getDomainSeparator(name, token.address)
   return keccak256(
     solidityPack(
@@ -84,20 +76,20 @@ export async function getApprovalDigest(
   )
 }
 
-export async function mineBlock(provider: Web3Provider, timestamp: number): Promise<void> {
-  await new Promise(async (resolve, reject) => {
-    ;(provider._web3Provider.sendAsync as any)(
-      { jsonrpc: '2.0', method: 'evm_mine', params: [timestamp] },
-      (error: any, result: any): void => {
-        if (error) {
-          reject(error)
-        } else {
-          resolve(result)
-        }
-      }
-    )
-  })
-}
+// export async function mineBlock(provider: Web3Provider, timestamp: number): Promise<void> {
+//   await new Promise(async (resolve, reject) => {
+//     ;(provider._web3Provider.sendAsync as any)(
+//       { jsonrpc: '2.0', method: 'evm_mine', params: [timestamp] },
+//       (error: any, result: any): void => {
+//         if (error) {
+//           reject(error)
+//         } else {
+//           resolve(result)
+//         }
+//       }
+//     )
+//   })
+// }
 
 // y = mx ** n
 // given y = price and x = s, solve for s

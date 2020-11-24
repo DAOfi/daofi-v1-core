@@ -6,6 +6,8 @@ interface IDAOfiV1Factory {
     event PairCreated(
         address indexed token0,
         address indexed token1,
+        address baseToken,
+        address pairOwner,
         uint32 m,
         uint32 n,
         uint32 fee,
