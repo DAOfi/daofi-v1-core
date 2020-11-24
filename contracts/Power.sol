@@ -8,6 +8,7 @@ import './libraries/SafeMath.sol';
  * bancor formula by bancor
  * https://github.com/bancorprotocol/contracts
  * Modified from the original by Slava Balasanov
+ * Further modified by Alex Lewis
  * Split Power.sol out from BancorFormula.sol
  * Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements;
  * and to You under the Apache License, Version 2.0. "

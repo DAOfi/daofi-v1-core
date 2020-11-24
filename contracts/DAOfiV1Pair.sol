@@ -113,22 +113,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         s = 0;
     }
 
-        // update reserves and, on the first call per block, price accumulators
-    // function _update(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {
-    //     require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
-    //     uint32 blockTimestamp = uint32(block.timestamp % 2**32);
-    //     uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
-    //     if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
-    //         // * never overflows, and + overflow is desired
-    //         price0CumulativeLast += uint(UQ112x112.encode(_reserve1).uqdiv(_reserve0)) * timeElapsed;
-    //         price1CumulativeLast += uint(UQ112x112.encode(_reserve0).uqdiv(_reserve1)) * timeElapsed;
-    //     }
-    //     reserve0 = uint112(balance0);
-    //     reserve1 = uint112(balance1);
-    //     blockTimestampLast = blockTimestamp;
-    //     emit Sync(reserve0, reserve1);
-    // }
-
     function _fixedDiv(uint256 numer, uint256 denom) private pure returns (uint256) {
         return FixedPoint.decode(
             FixedPoint.fraction(
@@ -194,6 +178,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     function withdraw(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN');
+        require(deposited, 'DAOfiV1: UNINITIALIZED');
         amountBase = IERC20(baseToken).balanceOf(address(this));
         amountQuote = IERC20(quoteToken).balanceOf(address(this));
         _safeTransfer(baseToken, to, amountBase);
@@ -205,6 +190,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     // this low-level function should be called from a contract which performs important safety checks
     function swap(uint256 amountBaseOut, uint256 amountQuoteOut, address to, bytes calldata data) external override lock {
+        require(deposited, 'DAOfiV1: UNINITIALIZED');
         require(amountBaseOut > 0 || amountQuoteOut > 0, 'DAOfiV1: INSUFFICIENT_OUTPUT_AMOUNT');
         (uint256 _reserveBase, uint256 _reserveQuote,)  = getReserves(); // gas savings
         require(amountBaseOut <= _reserveBase && amountQuoteOut <= _reserveQuote, 'DAOfiV1: INSUFFICIENT_LIQUIDITY');
@@ -251,6 +237,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut)
     {
+        require(deposited, 'DAOfiV1: UNINITIALIZED');
         uint256 scaledReserveQuote = _convertToDecimals(
             reserveQuote.add(amountQuoteIn), quoteDecimals, INTERNAL_DECIMALS
         );
@@ -265,6 +252,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut)
     {
+        require(deposited, 'DAOfiV1: UNINITIALIZED');
         amountBaseIn = _convertToDecimals(amountBaseIn, baseDecimals, S_DECIMALS);
         if (s >= amountBaseIn) {
             uint256 result = _power(
@@ -281,36 +269,38 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         }
     }
 
-    function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn)
-    {
-        uint256 scaledReserveQuote = _convertToDecimals(
-            reserveQuote.sub(amountQuoteOut), quoteDecimals, INTERNAL_DECIMALS
-        );
-        uint256 result = _power(
-            scaledReserveQuote.mul(SLOPE_DENOM).mul(n + 1),
-            m,
-            uint32(1),
-            (n + 1)
-        );
-        amountBaseIn = _convertToDecimals(s.sub(result), S_DECIMALS, baseDecimals);
-    }
+    // function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn)
+    // {
+    //     require(deposited, 'DAOfiV1: UNINITIALIZED');
+    //     uint256 scaledReserveQuote = _convertToDecimals(
+    //         reserveQuote.sub(amountQuoteOut), quoteDecimals, INTERNAL_DECIMALS
+    //     );
+    //     uint256 result = _power(
+    //         scaledReserveQuote.mul(SLOPE_DENOM).mul(n + 1),
+    //         m,
+    //         uint32(1),
+    //         (n + 1)
+    //     );
+    //     amountBaseIn = _convertToDecimals(s.sub(result), S_DECIMALS, baseDecimals);
+    // }
 
-    function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn)
-    {
-        amountBaseOut = _convertToDecimals(amountBaseOut, baseDecimals, S_DECIMALS);
-        uint256 result = _power(
-            s.add(amountBaseOut),
-            uint256(1),
-            (n + 1),
-            uint32(1)
-        );
-        uint256 reserveAtSupply = _fixedDiv(result.mul(m), SLOPE_DENOM.mul(n + 1));
-        if (reserveAtSupply >= reserveQuote) {
-            amountQuoteIn = _convertToDecimals(
-                reserveAtSupply.sub(reserveQuote),
-                INTERNAL_DECIMALS,
-                quoteDecimals
-            );
-        }
-    }
+    // function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn)
+    // {
+    //     require(deposited, 'DAOfiV1: UNINITIALIZED');
+    //     amountBaseOut = _convertToDecimals(amountBaseOut, baseDecimals, S_DECIMALS);
+    //     uint256 result = _power(
+    //         s.add(amountBaseOut),
+    //         uint256(1),
+    //         (n + 1),
+    //         uint32(1)
+    //     );
+    //     uint256 reserveAtSupply = _fixedDiv(result.mul(m), SLOPE_DENOM.mul(n + 1));
+    //     if (reserveAtSupply >= reserveQuote) {
+    //         amountQuoteIn = _convertToDecimals(
+    //             reserveAtSupply.sub(reserveQuote),
+    //             INTERNAL_DECIMALS,
+    //             quoteDecimals
+    //         );
+    //     }
+    // }
 }

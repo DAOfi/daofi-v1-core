@@ -146,28 +146,28 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(ethers.BigNumber.from('50000000000000000000')).to.eq(quoteOut)
   })
 
-  it('getBaseIn:', async () => {
-    const baseSupply = expandTo18Decimals(1e9)
-    const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
-    const quoteReserve = expandTo18Decimals(quoteReserveFloat)
-    const quoteOut = expandTo18Decimals(50)
+  // it('getBaseIn:', async () => {
+  //   const baseSupply = expandTo18Decimals(1e9)
+  //   const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
+  //   const quoteReserve = expandTo18Decimals(quoteReserveFloat)
+  //   const quoteOut = expandTo18Decimals(50)
 
-    await tokenBase.transfer(pair.address, baseSupply)
-    await tokenQuote.transfer(pair.address, quoteReserve)
-    await pair.deposit(wallet.address)
+  //   await tokenBase.transfer(pair.address, baseSupply)
+  //   await tokenQuote.transfer(pair.address, quoteReserve)
+  //   await pair.deposit(wallet.address)
 
-    const baseIn = await pair.getBaseIn(quoteOut)
-    expect(ethers.BigNumber.from('9998000000000000000')).to.eq(baseIn)
-  })
+  //   const baseIn = await pair.getBaseIn(quoteOut)
+  //   expect(ethers.BigNumber.from('9998000000000000000')).to.eq(baseIn)
+  // })
 
-  it('getQuoteIn:', async () => {
-    const baseSupply = expandTo18Decimals(1e9)
-    await addLiquidity(tokenBase, baseSupply, pair)
+  // it('getQuoteIn:', async () => {
+  //   const baseSupply = expandTo18Decimals(1e9)
+  //   await addLiquidity(tokenBase, baseSupply, pair)
 
-    const baseOut = ethers.BigNumber.from('9999000000000000000')
-    const quoteIn = await pair.getQuoteIn(baseOut)
-    expect(ethers.BigNumber.from('49953614000000000000')).to.eq(quoteIn)
-  })
+  //   const baseOut = ethers.BigNumber.from('9999000000000000000')
+  //   const quoteIn = await pair.getQuoteIn(baseOut)
+  //   expect(ethers.BigNumber.from('49953614000000000000')).to.eq(quoteIn)
+  // })
 
   it('swap: quote for base and back to quote', async () => {
     const baseSupply = expandTo18Decimals(1e9)
