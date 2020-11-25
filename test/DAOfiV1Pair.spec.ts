@@ -123,7 +123,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(reserves[1]).to.eq(zero)
   })
 
-  it.only('basePrice:', async () => {
+  it('basePrice:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
@@ -136,7 +136,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(ethers.BigNumber.from('9998000000000000000')).to.eq(price)
   })
 
-  it.only('quotePrice:', async () => {
+  it('quotePrice:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
@@ -146,7 +146,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     await pair.deposit(wallet.address)
 
     const price = await pair.quotePrice()
-    expect(ethers.BigNumber.from('999800000000000000')).to.eq(price)
+    expect(ethers.BigNumber.from('100000000000000000')).to.eq(price)
   })
 
   it('getBaseOut:', async () => {

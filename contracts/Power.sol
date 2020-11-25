@@ -20,7 +20,7 @@ contract Power {
     using SafeMath  for uint256;
 
     uint256 private constant ONE = 1;
-    uint8 private constant MIN_PRECISION = 8;
+    uint8 private constant MIN_PRECISION = 0;
     uint8 private constant MAX_PRECISION = 107;
 
     /*
@@ -45,14 +45,14 @@ contract Power {
     uint256[128] private maxExpArray;
 
     constructor() {
-        // maxExpArray[  0] = 0x6bfffffffffffffffffffffffffff;
-        // maxExpArray[  1] = 0x67fffffffffffffffffffffffffff;
-        // maxExpArray[  2] = 0x637ffffffffffffffffffffffffff;
-        // maxExpArray[  3] = 0x5f6ffffffffffffffffffffffffff;
-        // maxExpArray[  4] = 0x5b77fffffffffffffffffffffffff;
-        // maxExpArray[  5] = 0x57b3fffffffffffffffffffffffff;
-        // maxExpArray[  6] = 0x5419fffffffffffffffffffffffff;
-        // maxExpArray[  7] = 0x50a2fffffffffffffffffffffffff;
+        maxExpArray[  0] = 0x6bfffffffffffffffffffffffffff;
+        maxExpArray[  1] = 0x67fffffffffffffffffffffffffff;
+        maxExpArray[  2] = 0x637ffffffffffffffffffffffffff;
+        maxExpArray[  3] = 0x5f6ffffffffffffffffffffffffff;
+        maxExpArray[  4] = 0x5b77fffffffffffffffffffffffff;
+        maxExpArray[  5] = 0x57b3fffffffffffffffffffffffff;
+        maxExpArray[  6] = 0x5419fffffffffffffffffffffffff;
+        maxExpArray[  7] = 0x50a2fffffffffffffffffffffffff;
         maxExpArray[  8] = 0x4d517ffffffffffffffffffffffff;
         maxExpArray[  9] = 0x4a233ffffffffffffffffffffffff;
         maxExpArray[ 10] = 0x47165ffffffffffffffffffffffff;

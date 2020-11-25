@@ -252,13 +252,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     function quotePrice() public view override returns (uint256 price)
     {
         require(deposited, 'DAOfiV1: UNINITIALIZED');
-        // quote price = 1 / base price
-        console.log("quotePrice div: %s", _fixedDiv((10 ** uint256(quoteDecimals)), basePrice()));
-        price = _convertToDecimals(
-            _fixedDiv((10 ** uint256(quoteDecimals)), basePrice()),
-            quoteDecimals,
-            baseDecimals
-        );
+        price = getBaseOut(10 ** uint(quoteDecimals));
     }
 
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut)
