@@ -5,7 +5,6 @@ import { ethers } from 'hardhat'
 import { getReserveForStartPrice, expandTo18Decimals, expandToMDecimals } from './shared/utilities'
 import { pairFixture } from './shared/fixtures'
 
-
 const zero = ethers.BigNumber.from(0)
 
 let factory: Contract
@@ -16,11 +15,7 @@ let pair: Contract
 let wallet: SignerWithAddress
 
 describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
-  async function addLiquidity(
-    tokenBase: Contract,
-    baseReserve: BigNumber,
-    pair: Contract
-  ) {
+  async function addLiquidity(tokenBase: Contract, baseReserve: BigNumber, pair: Contract) {
     await tokenBase.transfer(pair.address, baseReserve)
     await pair.deposit(wallet.address)
   }
@@ -54,8 +49,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(reserves[0]).to.eq(expectedBaseReserve)
     expect(reserves[1]).to.eq(zero)
 
-    await expect(pair.deposit(wallet.address))
-      .to.be.revertedWith('DOUBLE_DEPOSIT')
+    await expect(pair.deposit(wallet.address)).to.be.revertedWith('DOUBLE_DEPOSIT')
   })
 
   // price in quote, determines initial quote liquidity using getReserveForStartPrice
@@ -64,11 +58,11 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   // expected base output is the amount of base returned from initial quote liqudity provided
   // expected s
   const depositTestCases: any[][] = [
-    [0.1,    100,  16, '0',                        '0'], // amount is below power min num
-    [0.2,    100,  16, '199000000000000000',       '199'],
-    [1,      10,   17, '999000000000000000',       '999'],
-    [10,     1,    18, '9999000000000000000',      '9999'],
-    [100,    1,    18, '99999000000000000000',     '99999']
+    [0.1, 100, 16, '0', '0'], // amount is below power min num
+    [0.2, 100, 16, '199000000000000000', '199'],
+    [1, 10, 17, '999000000000000000', '999'],
+    [10, 1, 18, '9999000000000000000', '9999'],
+    [100, 1, 18, '99999000000000000000', '99999'],
   ]
 
   // Deposit tests which return base:
@@ -233,7 +227,9 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply)
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn.sub(quoteAmountOut))
     expect(await tokenBase.balanceOf(wallet.address)).to.eq(zero)
-    expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteAmountIn).add(quoteAmountOut))
+    expect(await tokenQuote.balanceOf(wallet.address)).to.eq(
+      (await tokenQuote.totalSupply()).sub(quoteAmountIn).add(quoteAmountOut)
+    )
   })
 })
 
@@ -244,7 +240,6 @@ describe('DAOfiV1Pair: m = 2, n = 1, fee = 3', () => {
   //   gasLimit: 9999999
   // })
   // const [wallet] = provider.getWallets()
-
   // beforeEach(async () => {
   //   const fixture = await pairFixture(provider, wallet, 2e6, 1, 3)
   //   factory = fixture.factory
@@ -253,7 +248,6 @@ describe('DAOfiV1Pair: m = 2, n = 1, fee = 3', () => {
   //   tokenQuote = fixture.tokenQuote
   //   pair = fixture.pair
   // })
-
   // it('deposit: price 0', async () => {
   //   console.log('TODO')
   // })
