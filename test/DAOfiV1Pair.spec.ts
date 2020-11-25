@@ -123,6 +123,32 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(reserves[1]).to.eq(zero)
   })
 
+  it.only('basePrice:', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
+    const quoteReserve = expandTo18Decimals(quoteReserveFloat)
+
+    await tokenBase.transfer(pair.address, baseSupply)
+    await tokenQuote.transfer(pair.address, quoteReserve)
+    await pair.deposit(wallet.address)
+
+    const price = await pair.basePrice()
+    expect(ethers.BigNumber.from('9998000000000000000')).to.eq(price)
+  })
+
+  it.only('quotePrice:', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
+    const quoteReserve = expandTo18Decimals(quoteReserveFloat)
+
+    await tokenBase.transfer(pair.address, baseSupply)
+    await tokenQuote.transfer(pair.address, quoteReserve)
+    await pair.deposit(wallet.address)
+
+    const price = await pair.quotePrice()
+    expect(ethers.BigNumber.from('999800000000000000')).to.eq(price)
+  })
+
   it('getBaseOut:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     await addLiquidity(tokenBase, baseSupply, pair)

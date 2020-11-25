@@ -240,16 +240,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     function basePrice() public view override returns (uint256 price)
     {
         require(deposited, 'DAOfiV1: UNINITIALIZED');
-        uint256 oneBase = _convertToDecimals((10 ** uint(baseDecimals)), baseDecimals, S_DECIMALS);
-        uint256 result = _power(
-            s.add(oneBase),
-            uint256(1),
-            (n + 1),
-            uint32(1)
-        );
+        // y = mx^n, where x = token supply s
+        uint256 result = _power(s, uint256(1), n, uint32(1));
         price = _convertToDecimals(
-            _fixedDiv(result.mul(m), SLOPE_DENOM.mul(n + 1)).sub(reserveQuote),
-            OUTPUT_DECIMALS,
+            _fixedDiv(result.mul(m), SLOPE_DENOM),
+            S_DECIMALS,
             quoteDecimals
         );
     }
@@ -257,8 +252,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     function quotePrice() public view override returns (uint256 price)
     {
         require(deposited, 'DAOfiV1: UNINITIALIZED');
-        uint256 oneQuote = _convertToDecimals((10 ** uint(quoteDecimals)), baseDecimals, S_DECIMALS);
-        price = getBaseOut(oneQuote);
+        // quote price = 1 / base price
+        console.log("quotePrice div: %s", _fixedDiv((10 ** uint256(quoteDecimals)), basePrice()));
+        price = _convertToDecimals(
+            _fixedDiv((10 ** uint256(quoteDecimals)), basePrice()),
+            quoteDecimals,
+            baseDecimals
+        );
     }
 
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut)
