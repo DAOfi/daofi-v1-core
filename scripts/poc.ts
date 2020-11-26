@@ -12,8 +12,8 @@ async function main() {
   // base sold x = (quote price y/m)^(1/n)
   const s0: number = Math.floor(((startingPrice / (slopeN / slopeD)) ** (1/n)) * MAX_DECIMALS) / MAX_DECIMALS
 
-  // quote price y = m(base sold x)x^n
-  // quote reserve y' = (m/(n+1)) * ((base sold x)^(n+1))
+  // quote price y = mx^n, where x = amount of base sold
+  // quote reserve y' = (m/(n+1)) * (x^(n+1))
   for (let x: number = s0; x < maxTiers; ++x) {
     const price: number = Math.floor(((slopeN / slopeD) * (x ** n)) * MAX_DECIMALS) / MAX_DECIMALS
     const reserve: number = Math.floor((((slopeN / slopeD) / (n + 1)) * (x ** (n + 1))) * MAX_DECIMALS) / MAX_DECIMALS
@@ -28,3 +28,5 @@ main()
     console.error(error)
     process.exit(1)
   });
+
+
