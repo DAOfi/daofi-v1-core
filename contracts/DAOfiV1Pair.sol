@@ -23,8 +23,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint256 public constant MAX_FEE = 10; // 1%
     uint256 public constant MAX_N = 3; // y = mx ** n, cap n to 3
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
-    int8 private constant INTERNAL_DECIMALS = 10;
-    int8 private constant S_DECIMALS = 6;
+    int8 private constant INTERNAL_DECIMALS = 8;
+    int8 private constant S_DECIMALS = 5;
     int8 private constant OUTPUT_DECIMALS = 18;
     address public override factory;
     address public override token0;
@@ -153,7 +153,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // s = ((quoteReserve * slopeD * (n + 1)) / slopeN) ** (1 / (n + 1))
         if (reserveQuote > 0) {
             uint256 scaledQuote = _convertToDecimals(reserveQuote, quoteDecimals, INTERNAL_DECIMALS);
-            s = _power(scaledQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1));
+            s = Math.ceil(
+                _power(scaledQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1)),
+                (10 ** uint(S_DECIMALS))
+            );
         }
         if (s > 0) {
             amountBase = _convertToDecimals(s, S_DECIMALS, baseDecimals);
@@ -278,10 +281,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
                 (n + 1),
                 uint32(1)
             );
-            amountQuoteOut = _convertToDecimals(
-                reserveQuote.sub(_roundDiv(result.mul(m), SLOPE_DENOM.mul(n + 1))),
-                OUTPUT_DECIMALS,
-                quoteDecimals
+            amountQuoteOut = Math.ceil(
+                _convertToDecimals(
+                    reserveQuote.sub(_roundDiv(result.mul(m), SLOPE_DENOM.mul(n + 1))),
+                    OUTPUT_DECIMALS,
+                    quoteDecimals
+                ),
+                (10 ** uint(quoteDecimals))
             );
         }
     }
@@ -298,7 +304,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             uint32(1),
             (n + 1)
         );
-        amountBaseIn = _convertToDecimals(s.sub(result), S_DECIMALS, baseDecimals);
+        amountBaseIn = Math.ceil(
+            _convertToDecimals(s.sub(result), S_DECIMALS, baseDecimals),
+            (10 ** uint(baseDecimals))
+        );
     }
 
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn)
@@ -313,10 +322,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         );
         uint256 reserveAtSupply = _roundDiv(result.mul(m), SLOPE_DENOM.mul(n + 1));
         if (reserveAtSupply >= reserveQuote) {
-            amountQuoteIn = _convertToDecimals(
-                reserveAtSupply.sub(reserveQuote),
-                INTERNAL_DECIMALS,
-                quoteDecimals
+            amountQuoteIn = Math.ceil(
+                _convertToDecimals(
+                    reserveAtSupply.sub(reserveQuote),
+                    INTERNAL_DECIMALS,
+                    quoteDecimals
+                ),
+                (10 ** uint(quoteDecimals))
             );
         }
     }
