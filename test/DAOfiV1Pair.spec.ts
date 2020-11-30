@@ -143,16 +143,17 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(ethers.BigNumber.from('100000000000000000')).to.eq(price)
   })
 
-  it('getBaseOut:', async () => {
+  it.only('getBaseOut:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     await addLiquidity(tokenBase, baseSupply, pair)
 
     const quoteIn = expandTo18Decimals(50)
     const baseOut = await pair.getBaseOut(quoteIn)
+    // 9.99996
     expect(ethers.BigNumber.from('9999000000000000000')).to.eq(baseOut)
   })
 
-  it('getQuoteOut:', async () => {
+  it.only('getQuoteOut:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
