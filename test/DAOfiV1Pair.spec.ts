@@ -58,16 +58,16 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   // expected base output is the amount of base returned from initial quote liqudity provided
   // expected s
   const depositTestCases: any[][] = [
-    [0.1, 100, 16, '0', '0'], // amount is below power min num
-    [0.2, 100, 16, '199000000000000000', '199'],
-    [1, 10, 17, '999000000000000000', '999'],
-    [10, 1, 18, '9999000000000000000', '9999'],
-    [100, 1, 18, '99999000000000000000', '99999'],
+    //[0.1, 100, 16, '0', '0'],
+    [0.2, 100, 16, '300000000000000000', '300'],
+    [1, 10, 17, '1000000000000000000', '100000'],
+    // [10, 1, 18, '10000000000000000000', '1000000'],
+    // [100, 1, 18, '100000000000000000000', '10000000'],
   ]
 
   // Deposit tests which return base:
   depositTestCases.forEach((depositTestCase, i) => {
-    it(`deposit: ${i}`, async () => {
+    it.only(`deposit: ${i}`, async () => {
       const [price, priceFactor, M, baseOutput, s] = depositTestCase
       const baseSupply = expandTo18Decimals(1e9)
       const quoteReserveFloat = getReserveForStartPrice(price, 1, 1, 1)
@@ -143,7 +143,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(ethers.BigNumber.from('100000000000000000')).to.eq(price)
   })
 
-  it.only('getBaseOut:', async () => {
+  it('getBaseOut:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     await addLiquidity(tokenBase, baseSupply, pair)
 
@@ -152,7 +152,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(ethers.BigNumber.from('1000000000000000000')).to.eq(baseOut)
   })
 
-  it.only('getQuoteOut:', async () => {
+  it('getQuoteOut:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
@@ -166,7 +166,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(ethers.BigNumber.from('50000000000000000000')).to.eq(quoteOut)
   })
 
-  it.only('getBaseIn:', async () => {
+  it('getBaseIn:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
     const quoteReserve = expandTo18Decimals(quoteReserveFloat)
@@ -180,7 +180,7 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
     expect(ethers.BigNumber.from('1000000000000000000')).to.eq(baseIn)
   })
 
-  it.only('getQuoteIn:', async () => {
+  it('getQuoteIn:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     await addLiquidity(tokenBase, baseSupply, pair)
 

@@ -20,95 +20,152 @@ contract Power {
     using SafeMath  for uint256;
 
     uint256 private constant ONE = 1;
-    uint8 private constant MIN_PRECISION = 0;
-    uint8 private constant MAX_PRECISION = 63;
+    uint8 private constant MIN_PRECISION = 32;
+    uint8 private constant MAX_PRECISION = 120;
 
     /*
       The values below depend on MAX_PRECISION. If you choose to change it:
       Apply the same change in file 'PrintIntScalingFactors.py', run it and paste the results below.
     */
-    uint256 private constant FIXED_1 = 0x0000000000000000000000000000000008000000000000000;
-    uint256 private constant FIXED_2 = 0x0000000000000000000000000000000010000000000000000;
-    uint256 private constant MAX_NUM = 0x2000000000000000000000000000000000000000000000000;
+    uint256 private constant FIXED_1 = 0x00001000000000000000000000000000000;
+    uint256 private constant FIXED_2 = 0x00002000000000000000000000000000000;
+    uint256 private constant MAX_NUM = 0x10000000000000000000000000000000000;
 
     /*
       The values below depend on MAX_PRECISION. If you choose to change it:
       Apply the same change in file 'PrintLn2ScalingFactors.py', run it and paste the results below.
     */
-    uint256 private constant LN2_NUMERATOR   = 0x2a721291e81fd58deddeb1eef12972f5886f13165f594cc;
-    uint256 private constant LN2_DENOMINATOR = 0x3d3c6dd0b3192eab06c796a17846f95d99b79da2751d09f;
+    uint256 private constant LN2_NUMERATOR   = 0x1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e5;
+    uint256 private constant LN2_DENOMINATOR = 0x2b735936e87e1a86872f0ec7a0431dc63;
 
     /*
       The values below depend on MIN_PRECISION and MAX_PRECISION. If you choose to change either one of them:
       Apply the same change in file 'PrintMaxExpArray.py', run it and paste the results below.
     */
-    uint256[128] private maxExpArray;
+    uint256[121] private maxExpArray;
 
     constructor() {
-        maxExpArray[ 0] = 0x6bffffffffffffffff;
-        maxExpArray[ 1] = 0x67ffffffffffffffff;
-        maxExpArray[ 2] = 0x637fffffffffffffff;
-        maxExpArray[ 3] = 0x5f6fffffffffffffff;
-        maxExpArray[ 4] = 0x5b77ffffffffffffff;
-        maxExpArray[ 5] = 0x57b3ffffffffffffff;
-        maxExpArray[ 6] = 0x5419ffffffffffffff;
-        maxExpArray[ 7] = 0x50a2ffffffffffffff;
-        maxExpArray[ 8] = 0x4d517fffffffffffff;
-        maxExpArray[ 9] = 0x4a233fffffffffffff;
-        maxExpArray[10] = 0x47165fffffffffffff;
-        maxExpArray[11] = 0x4429afffffffffffff;
-        maxExpArray[12] = 0x415bc7ffffffffffff;
-        maxExpArray[13] = 0x3eab73ffffffffffff;
-        maxExpArray[14] = 0x3c1771ffffffffffff;
-        maxExpArray[15] = 0x399e96ffffffffffff;
-        maxExpArray[16] = 0x373fc47fffffffffff;
-        maxExpArray[17] = 0x34f9e8ffffffffffff;
-        maxExpArray[18] = 0x32cbfd5fffffffffff;
-        maxExpArray[19] = 0x30b5057fffffffffff;
-        maxExpArray[20] = 0x2eb40f9fffffffffff;
-        maxExpArray[21] = 0x2cc8340fffffffffff;
-        maxExpArray[22] = 0x2af09481ffffffffff;
-        maxExpArray[23] = 0x292c5bddffffffffff;
-        maxExpArray[24] = 0x277abdcdffffffffff;
-        maxExpArray[25] = 0x25daf6657fffffffff;
-        maxExpArray[26] = 0x244c49c65fffffffff;
-        maxExpArray[27] = 0x22ce03cd5fffffffff;
-        maxExpArray[28] = 0x215f77c047ffffffff;
-        maxExpArray[29] = 0x1fffffffffffffffff;
-        maxExpArray[30] = 0x1eaefdbdabffffffff;
-        maxExpArray[31] = 0x1d6bd8b2ebffffffff;
-        maxExpArray[32] = 0x1c35fedd14ffffffff;
-        maxExpArray[33] = 0x1b0ce43b323fffffff;
-        maxExpArray[34] = 0x19f0028ec1ffffffff;
-        maxExpArray[35] = 0x18ded91f0e7fffffff;
-        maxExpArray[36] = 0x17d8ec7f0417ffffff;
-        maxExpArray[37] = 0x16ddc6556cdbffffff;
-        maxExpArray[38] = 0x15ecf52776a1ffffff;
-        maxExpArray[39] = 0x15060c256cb2ffffff;
-        maxExpArray[40] = 0x1428a2f98d72ffffff;
-        maxExpArray[41] = 0x13545598e5c23fffff;
-        maxExpArray[42] = 0x1288c4161ce1dfffff;
-        maxExpArray[43] = 0x11c592761c666fffff;
-        maxExpArray[44] = 0x110a688680a757ffff;
-        maxExpArray[45] = 0x1056f1b5bedf77ffff;
-        maxExpArray[46] = 0x0faadceceeff8bffff;
-        maxExpArray[47] = 0x0f05dc6b27edadffff;
-        maxExpArray[48] = 0x0e67a5a25da4107fff;
-        maxExpArray[49] = 0x0dcff115b14eedffff;
-        maxExpArray[50] = 0x0d3e7a392431239fff;
-        maxExpArray[51] = 0x0cb2ff529eb71e4fff;
-        maxExpArray[52] = 0x0c2d415c3db974afff;
-        maxExpArray[53] = 0x0bad03e7d883f69bff;
-        maxExpArray[54] = 0x0b320d03b2c343d5ff;
-        maxExpArray[55] = 0x0abc25204e02828dff;
-        maxExpArray[56] = 0x0a4b16f74ee4bb207f;
-        maxExpArray[57] = 0x09deaf736ac1f569ff;
-        maxExpArray[58] = 0x0976bd9952c7aa957f;
-        maxExpArray[59] = 0x09131271922eaa606f;
-        maxExpArray[60] = 0x08b380f3558668c46f;
-        maxExpArray[61] = 0x0857ddf0117efa215b;
-        maxExpArray[62] = 0x07ffffffffffffffff;
-        maxExpArray[63] = 0x07abbf6f6abb9d087f;
+    //  maxExpArray[  0] = 0xd7ffffffffffffffffffffffffffffff;
+    //  maxExpArray[  1] = 0xcfffffffffffffffffffffffffffffff;
+    //  maxExpArray[  2] = 0xc6ffffffffffffffffffffffffffffff;
+    //  maxExpArray[  3] = 0xbedfffffffffffffffffffffffffffff;
+    //  maxExpArray[  4] = 0xb6efffffffffffffffffffffffffffff;
+    //  maxExpArray[  5] = 0xaf67ffffffffffffffffffffffffffff;
+    //  maxExpArray[  6] = 0xa833ffffffffffffffffffffffffffff;
+    //  maxExpArray[  7] = 0xa145ffffffffffffffffffffffffffff;
+    //  maxExpArray[  8] = 0x9aa2ffffffffffffffffffffffffffff;
+    //  maxExpArray[  9] = 0x94467fffffffffffffffffffffffffff;
+    //  maxExpArray[ 10] = 0x8e2cbfffffffffffffffffffffffffff;
+    //  maxExpArray[ 11] = 0x88535fffffffffffffffffffffffffff;
+    //  maxExpArray[ 12] = 0x82b78fffffffffffffffffffffffffff;
+    //  maxExpArray[ 13] = 0x7d56e7ffffffffffffffffffffffffff;
+    //  maxExpArray[ 14] = 0x782ee3ffffffffffffffffffffffffff;
+    //  maxExpArray[ 15] = 0x733d2dffffffffffffffffffffffffff;
+    //  maxExpArray[ 16] = 0x6e7f88ffffffffffffffffffffffffff;
+    //  maxExpArray[ 17] = 0x69f3d1ffffffffffffffffffffffffff;
+    //  maxExpArray[ 18] = 0x6597fabfffffffffffffffffffffffff;
+    //  maxExpArray[ 19] = 0x616a0affffffffffffffffffffffffff;
+    //  maxExpArray[ 20] = 0x5d681f3fffffffffffffffffffffffff;
+    //  maxExpArray[ 21] = 0x5990681fffffffffffffffffffffffff;
+    //  maxExpArray[ 22] = 0x55e12903ffffffffffffffffffffffff;
+    //  maxExpArray[ 23] = 0x5258b7bbffffffffffffffffffffffff;
+    //  maxExpArray[ 24] = 0x4ef57b9bffffffffffffffffffffffff;
+    //  maxExpArray[ 25] = 0x4bb5eccaffffffffffffffffffffffff;
+    //  maxExpArray[ 26] = 0x4898938cbfffffffffffffffffffffff;
+    //  maxExpArray[ 27] = 0x459c079abfffffffffffffffffffffff;
+    //  maxExpArray[ 28] = 0x42beef808fffffffffffffffffffffff;
+    //  maxExpArray[ 29] = 0x3fffffffffffffffffffffffffffffff;
+    //  maxExpArray[ 30] = 0x3d5dfb7b57ffffffffffffffffffffff;
+    //  maxExpArray[ 31] = 0x3ad7b165d7ffffffffffffffffffffff;
+        maxExpArray[ 32] = 0x386bfdba29ffffffffffffffffffffff;
+        maxExpArray[ 33] = 0x3619c876647fffffffffffffffffffff;
+        maxExpArray[ 34] = 0x33e0051d83ffffffffffffffffffffff;
+        maxExpArray[ 35] = 0x31bdb23e1cffffffffffffffffffffff;
+        maxExpArray[ 36] = 0x2fb1d8fe082fffffffffffffffffffff;
+        maxExpArray[ 37] = 0x2dbb8caad9b7ffffffffffffffffffff;
+        maxExpArray[ 38] = 0x2bd9ea4eed43ffffffffffffffffffff;
+        maxExpArray[ 39] = 0x2a0c184ad965ffffffffffffffffffff;
+        maxExpArray[ 40] = 0x285145f31ae5ffffffffffffffffffff;
+        maxExpArray[ 41] = 0x26a8ab31cb847fffffffffffffffffff;
+        maxExpArray[ 42] = 0x2511882c39c3bfffffffffffffffffff;
+        maxExpArray[ 43] = 0x238b24ec38ccdfffffffffffffffffff;
+        maxExpArray[ 44] = 0x2214d10d014eafffffffffffffffffff;
+        maxExpArray[ 45] = 0x20ade36b7dbeefffffffffffffffffff;
+        maxExpArray[ 46] = 0x1f55b9d9ddff17ffffffffffffffffff;
+        maxExpArray[ 47] = 0x1e0bb8d64fdb5bffffffffffffffffff;
+        maxExpArray[ 48] = 0x1ccf4b44bb4820ffffffffffffffffff;
+        maxExpArray[ 49] = 0x1b9fe22b629ddbffffffffffffffffff;
+        maxExpArray[ 50] = 0x1a7cf4724862473fffffffffffffffff;
+        maxExpArray[ 51] = 0x1965fea53d6e3c9fffffffffffffffff;
+        maxExpArray[ 52] = 0x185a82b87b72e95fffffffffffffffff;
+        maxExpArray[ 53] = 0x175a07cfb107ed37ffffffffffffffff;
+        maxExpArray[ 54] = 0x16641a07658687abffffffffffffffff;
+        maxExpArray[ 55] = 0x15784a409c05051bffffffffffffffff;
+        maxExpArray[ 56] = 0x14962dee9dc97640ffffffffffffffff;
+        maxExpArray[ 57] = 0x13bd5ee6d583ead3ffffffffffffffff;
+        maxExpArray[ 58] = 0x12ed7b32a58f552affffffffffffffff;
+        maxExpArray[ 59] = 0x122624e3245d54c0dfffffffffffffff;
+        maxExpArray[ 60] = 0x116701e6ab0cd188dfffffffffffffff;
+        maxExpArray[ 61] = 0x10afbbe022fdf442b7ffffffffffffff;
+        maxExpArray[ 62] = 0x0fffffffffffffffffffffffffffffff;
+        maxExpArray[ 63] = 0x0f577eded5773a10ffffffffffffffff;
+        maxExpArray[ 64] = 0x0eb5ec597592befbf4ffffffffffffff;
+        maxExpArray[ 65] = 0x0e1aff6e8a5c30f5827fffffffffffff;
+        maxExpArray[ 66] = 0x0d86721d9915e6f252bfffffffffffff;
+        maxExpArray[ 67] = 0x0cf8014760fff803fadfffffffffffff;
+        maxExpArray[ 68] = 0x0c6f6c8f8739773a7a4fffffffffffff;
+        maxExpArray[ 69] = 0x0bec763f8209b7a72b0fffffffffffff;
+        maxExpArray[ 70] = 0x0b6ee32ab66dc25ee46bffffffffffff;
+        maxExpArray[ 71] = 0x0af67a93bb508aadadedffffffffffff;
+        maxExpArray[ 72] = 0x0a830612b6591d9d9e61ffffffffffff;
+        maxExpArray[ 73] = 0x0a14517cc6b9457111eeffffffffffff;
+        maxExpArray[ 74] = 0x09aa2acc72e1193b66787fffffffffff;
+        maxExpArray[ 75] = 0x0944620b0e70eb7aa5bfbfffffffffff;
+        maxExpArray[ 76] = 0x08e2c93b0e33355320eadfffffffffff;
+        maxExpArray[ 77] = 0x088534434053a9828af9f7ffffffffff;
+        maxExpArray[ 78] = 0x082b78dadf6fbae35e5967ffffffffff;
+        maxExpArray[ 79] = 0x07d56e76777fc5044879c3ffffffffff;
+        maxExpArray[ 80] = 0x0782ee3593f6d69831c453ffffffffff;
+        maxExpArray[ 81] = 0x0733d2d12ed20831ef0a4affffffffff;
+        maxExpArray[ 82] = 0x06e7f88ad8a776ef37e1d53fffffffff;
+        maxExpArray[ 83] = 0x069f3d1c921891ccfcd5717fffffffff;
+        maxExpArray[ 84] = 0x06597fa94f5b8f20ac16666fffffffff;
+        maxExpArray[ 85] = 0x0616a0ae1edcba5599528c27ffffffff;
+        maxExpArray[ 86] = 0x05d681f3ec41fb4d6ad850c3ffffffff;
+        maxExpArray[ 87] = 0x05990681d961a1ea414d5eb1ffffffff;
+        maxExpArray[ 88] = 0x055e129027014146b9e37405ffffffff;
+        maxExpArray[ 89] = 0x05258b7ba7725d902050f6367fffffff;
+        maxExpArray[ 90] = 0x04ef57b9b560fab4ef58dad73fffffff;
+        maxExpArray[ 91] = 0x04bb5ecca963d54abfac9bebdfffffff;
+        maxExpArray[ 92] = 0x04898938c9175530325b9d116fffffff;
+        maxExpArray[ 93] = 0x0459c079aac334623648e24d17ffffff;
+        maxExpArray[ 94] = 0x042beef808bf7d10aca948941fffffff;
+        maxExpArray[ 95] = 0x03ffffffffffffffffffffffffffffff;
+        maxExpArray[ 96] = 0x03d5dfb7b55dce843f89a7dbcbffffff;
+        maxExpArray[ 97] = 0x03ad7b165d64afbefd194af6137fffff;
+        maxExpArray[ 98] = 0x0386bfdba2970c3d60887efe267fffff;
+        maxExpArray[ 99] = 0x03619c87664579bc94add15b4b5fffff;
+        maxExpArray[100] = 0x033e0051d83ffe00feb432b473bfffff;
+        maxExpArray[101] = 0x031bdb23e1ce5dce9e9362b74a4fffff;
+        maxExpArray[102] = 0x02fb1d8fe0826de9cac2bfa834c7ffff;
+        maxExpArray[103] = 0x02dbb8caad9b7097b91a25a45cdfffff;
+        maxExpArray[104] = 0x02bd9ea4eed422ab6b7b072b029effff;
+        maxExpArray[105] = 0x02a0c184ad96476767986ea99e81ffff;
+        maxExpArray[106] = 0x0285145f31ae515c447bb56e2b7c7fff;
+        maxExpArray[107] = 0x026a8ab31cb8464ed99e1dbcd0069fff;
+        maxExpArray[108] = 0x02511882c39c3adea96fec2102329fff;
+        maxExpArray[109] = 0x0238b24ec38ccd54c83ab403481e2fff;
+        maxExpArray[110] = 0x02214d10d014ea60a2be7cdcd9fb9bff;
+        maxExpArray[111] = 0x020ade36b7dbeeb8d79659d15da851ff;
+        maxExpArray[112] = 0x01f55b9d9ddff141121e70ebe0104eff;
+        maxExpArray[113] = 0x01e0bb8d64fdb5a60c7114c01ed7417f;
+        maxExpArray[114] = 0x01ccf4b44bb4820c7bc292bab6319b7f;
+        maxExpArray[115] = 0x01b9fe22b629ddbbcdf8754a6a7e5c9f;
+        maxExpArray[116] = 0x01a7cf47248624733f355c5c1f0d1f1f;
+        maxExpArray[117] = 0x01965fea53d6e3c82b05999ab43dc4df;
+        maxExpArray[118] = 0x0185a82b87b72e956654a3081816cfdb;
+        maxExpArray[119] = 0x0175a07cfb107ed35ab61430c309c0d7;
+        maxExpArray[120] = 0x016641a07658687a905357ac0ebe198b;
     }
 
 

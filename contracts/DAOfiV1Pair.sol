@@ -23,8 +23,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint256 public constant MAX_FEE = 10; // 1%
     uint256 public constant MAX_N = 3; // y = mx ** n, cap n to 3
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
-    int8 private constant INTERNAL_DECIMALS = 8;
-    int8 private constant S_DECIMALS = 5;
+    int8 private constant INTERNAL_DECIMALS = 6;
+    int8 private constant S_DECIMALS = 4;
+    uint private constant S_CEIL = 10 ** 3;
     int8 private constant OUTPUT_DECIMALS = 18;
     address public override factory;
     address public override token0;
@@ -140,7 +141,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         pairOwner = _nextOwner;
     }
 
-    function deposit(address to) external override lock returns (uint256 amountBase) {
+    function deposit(address to) external override lock returns (uint256 amountBaseOut) {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN');
         require(deposited == false, 'DAOfiV1: DOUBLE_DEPOSIT');
         baseDecimals = int8(IERC20(baseToken).decimals());
@@ -152,25 +153,23 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // solve for s
         // s = ((quoteReserve * slopeD * (n + 1)) / slopeN) ** (1 / (n + 1))
         if (reserveQuote > 0) {
-            uint256 scaledQuote = _convertToDecimals(reserveQuote, quoteDecimals, INTERNAL_DECIMALS);
-            s = Math.ceil(
-                _power(scaledQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1)),
-                (10 ** uint(S_DECIMALS))
-            );
+            amountBaseOut = getBaseOut(reserveQuote);
         }
-        if (s > 0) {
-            amountBase = _convertToDecimals(s, S_DECIMALS, baseDecimals);
-            // console.log("base output: %s", amountBase);
+
+        if (amountBaseOut > 0) {
+            // s = _convertToDecimals(amountBaseOut, baseDecimals, S_DECIMALS);
+            // console.log("base output: %s", amountBaseOut);
+            // console.log("s: %s", s);
             // send s initial base to the specified address
-            _safeTransfer(baseToken, to, amountBase);
+            _safeTransfer(baseToken, to, amountBaseOut);
             // update reserves
-            reserveBase = reserveBase.sub(amountBase);
+            reserveBase = reserveBase.sub(amountBaseOut);
         }
 
         // this function is locked and the contract can not reset reserves
         deposited = true;
 
-        emit Deposit(msg.sender, reserveBase, reserveQuote, amountBase, to);
+        emit Deposit(msg.sender, reserveBase, reserveQuote, amountBaseOut, to);
     }
 
     function withdraw(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
@@ -254,7 +253,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut)
     {
-        require(deposited, 'DAOfiV1: UNINITIALIZED');
+        console.log("amount quote in: %s", amountQuoteIn);
         uint256 scaledReserveQuote = _convertToDecimals(
             reserveQuote.add(amountQuoteIn), quoteDecimals, INTERNAL_DECIMALS
         );
@@ -264,15 +263,14 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             uint32(1),
             (n + 1)
         );
-        amountBaseOut = Math.ceil(
-            _convertToDecimals(result.sub(s), S_DECIMALS, baseDecimals),
-            (10 ** uint(baseDecimals))
-        );
+        console.log("s: %s", result.sub(s));
+        // console.log("round s: %s", Math.ceil(result.sub(s), S_CEIL));
+        // amountBaseOut = _convertToDecimals(Math.ceil(result.sub(s), S_CEIL), S_DECIMALS, baseDecimals);
+        // console.log("amount base out: %s", amountBaseOut);
     }
 
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut)
     {
-        require(deposited, 'DAOfiV1: UNINITIALIZED');
         amountBaseIn = _convertToDecimals(amountBaseIn, baseDecimals, S_DECIMALS);
         if (s >= amountBaseIn) {
             uint256 result = _power(
@@ -294,7 +292,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn)
     {
-        require(deposited, 'DAOfiV1: UNINITIALIZED');
         uint256 scaledReserveQuote = _convertToDecimals(
             reserveQuote.sub(amountQuoteOut), quoteDecimals, INTERNAL_DECIMALS
         );
@@ -312,7 +309,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn)
     {
-        require(deposited, 'DAOfiV1: UNINITIALIZED');
         amountBaseOut = _convertToDecimals(amountBaseOut, baseDecimals, S_DECIMALS);
         uint256 result = _power(
             s.add(amountBaseOut),
