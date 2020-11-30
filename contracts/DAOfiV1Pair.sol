@@ -24,9 +24,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     uint256 public constant MAX_N = 3; // y = mx ** n, cap n to 3
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
     int8 private constant INTERNAL_DECIMALS = 6;
-    int8 private constant S_DECIMALS = 4;
-    uint private constant S_CEIL = 10 ** 3;
-    int8 private constant OUTPUT_DECIMALS = 18;
+    uint private constant INTERNAL_CEIL = 10 ** 5;
+    int8 private constant S_DECIMALS = 3;
+    uint private constant S_CEIL = 10 ** 2;
     address public override factory;
     address public override token0;
     address public override token1;
@@ -153,13 +153,14 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // solve for s
         // s = ((quoteReserve * slopeD * (n + 1)) / slopeN) ** (1 / (n + 1))
         if (reserveQuote > 0) {
-            amountBaseOut = getBaseOut(reserveQuote);
+            uint256 scaledQuote = _convertToDecimals(reserveQuote, quoteDecimals, INTERNAL_DECIMALS);
+            s = Math.ceil(
+                _power(scaledQuote.mul(SLOPE_DENOM).mul(n + 1), m, uint32(1), (n + 1)),
+                S_CEIL
+            );
         }
-
-        if (amountBaseOut > 0) {
-            // s = _convertToDecimals(amountBaseOut, baseDecimals, S_DECIMALS);
-            // console.log("base output: %s", amountBaseOut);
-            // console.log("s: %s", s);
+        if (s > 0) {
+            amountBaseOut = _convertToDecimals(s, S_DECIMALS, baseDecimals);
             // send s initial base to the specified address
             _safeTransfer(baseToken, to, amountBaseOut);
             // update reserves
@@ -239,7 +240,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         // y = mx^n, where x = token supply s
         uint256 result = _power(s, uint256(1), n, uint32(1));
         price = _convertToDecimals(
-            _roundDiv(result.mul(m), SLOPE_DENOM),
+            Math.ceil(_roundDiv(result.mul(m), SLOPE_DENOM), S_CEIL),
             S_DECIMALS,
             quoteDecimals
         );
@@ -253,7 +254,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
 
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut)
     {
-        console.log("amount quote in: %s", amountQuoteIn);
         uint256 scaledReserveQuote = _convertToDecimals(
             reserveQuote.add(amountQuoteIn), quoteDecimals, INTERNAL_DECIMALS
         );
@@ -263,30 +263,31 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             uint32(1),
             (n + 1)
         );
-        console.log("s: %s", result.sub(s));
-        // console.log("round s: %s", Math.ceil(result.sub(s), S_CEIL));
-        // amountBaseOut = _convertToDecimals(Math.ceil(result.sub(s), S_CEIL), S_DECIMALS, baseDecimals);
-        // console.log("amount base out: %s", amountBaseOut);
+        amountBaseOut = _convertToDecimals(
+            Math.ceil(result.sub(s), S_CEIL),
+            S_DECIMALS,
+            baseDecimals
+        );
     }
 
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut)
     {
         amountBaseIn = _convertToDecimals(amountBaseIn, baseDecimals, S_DECIMALS);
-        if (s >= amountBaseIn) {
+        if (s <= amountBaseIn) {
+            // return all the quote
+            amountQuoteOut = reserveQuote;
+        } else if (s > amountBaseIn) {
             uint256 result = _power(
                 s.sub(amountBaseIn),
                 uint256(1),
                 (n + 1),
                 uint32(1)
             );
-            amountQuoteOut = Math.ceil(
-                _convertToDecimals(
-                    reserveQuote.sub(_roundDiv(result.mul(m), SLOPE_DENOM.mul(n + 1))),
-                    OUTPUT_DECIMALS,
-                    quoteDecimals
-                ),
-                (10 ** uint(quoteDecimals))
-            );
+            amountQuoteOut = reserveQuote.sub(_convertToDecimals(
+                Math.ceil(_roundDiv(result.mul(m), SLOPE_DENOM.mul(n + 1)), INTERNAL_CEIL),
+                INTERNAL_DECIMALS,
+                quoteDecimals
+            ));
         }
     }
 
@@ -301,9 +302,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             uint32(1),
             (n + 1)
         );
-        amountBaseIn = Math.ceil(
-            _convertToDecimals(s.sub(result), S_DECIMALS, baseDecimals),
-            (10 ** uint(baseDecimals))
+        amountBaseIn = _convertToDecimals(
+            Math.ceil(s.sub(result), S_CEIL),
+            S_DECIMALS,
+            baseDecimals
         );
     }
 
@@ -316,16 +318,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             (n + 1),
             uint32(1)
         );
-        uint256 reserveAtSupply = _roundDiv(result.mul(m), SLOPE_DENOM.mul(n + 1));
+        uint256 reserveAtSupply = _convertToDecimals(
+            Math.ceil(_roundDiv(result.mul(m), SLOPE_DENOM.mul(n + 1)), INTERNAL_CEIL),
+            INTERNAL_DECIMALS,
+            quoteDecimals
+        );
         if (reserveAtSupply >= reserveQuote) {
-            amountQuoteIn = Math.ceil(
-                _convertToDecimals(
-                    reserveAtSupply.sub(reserveQuote),
-                    INTERNAL_DECIMALS,
-                    quoteDecimals
-                ),
-                (10 ** uint(quoteDecimals))
-            );
+            amountQuoteIn = reserveAtSupply.sub(reserveQuote);
         }
     }
 }
