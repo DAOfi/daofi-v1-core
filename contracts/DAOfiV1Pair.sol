@@ -212,7 +212,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         if (amountQuoteIn > 0) {
             uint256 amountInWithFee = amountQuoteIn.mul(1000 - fee) / 1000;
             require(getBaseOut(amountInWithFee) == amountBaseOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
-            s = s.add(_convertToDecimals(amountBaseOut, baseDecimals, S_DECIMALS));
+            s = s.add(
+                 Math.ceil(
+                     _convertToDecimals(amountBaseOut, baseDecimals, S_DECIMALS),
+                     S_CEIL
+                )
+            );
             reserveQuote = reserveQuote.add(amountInWithFee);
             reserveBase = reserveBase.sub(amountBaseOut);
             feesQuote = feesQuote.add(amountQuoteIn).sub(amountInWithFee);
@@ -221,18 +226,21 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         if (amountBaseIn > 0) {
             uint256 amountInWithFee = amountBaseIn.mul(1000 - fee) / 1000;
             require(getQuoteOut(amountInWithFee) == amountQuoteOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
-            s = s.sub(_convertToDecimals(amountInWithFee, baseDecimals, S_DECIMALS));
+            s = s.sub(
+                Math.ceil(
+                    _convertToDecimals(amountInWithFee, baseDecimals, S_DECIMALS),
+                    S_CEIL
+                )
+            );
             reserveQuote = reserveQuote.sub(amountQuoteOut);
             reserveBase = reserveBase.add(amountInWithFee);
             feesBase = feesBase.add(amountBaseIn).sub(amountInWithFee);
         }
 
-        require(_convertToDecimals(s, INTERNAL_DECIMALS, baseDecimals) <= IERC20(baseToken).totalSupply(), 'DAOfiV1: INSUFFICIENT_SUPPLY');
+        require(_convertToDecimals(s, S_DECIMALS, baseDecimals) <= IERC20(baseToken).totalSupply(), 'DAOfiV1: INSUFFICIENT_SUPPLY');
 
         emit Swap(msg.sender, amountBaseIn, amountQuoteIn, amountBaseOut, amountQuoteOut, to);
     }
-
-
 
     function basePrice() public view override returns (uint256 price)
     {
