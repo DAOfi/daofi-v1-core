@@ -2,8 +2,8 @@
 pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
 
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import '../interfaces/IUniswapV2ERC20.sol';
-import '../libraries/SafeMath.sol';
 
 contract UniswapV2ERC20 is IUniswapV2ERC20 {
     using SafeMath for uint;

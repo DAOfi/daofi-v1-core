@@ -2,7 +2,7 @@
 pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
 
-import './libraries/SafeMath.sol';
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 /**
  * bancor formula by bancor

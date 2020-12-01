@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 
 interface IDAOfiV1Pair {
     event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 output, address indexed to);
-    event WithdrawFees(address indexed sender, uint256 amountQuote, address indexed to);
     event Withdraw(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
     event Swap(
         address indexed sender,
@@ -21,14 +20,11 @@ interface IDAOfiV1Pair {
     function baseToken() external view returns (address);
     function quoteToken() external view returns (address);
     function pairOwner() external view returns (address);
-    function m() external view returns (uint32);
-    function n() external view returns (uint32);
     function fee() external view returns (uint32);
-    function s() external view returns (uint256);
-    function initialize(address, address, address, address, address, uint32, uint32, uint32) external;
+    function supply() external view returns (uint256);
+    function initialize(address, address, address, address, address, uint32, uint32) external;
     function setPairOwner(address) external;
-    function getReserves() external view returns (uint256 reserveBase, uint256 reserveQuote, uint32 blockTimestampLast);
-    function getCurveParams() external view returns (bytes memory params);
+    function getReserves() external view returns (uint256 reserveBase, uint256 reserveQuote);
     function basePrice() external view returns (uint256 price);
     function quotePrice() external view returns (uint256 price);
     function deposit(address to) external returns (uint256 amountBase);
