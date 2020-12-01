@@ -60,6 +60,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     }
 
     constructor() {
+        factory = msg.sender;
         reserveRatio = MAX_WEIGHT >> 1; // max weight / 2 for default curve y = x
         fee = 0;
         supply = 1;
