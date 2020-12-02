@@ -106,14 +106,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         require(deposited == false, 'DAOfiV1: DOUBLE_DEPOSIT');
         reserveBase = IERC20(baseToken).balanceOf(address(this));
         reserveQuote = IERC20(quoteToken).balanceOf(address(this));
-
+        require(reserveQuote > 0 && reserveBase > 0, 'DAOfiV1: ZERO_RESERVE');
         // set initial supply from quoteReserve
         // https://github.com/bancorprotocol/contracts-solidity/blob/master/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L506
-        if (reserveQuote > 0) {
-            supply = amountBaseOut = reserveQuote;
-            reserveBase = reserveBase.sub(amountBaseOut);
-            _safeTransfer(baseToken, to, amountBaseOut);
-        }
+        supply = amountBaseOut = reserveQuote;
+        reserveBase = reserveBase.sub(amountBaseOut);
+        _safeTransfer(baseToken, to, amountBaseOut);
 
         // this function is locked and the contract can not reset reserves
         deposited = true;

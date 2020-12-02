@@ -34,21 +34,23 @@ describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
 
   it('deposit: only once', async () => {
     const baseSupply = expandTo18Decimals(1e9)
-    const expectedBaseReserve = baseSupply
-    const expectedS = ethers.BigNumber.from(1)
+    const quoteReserve = expandTo18Decimals(1)
+    const expectedBaseReserve = baseSupply.sub(quoteReserve)
+    const expectedS = quoteReserve
 
     await tokenBase.transfer(pair.address, baseSupply)
+    await tokenQuote.transfer(pair.address, quoteReserve)
     await expect(pair.deposit(wallet.address))
       .to.emit(pair, 'Deposit')
-      .withArgs(wallet.address, expectedBaseReserve, zero, zero, wallet.address)
+      .withArgs(wallet.address, expectedBaseReserve, quoteReserve, quoteReserve, wallet.address)
     expect(await pair.supply()).to.eq(expectedS)
-    expect(await tokenBase.balanceOf(wallet.address)).to.eq(zero)
-    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply)
-    expect(await tokenQuote.balanceOf(pair.address)).to.eq(zero)
+    expect(await tokenBase.balanceOf(wallet.address)).to.eq(quoteReserve)
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(expectedBaseReserve)
+    expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteReserve)
 
     const reserves = await pair.getReserves()
     expect(reserves[0]).to.eq(expectedBaseReserve)
-    expect(reserves[1]).to.eq(zero)
+    expect(reserves[1]).to.eq(quoteReserve)
 
     await expect(pair.deposit(wallet.address)).to.be.revertedWith('DOUBLE_DEPOSIT')
   })
@@ -87,11 +89,10 @@ describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
     })
   })
 
-  it.skip('withdraw:', async () => {
+  it('withdraw:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
-    const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
-    const quoteReserve = expandTo18Decimals(quoteReserveFloat)
-    const expectedBaseOutput = ethers.BigNumber.from('10000000000000000000')
+    const quoteReserve = expandTo18Decimals(50)
+    const expectedBaseOutput = quoteReserve
     const expectedBaseReserve = baseSupply.sub(expectedBaseOutput)
 
     await tokenBase.transfer(pair.address, baseSupply)
