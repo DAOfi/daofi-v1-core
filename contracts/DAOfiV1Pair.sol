@@ -3,11 +3,11 @@ pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
 
 // import 'hardhat/console.sol';
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import './interfaces/IDAOfiV1Callee.sol';
 import './interfaces/IDAOfiV1Factory.sol';
 import './interfaces/IDAOfiV1Pair.sol';
 import './interfaces/IERC20.sol';
+import "./libraries/SafeMath.sol";
 import './Power.sol';
 
 contract DAOfiV1Pair is IDAOfiV1Pair, Power {
@@ -108,17 +108,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         reserveQuote = IERC20(quoteToken).balanceOf(address(this));
 
         // set initial supply from quoteReserve
+        // https://github.com/bancorprotocol/contracts-solidity/blob/master/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L506
         if (reserveQuote > 0) {
-            amountBaseOut = getBaseOut(reserveQuote);
-            // send supply initial base to the specified address
+            supply = amountBaseOut = reserveQuote;
+            reserveBase = reserveBase.sub(amountBaseOut);
             _safeTransfer(baseToken, to, amountBaseOut);
-            // update supply and reserves
-            supply = reserveBase = reserveBase.sub(amountBaseOut);
         }
 
         // this function is locked and the contract can not reset reserves
         deposited = true;
-
         emit Deposit(msg.sender, reserveBase, reserveQuote, amountBaseOut, to);
     }
 
@@ -160,7 +158,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         if (amountQuoteIn > 0) {
             uint256 amountInWithFee = amountQuoteIn.mul(1000 - fee) / 1000;
             require(getBaseOut(amountInWithFee) == amountBaseOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
-            supply = supply.add(amountInWithFee);
+            supply = supply.add(amountBaseOut);
             reserveQuote = reserveQuote.add(amountInWithFee);
             reserveBase = reserveBase.sub(amountBaseOut);
             feesQuote = feesQuote.add(amountQuoteIn).sub(amountInWithFee);
@@ -202,7 +200,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     * @return amountBaseOut
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
-        require(deposited, 'DAOfiV1: UNINITIALIZED_BASE_OUT');
         // special case for 0 input amount
         if (amountQuoteIn == 0) {
             return 0;
@@ -214,7 +211,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         uint256 baseN = amountQuoteIn.add(reserveQuote);
         (uint256 result, uint8 precision) = power(baseN, reserveQuote, reserveRatio, MAX_WEIGHT);
         uint256 temp = supply.mul(result) >> precision;
-        return temp - supply;
+        return temp.sub(supply);
     }
 
     /**
@@ -229,7 +226,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     * @return amountQuoteOut
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
-        require(deposited, 'DAOfiV1: UNINITIALIZED_BASE_OUT');
         // special case for 0 sell amount
         if (amountBaseIn == 0) {
             return 0;

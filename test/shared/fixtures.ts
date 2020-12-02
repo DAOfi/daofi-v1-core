@@ -22,25 +22,23 @@ interface PairFixture extends FactoryFixture {
 
 export async function pairFixture(
   wallet: SignerWithAddress,
-  m: number = 1e6,
-  n: number = 1,
-  fee: number = 3
+  reserveRatio: number = 1e6,
+  fee: number = 0
 ): Promise<PairFixture> {
   const { factory } = await factoryFixture()
   const Token = await ethers.getContractFactory("ERC20")
-  const tokenA = await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000'))
-  const tokenB =  await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000'))
+  const tokenA = await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
+  const tokenB =  await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
   await factory.createPair(
     wallet.address, // router is ourself in tests
     tokenA.address,
     tokenB.address,
     tokenA.address, // base token
     wallet.address,
-    m,
-    n,
+    reserveRatio,
     fee
   )
-  const pairAddress = await factory.getPair(tokenA.address, tokenB.address, m, n, fee)
+  const pairAddress = await factory.getPair(tokenA.address, tokenB.address, reserveRatio, fee)
   const pair = new Contract(pairAddress, JSON.stringify(DAOfiV1Pair.abi)).connect(wallet)
   const token0Address = (await pair.token0()).address
   const token0 = tokenA.address === token0Address ? tokenA : tokenB

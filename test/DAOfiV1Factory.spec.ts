@@ -14,7 +14,7 @@ const TEST_ADDRESSES: [string, string] = [
 
 let wallet: SignerWithAddress
 
-describe.only('DAOfiV1Factory', async () => {
+describe('DAOfiV1Factory', async () => {
   let factory: Contract
 
   async function createPair(
@@ -41,8 +41,8 @@ describe.only('DAOfiV1Factory', async () => {
         ethers.BigNumber.from(1)
       )
 
-    await expect(factory.createPair(router, tokenA, tokenB, tokenA, owner, reserveRatio, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
-    await expect(factory.createPair(router, tokenB, tokenA, tokenA, owner, reserveRatio, fee)).to.be.reverted // UniswapV2: PAIR_EXISTS
+    await expect(factory.createPair(router, tokenA, tokenB, tokenA, owner, reserveRatio, fee)).to.be.reverted // DAOfiV1: PAIR_EXISTS
+    await expect(factory.createPair(router, tokenB, tokenA, tokenA, owner, reserveRatio, fee)).to.be.reverted // DAOfiV1: PAIR_EXISTS
     expect(await factory.getPair(tokenA, tokenB, reserveRatio, fee)).to.eq(create2Address)
     expect(await factory.getPair(tokenB, tokenA, reserveRatio, fee)).to.eq(create2Address)
     expect(await factory.allPairs(0)).to.eq(create2Address)
@@ -78,6 +78,6 @@ describe.only('DAOfiV1Factory', async () => {
       3
     )
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(5221805)
+    expect(receipt.gasUsed).to.eq(5135510)
   })
 })
