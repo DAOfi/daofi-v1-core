@@ -142,7 +142,7 @@ describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
     await addLiquidity(expandTo18Decimals(1e9), expandTo18Decimals(10))
     const expectedBaseIn = expandTo18Decimals(1)
     const quoteOut = await pair.getQuoteOut(expectedBaseIn)
-    const baseIn = await pair.getBaseIn(quoteOut)
+    const baseIn = await pair.getBaseIn(quoteOut) // 908712114635714411 instead of 10^18
     expect(expectedBaseIn).to.eq(baseIn)
   })
 
@@ -150,7 +150,7 @@ describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
     await addLiquidity(expandTo18Decimals(1e9), expandTo18Decimals(10))
     const expectedQuoteIn = expandTo18Decimals(1)
     const baseOut = await pair.getBaseOut(expectedQuoteIn)
-    const quoteIn = await pair.getQuoteIn(baseOut)
+    const quoteIn = await pair.getQuoteIn(baseOut) // 999999999999999999 instead of 10^18
     expect(expectedQuoteIn).to.eq(quoteIn)
   })
 

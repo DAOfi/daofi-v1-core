@@ -247,12 +247,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         return oldBalance.sub(newBalance).div(result);
     }
 
-    /**
+    /** BROKEN
     * @dev given the base token supply, quote reserve, ratio and a quote output amount,
     * calculates the base input needed for the provided quote output
     *
     * Formula:
-    * base in = supply * (1 - (1 - amountQuoteOut / reserveQuote) ^ (reserveRatio / 1000000))
+    * base in =  supply * ((quoteOut / reserveQuote + 1) ^ (reserveRatio / MAX_WEIGHT) - 1)
     *
     * Taken from:
     * https://github.com/bancorprotocol/contracts-solidity/blob/master/solidity/contracts/converter/BancorFormula.sol#L493
@@ -277,17 +277,17 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             return amountQuoteOut.mul(supply) / reserveQuote;
         }
         uint256 baseN = reserveQuote.add(amountQuoteOut);
-        (uint256 result, uint8 precision) = power(baseN, reserveQuote, reserveRatio, MAX_WEIGHT >> 1);
+        (uint256 result, uint8 precision) = power(baseN, reserveQuote, reserveRatio, MAX_WEIGHT);
         uint256 temp = supply.mul(result) >> precision;
-        return temp - supply; //off by 0.5 ??
+        return temp - supply;
     }
 
-    /**
+    /** BROKEN
     * @dev given the base token supply, quote reserve, ratio and a base output amount,
     * calculates the quote input needed for the provided base output
     *
     * Formula:
-    * quote input = reserveQuote * (((amountBaseout / supply) + 1) ^ (1000000 / reserveRatio)) - 1)
+    * quote input = reserveQuote * (((supply + baseOut) / supply) ^ (MAX_WEIGHT / reserveRatio) - 1)
     *
     * Taken from:
     * https://github.com/bancorprotocol/contracts-solidity/blob/master/solidity/contracts/converter/BancorFormula.sol#L454
