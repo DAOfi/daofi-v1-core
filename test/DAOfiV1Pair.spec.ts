@@ -133,33 +133,26 @@ describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
 
   it('getQuoteOut:', async () => {
     await addLiquidity(expandTo18Decimals(1e9), expandTo18Decimals(10))
-    let baseIn = expandTo18Decimals(1)
-    let quoteOut = await pair.getQuoteOut(baseIn)
+    const baseIn = expandTo18Decimals(1)
+    const quoteOut = await pair.getQuoteOut(baseIn)
     expect(ethers.BigNumber.from('1899999999999999999')).to.eq(quoteOut)
   })
 
-  // it('getBaseIn:', async () => {
-  //   const baseSupply = expandTo18Decimals(1e9)
-  //   const quoteReserveFloat = getReserveForStartPrice(10, 1, 1, 1)
-  //   const quoteReserve = expandTo18Decimals(quoteReserveFloat)
-  //   const quoteOut = expandTo18Decimals(50)
+  it.skip('getBaseIn:', async () => {
+    await addLiquidity(expandTo18Decimals(1e9), expandTo18Decimals(10))
+    const expectedBaseIn = expandTo18Decimals(1)
+    const quoteOut = await pair.getQuoteOut(expectedBaseIn)
+    const baseIn = await pair.getBaseIn(quoteOut)
+    expect(expectedBaseIn).to.eq(baseIn)
+  })
 
-  //   await tokenBase.transfer(pair.address, baseSupply)
-  //   await tokenQuote.transfer(pair.address, quoteReserve)
-  //   await pair.deposit(wallet.address)
-
-  //   const baseIn = await pair.getBaseIn(quoteOut)
-  //   expect(ethers.BigNumber.from('10000000000000000000')).to.eq(baseIn)
-  // })
-
-  // it('getQuoteIn:', async () => {
-  //   const baseSupply = expandTo18Decimals(1e9)
-  //   await addLiquidity(tokenBase, baseSupply, pair)
-
-  //   const baseOut = ethers.BigNumber.from('10000000000000000000')
-  //   const quoteIn = await pair.getQuoteIn(baseOut)
-  //   expect(ethers.BigNumber.from('50000000000000000000')).to.eq(quoteIn)
-  // })
+  it.skip('getQuoteIn:', async () => {
+    await addLiquidity(expandTo18Decimals(1e9), expandTo18Decimals(10))
+    const expectedQuoteIn = expandTo18Decimals(1)
+    const baseOut = await pair.getBaseOut(expectedQuoteIn)
+    const quoteIn = await pair.getQuoteIn(baseOut)
+    expect(expectedQuoteIn).to.eq(quoteIn)
+  })
 
   it('swap: quote for base and back to quote', async () => {
     const baseSupply = expandTo18Decimals(1e9)

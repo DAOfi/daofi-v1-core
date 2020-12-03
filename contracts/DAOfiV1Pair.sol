@@ -2,7 +2,7 @@
 pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
 
-// import 'hardhat/console.sol';
+import 'hardhat/console.sol';
 import './interfaces/IDAOfiV1Callee.sol';
 import './interfaces/IDAOfiV1Factory.sol';
 import './interfaces/IDAOfiV1Pair.sol';
@@ -29,6 +29,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     * 1/2 corresponds to y = multiple * x
     * 2/3 corresponds to y = multiple * x^1/2
     * multiple depends on deposit, specifically supply and reserveQuote parameters
+    * Note, we are specifically disallowing values > MAX_WEIGHT / 2 to force positive exponents
     */
     uint32 public reserveRatio;
 
@@ -63,7 +64,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         factory = msg.sender;
         reserveRatio = MAX_WEIGHT >> 1; // max weight / 2 for default curve y = x
         fee = 0;
-        supply = 1;
+        supply = 0;
     }
 
     function getReserves() public override view returns (uint256 _reserveBase, uint256 _reserveQuote) {
@@ -83,7 +84,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     ) external override {
         require(msg.sender == factory, 'DAOfiV1: FORBIDDEN'); // sufficient check
         require(_baseToken == _token0 || _baseToken == _token1, 'DAOfiV1: INVALID_BASETOKEN');
-        require(_reserveRatio > 0 && _reserveRatio <= MAX_WEIGHT, 'DAOfiV1: INVALID_RESERVE_RATIO');
+        // restrict reserve ratio to only allow curves with whole number exponents
+        require(_reserveRatio > 0 && _reserveRatio <= (MAX_WEIGHT >> 1), 'DAOfiV1: INVALID_RESERVE_RATIO');
         require(_fee <= MAX_FEE, 'DAOfiV1: INVALID_FEE');
         router = _router;
         token0 = _token0;
@@ -93,7 +95,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         pairOwner = _pairOwner;
         reserveRatio = _reserveRatio;
         fee = _fee;
-        supply = 1;
+        supply = 0;
     }
 
     function setPairOwner(address _nextOwner) external override {
@@ -135,7 +137,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         require(deposited, 'DAOfiV1: UNINITIALIZED_SWAP');
         require(amountBaseOut > 0 || amountQuoteOut > 0, 'DAOfiV1: INSUFFICIENT_OUTPUT_AMOUNT');
         (uint256 _reserveBase, uint256 _reserveQuote)  = getReserves(); // gas savings
-        require(amountBaseOut <= _reserveBase && amountQuoteOut <= _reserveQuote, 'DAOfiV1: INSUFFICIENT_LIQUIDITY');
+        require(amountBaseOut <= _reserveBase && amountQuoteOut <= reserveQuote, 'DAOfiV1: INSUFFICIENT_LIQUIDITY');
         uint256 balanceBase;
         uint256 balanceQuote;
         { // scope for _token{Base,Quote}, avoids stack too deep errors
@@ -157,8 +159,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             uint256 amountInWithFee = amountQuoteIn.mul(1000 - fee) / 1000;
             require(getBaseOut(amountInWithFee) == amountBaseOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
             supply = supply.add(amountBaseOut);
-            reserveQuote = reserveQuote.add(amountInWithFee);
-            reserveBase = reserveBase.sub(amountBaseOut);
+            reserveQuote = _reserveQuote.add(amountInWithFee);
+            reserveBase = _reserveBase.sub(amountBaseOut);
             feesQuote = feesQuote.add(amountQuoteIn).sub(amountInWithFee);
         }
         // now trade base to quote
@@ -166,8 +168,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
             uint256 amountInWithFee = amountBaseIn.mul(1000 - fee) / 1000;
             require(getQuoteOut(amountInWithFee) == amountQuoteOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
             supply = supply.sub(amountInWithFee);
-            reserveQuote = reserveQuote.sub(amountQuoteOut);
-            reserveBase = reserveBase.add(amountInWithFee);
+            reserveQuote = _reserveQuote.sub(amountQuoteOut);
+            reserveBase = _reserveBase.add(amountInWithFee);
             feesBase = feesBase.add(amountBaseIn).sub(amountInWithFee);
         }
         require(supply <= IERC20(baseToken).totalSupply(), 'DAOfiV1: INSUFFICIENT_SUPPLY');
@@ -198,6 +200,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     * @return amountBaseOut
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
+        require(deposited, 'DAOfiV1: UNINITIALIZED');
         // special case for 0 input amount
         if (amountQuoteIn == 0) {
             return 0;
@@ -217,13 +220,14 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     * calculates the return for a given conversion (in the quote token)
     *
     * Formula:
-    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1 / (reserveRatio / 1000000)))
+    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
     *
     * @param amountBaseIn sell amount, in the token itself
     *
     * @return amountQuoteOut
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
+        require(deposited, 'DAOfiV1: UNINITIALIZED');
         // special case for 0 sell amount
         if (amountBaseIn == 0) {
             return 0;
@@ -243,11 +247,66 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         return oldBalance.sub(newBalance).div(result);
     }
 
+    /**
+    * @dev given the base token supply, quote reserve, ratio and a quote output amount,
+    * calculates the base input needed for the provided quote output
+    *
+    * Formula:
+    * base in = supply * (1 - (1 - amountQuoteOut / reserveQuote) ^ (reserveRatio / 1000000))
+    *
+    * Taken from:
+    * https://github.com/bancorprotocol/contracts-solidity/blob/master/solidity/contracts/converter/BancorFormula.sol#L493
+    *
+    * @param amountQuoteOut quote token output amount
+    *
+    * @return amountBaseIn
+    */
     function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn) {
-
+        require(deposited, 'DAOfiV1: UNINITIALIZED');
+        require(reserveQuote >= amountQuoteOut, 'DAOfiV1: INSUFFICIENT_QUOTE_RESERVE');
+        // special case for 0 input amount
+        if (amountQuoteOut == reserveQuote) {
+            return supply;
+        }
+        // special case for 0 amount
+        if (amountQuoteOut == 0) {
+            return 0;
+        }
+        // special case if the reserve ratio = 100%
+        if (reserveRatio == MAX_WEIGHT) {
+            return amountQuoteOut.mul(supply) / reserveQuote;
+        }
+        uint256 baseN = reserveQuote.add(amountQuoteOut);
+        (uint256 result, uint8 precision) = power(baseN, reserveQuote, reserveRatio, MAX_WEIGHT >> 1);
+        uint256 temp = supply.mul(result) >> precision;
+        return temp - supply; //off by 0.5 ??
     }
 
+    /**
+    * @dev given the base token supply, quote reserve, ratio and a base output amount,
+    * calculates the quote input needed for the provided base output
+    *
+    * Formula:
+    * quote input = reserveQuote * (((amountBaseout / supply) + 1) ^ (1000000 / reserveRatio)) - 1)
+    *
+    * Taken from:
+    * https://github.com/bancorprotocol/contracts-solidity/blob/master/solidity/contracts/converter/BancorFormula.sol#L454
+    *
+    * @param amountBaseOut base token output amount
+    *
+    * @return amountQuoteIn
+    */
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn) {
-
+        require(deposited, 'DAOfiV1: UNINITIALIZED');
+        // special case for 0 amount
+        if (amountBaseOut == 0) return 0;
+        // special case if the reserve ratio = 100%
+        if (reserveRatio == MAX_WEIGHT) {
+            return (amountBaseOut.mul(reserveQuote) - 1) / supply + 1;
+        }
+        uint256 baseN = supply.add(amountBaseOut);
+        (uint256 result, uint8 precision) = power(baseN, supply, MAX_WEIGHT, reserveRatio);
+        uint256 temp = ((reserveQuote.mul(result) - 1) >> precision) + 1;
+        return temp - reserveQuote; // off by 1 ??
     }
 }

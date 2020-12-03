@@ -22,7 +22,7 @@ interface PairFixture extends FactoryFixture {
 
 export async function pairFixture(
   wallet: SignerWithAddress,
-  reserveRatio: number = 1e6,
+  reserveRatio: number = 5e5,
   fee: number = 0
 ): Promise<PairFixture> {
   const { factory } = await factoryFixture()
