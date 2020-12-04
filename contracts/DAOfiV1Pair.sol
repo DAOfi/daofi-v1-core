@@ -215,42 +215,14 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @return amountQuoteOut
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
-
+        amountQuoteOut = _getFormula().saleTargetAmount(supply, reserveQuote, reserveRatio, amountBaseIn);
     }
 
-    /** BROKEN
-    * @dev given the base token supply, quote reserve, ratio and a quote output amount,
-    * calculates the base input needed for the provided quote output
-    *
-    * Formula:
-    * base in =  supply * ((quoteOut / reserveQuote + 1) ^ (reserveRatio / MAX_WEIGHT) - 1)
-    *
-    * Taken from:
-    * https://github.com/bancorprotocol/contracts-solidity/blob/master/solidity/contracts/converter/BancorFormula.sol#L493
-    *
-    * @param amountQuoteOut quote token output amount
-    *
-    * @return amountBaseIn
-    */
     function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn) {
-
+        //amountBaseIn = _getFormula().fundSupplyAmount(supply, reserveQuote, reserveRatio, amountQuoteOut);
     }
 
-    /** BROKEN
-    * @dev given the base token supply, quote reserve, ratio and a base output amount,
-    * calculates the quote input needed for the provided base output
-    *
-    * Formula:
-    * quote input = reserveQuote * (((supply + baseOut) / supply) ^ (MAX_WEIGHT / reserveRatio) - 1)
-    *
-    * Taken from:
-    * https://github.com/bancorprotocol/contracts-solidity/blob/master/solidity/contracts/converter/BancorFormula.sol#L454
-    *
-    * @param amountBaseOut base token output amount
-    *
-    * @return amountQuoteIn
-    */
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn) {
-
+        //amountQuoteIn = _getFormula().fundCost(supply, reserveQuote, reserveRatio, amountBaseOut);
     }
 }
