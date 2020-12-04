@@ -110,7 +110,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         reserveQuote = IERC20(quoteToken).balanceOf(address(this));
         require(reserveQuote > 0 && reserveBase > 0, 'DAOfiV1: ZERO_RESERVE');
         // set initial supply from quoteReserve
-        // https://github.com/bancorprotocol/contracts-solidity/blob/master/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L506
+        // https://github.com/DAOfi/bancor/blob/master/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L511
         supply = amountBaseOut = reserveQuote;
         reserveBase = reserveBase.sub(amountBaseOut);
         _safeTransfer(baseToken, to, amountBaseOut);
@@ -133,9 +133,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     // this low-level function should be called from a contract which performs important safety checks
-    function swap(uint256 amountBaseOut, uint256 amountQuoteOut, address to, bytes calldata data) external override lock {
+    function swap(address tokenIn, address tokenOut, uint256 amountOut, address to, bytes calldata data) external override lock {
         require(deposited, 'DAOfiV1: UNINITIALIZED_SWAP');
-        require(amountBaseOut > 0 || amountQuoteOut > 0, 'DAOfiV1: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(amountOut > 0, 'DAOfiV1: INSUFFICIENT_OUTPUT_AMOUNT');
         (uint256 _reserveBase, uint256 _reserveQuote)  = getReserves(); // gas savings
         require(amountBaseOut <= _reserveBase && amountQuoteOut <= reserveQuote, 'DAOfiV1: INSUFFICIENT_LIQUIDITY');
         uint256 balanceBase;
@@ -144,7 +144,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         address _tokenBase = baseToken;
         address _tokenQuote = quoteToken;
         require(to != _tokenBase && to != _tokenQuote, 'DAOfiV1: INVALID_TO');
-        if (amountBaseOut > 0) _safeTransfer(_tokenBase, to, amountBaseOut); // optimistically transfer tokens
+        _safeTransfer(tokenOut, to, amountBaseOut); // optimistically transfer tokens
         if (amountQuoteOut > 0) _safeTransfer(_tokenQuote, to, amountQuoteOut); // optimistically transfer tokens
         if (data.length > 0) IDAOfiV1Callee(to).daofiV1Call(msg.sender, amountBaseOut, amountQuoteOut, data);
         balanceBase = IERC20(_tokenBase).balanceOf(address(this)).sub(feesBase);

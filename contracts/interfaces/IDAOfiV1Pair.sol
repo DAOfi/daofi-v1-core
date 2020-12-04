@@ -29,7 +29,7 @@ interface IDAOfiV1Pair {
     function quotePrice() external view returns (uint256 price);
     function deposit(address to) external returns (uint256 amountBase);
     function withdraw(address to) external returns (uint256 amountBase, uint256 amountQuote);
-    function swap(uint256 amountBaseOut, uint256 amountQuoteOut, address to, bytes calldata data) external;
+    function swap(address tokenIn, address tokenOut, uint256 amountOut, address to, bytes calldata data) external;
     function getBaseOut(uint256 amountQuoteIn) external view returns (uint256 amountBaseOut);
     function getQuoteOut(uint256 amountBaseIn) external view returns (uint256 amountQuoteOut);
     function getBaseIn(uint256 amountQuoteOut) external view returns (uint256 amountBaseIn);
