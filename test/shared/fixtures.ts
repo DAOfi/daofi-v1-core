@@ -11,7 +11,7 @@ interface FactoryFixture {
 
 export async function factoryFixture(wallet: SignerWithAddress): Promise<FactoryFixture> {
   // deploy formula
-  const formula = await deployContract(wallet, BancorFormula)
+  const formula = await deployContract(wallet, BancorFormula as any)
   const Factory = await ethers.getContractFactory("DAOfiV1Factory")
   const factory = await Factory.deploy(formula.address)
   return { factory }
