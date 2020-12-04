@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@daofi/bancor@0.6.27-test.1":
+  version "0.6.27-test.1"
+  resolved "https://registry.yarnpkg.com/@daofi/bancor/-/bancor-0.6.27-test.1.tgz#ca47792c29d4aca3b8a994a5dfa0dfdffe656639"
+  integrity sha512-GTSpL0ggd+6oH5EdQjScAiXsTZrVrjeWFHtkTTYq9ONJHNko+7eefJsRZe122lP8SkPQHWi1yvmb+dQyKz4Now==
+
 "@ensdomains/ens@^0.4.4":
   version "0.4.5"
   resolved "https://registry.yarnpkg.com/@ensdomains/ens/-/ens-0.4.5.tgz#e0aebc005afdc066447c6e22feb4eda89a5edbfc"

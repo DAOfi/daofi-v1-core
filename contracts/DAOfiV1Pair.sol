@@ -2,20 +2,16 @@
 pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
 
-import 'hardhat/console.sol';
+import '@daofi/bancor/solidity/contracts/converter/interfaces/IBancorFormula.sol';
+// import 'hardhat/console.sol';
 import './interfaces/IDAOfiV1Callee.sol';
 import './interfaces/IDAOfiV1Factory.sol';
 import './interfaces/IDAOfiV1Pair.sol';
 import './interfaces/IERC20.sol';
 import "./libraries/SafeMath.sol";
-import './Power.sol';
 
-contract DAOfiV1Pair is IDAOfiV1Pair, Power {
-    using SafeMath for int;
-    using SafeMath for uint;
-    using SafeMath for uint8;
-    using SafeMath for uint32;
-    using SafeMath for uint256;
+contract DAOfiV1Pair is IDAOfiV1Pair {
+    using SafeMath for *;
 
     uint32 private constant MAX_WEIGHT = 1000000;
     uint256 public constant MAX_FEE = 10; // 1%
@@ -58,6 +54,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     function _safeTransfer(address token, address to, uint256 value) private {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(SELECTOR, to, value));
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'DAOfiV1: TRANSFER_FAILED');
+    }
+
+    function _getFormula() private view returns (IBancorFormula) {
+        return IBancorFormula(IDAOfiV1Factory(factory).formula());
     }
 
     constructor() {
@@ -200,19 +200,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     * @return amountBaseOut
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
-        require(deposited, 'DAOfiV1: UNINITIALIZED');
-        // special case for 0 input amount
-        if (amountQuoteIn == 0) {
-            return 0;
-        }
-        // special case if the weight = 100%
-        if (reserveRatio == MAX_WEIGHT) {
-            return supply.mul(amountQuoteIn).div(reserveQuote);
-        }
-        uint256 baseN = amountQuoteIn.add(reserveQuote);
-        (uint256 result, uint8 precision) = power(baseN, reserveQuote, reserveRatio, MAX_WEIGHT);
-        uint256 temp = supply.mul(result) >> precision;
-        return temp.sub(supply);
+        amountBaseOut = _getFormula().purchaseTargetAmount(supply, reserveQuote, reserveRatio, amountQuoteIn);
     }
 
     /**
@@ -227,24 +215,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     * @return amountQuoteOut
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
-        require(deposited, 'DAOfiV1: UNINITIALIZED');
-        // special case for 0 sell amount
-        if (amountBaseIn == 0) {
-            return 0;
-        }
-        // special case for selling the entire supply
-        if (amountBaseIn == supply) {
-            return reserveQuote;
-        }
-        // special case if the weight = 100%
-        if (reserveRatio == MAX_WEIGHT) {
-            return reserveQuote.mul(amountBaseIn).div(supply);
-        }
-        uint256 baseD = supply - amountBaseIn;
-        (uint256 result, uint8 precision) = power(supply, baseD, MAX_WEIGHT, reserveRatio);
-        uint256 oldBalance = reserveQuote.mul(result);
-        uint256 newBalance = reserveQuote << precision;
-        return oldBalance.sub(newBalance).div(result);
+
     }
 
     /** BROKEN
@@ -262,24 +233,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     * @return amountBaseIn
     */
     function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn) {
-        require(deposited, 'DAOfiV1: UNINITIALIZED');
-        require(reserveQuote >= amountQuoteOut, 'DAOfiV1: INSUFFICIENT_QUOTE_RESERVE');
-        // special case for 0 input amount
-        if (amountQuoteOut == reserveQuote) {
-            return supply;
-        }
-        // special case for 0 amount
-        if (amountQuoteOut == 0) {
-            return 0;
-        }
-        // special case if the reserve ratio = 100%
-        if (reserveRatio == MAX_WEIGHT) {
-            return amountQuoteOut.mul(supply) / reserveQuote;
-        }
-        uint256 baseN = reserveQuote.add(amountQuoteOut);
-        (uint256 result, uint8 precision) = power(baseN, reserveQuote, reserveRatio, MAX_WEIGHT);
-        uint256 temp = supply.mul(result) >> precision;
-        return temp - supply;
+
     }
 
     /** BROKEN
@@ -297,16 +251,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
     * @return amountQuoteIn
     */
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn) {
-        require(deposited, 'DAOfiV1: UNINITIALIZED');
-        // special case for 0 amount
-        if (amountBaseOut == 0) return 0;
-        // special case if the reserve ratio = 100%
-        if (reserveRatio == MAX_WEIGHT) {
-            return (amountBaseOut.mul(reserveQuote) - 1) / supply + 1;
-        }
-        uint256 baseN = supply.add(amountBaseOut);
-        (uint256 result, uint8 precision) = power(baseN, supply, MAX_WEIGHT, reserveRatio);
-        uint256 temp = ((reserveQuote.mul(result) - 1) >> precision) + 1;
-        return temp - reserveQuote; // off by 1 ??
+
     }
 }

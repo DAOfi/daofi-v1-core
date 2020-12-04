@@ -13,6 +13,7 @@ interface IDAOfiV1Factory {
         address pair,
         uint length
     );
+    function formula() external view returns (address);
     function pairs(address tokenA, address tokenB, bytes calldata encoded) external view returns (address pair);
     function getPair(address tokenA, address tokenB, uint32 reserveRatio, uint32 fee)
         external view returns (address pair);

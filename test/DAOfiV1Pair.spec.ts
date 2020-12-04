@@ -124,7 +124,7 @@ describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
     expect(ethers.BigNumber.from('488088481701515469')).to.eq(price)
   })
 
-  it('getBaseOut:', async () => {
+  it.only('getBaseOut:', async () => {
     await addLiquidity(expandTo18Decimals(1e9), expandTo18Decimals(10))
     const quoteIn = expandTo18Decimals(1)
     const baseOut = await pair.getBaseOut(quoteIn)

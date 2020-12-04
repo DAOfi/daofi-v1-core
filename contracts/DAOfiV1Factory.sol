@@ -8,8 +8,10 @@ import './DAOfiV1Pair.sol';
 contract DAOfiV1Factory is IDAOfiV1Factory {
     mapping(address => mapping(address => mapping(bytes => address))) public override pairs;
     address[] public override allPairs;
+    address public override formula;
 
-    constructor() {
+    constructor(address _formula) {
+        formula = _formula;
     }
 
     function getPair(address token0, address token1, uint32 reserveRatio, uint32 fee)

@@ -56,7 +56,7 @@ describe('DAOfiV1Factory', async () => {
 
   beforeEach(async () => {
     wallet = (await ethers.getSigners())[0]
-    factory = (await factoryFixture()).factory
+    factory = (await factoryFixture(wallet)).factory
   })
 
   it('createPair', async () => {

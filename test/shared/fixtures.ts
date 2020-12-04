@@ -1,15 +1,19 @@
+import BancorFormula from '@daofi/bancor/solidity/build/contracts/BancorFormula.json'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
-import { ethers } from 'hardhat'
 import { Contract } from 'ethers'
+import { deployContract } from 'ethereum-waffle'
+import { ethers } from 'hardhat'
 import DAOfiV1Pair from '../../build/contracts/DAOfiV1Pair.sol/DAOfiV1Pair.json'
 
 interface FactoryFixture {
   factory: Contract
 }
 
-export async function factoryFixture(): Promise<FactoryFixture> {
+export async function factoryFixture(wallet: SignerWithAddress): Promise<FactoryFixture> {
+  // deploy formula
+  const formula = await deployContract(wallet, BancorFormula)
   const Factory = await ethers.getContractFactory("DAOfiV1Factory")
-  const factory = await Factory.deploy()
+  const factory = await Factory.deploy(formula.address)
   return { factory }
 }
 
@@ -25,7 +29,7 @@ export async function pairFixture(
   reserveRatio: number = 5e5,
   fee: number = 0
 ): Promise<PairFixture> {
-  const { factory } = await factoryFixture()
+  const { factory } = await factoryFixture(wallet)
   const Token = await ethers.getContractFactory("ERC20")
   const tokenA = await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
   const tokenB =  await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
