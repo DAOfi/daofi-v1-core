@@ -200,6 +200,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @return amountBaseOut
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
+        require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
         amountBaseOut = _getFormula().purchaseTargetAmount(supply, reserveQuote, reserveRatio, amountQuoteIn);
     }
 
@@ -215,6 +216,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @return amountQuoteOut
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
+        require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
         amountQuoteOut = _getFormula().saleTargetAmount(supply, reserveQuote, reserveRatio, amountBaseIn);
     }
 
