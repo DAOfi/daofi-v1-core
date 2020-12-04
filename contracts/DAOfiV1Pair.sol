@@ -109,14 +109,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         reserveBase = IERC20(baseToken).balanceOf(address(this));
         reserveQuote = IERC20(quoteToken).balanceOf(address(this));
         require(reserveQuote > 0 && reserveBase > 0, 'DAOfiV1: ZERO_RESERVE');
-        // set initial supply from quoteReserve
-        // https://github.com/DAOfi/bancor/blob/master/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L511
-        supply = amountBaseOut = reserveQuote;
-        reserveBase = reserveBase.sub(amountBaseOut);
-        _safeTransfer(baseToken, to, amountBaseOut);
-
         // this function is locked and the contract can not reset reserves
         deposited = true;
+        // set initial supply from quoteReserve
+        supply = amountBaseOut = getBaseOut(reserveQuote);
+        if (amountBaseOut > 0) _safeTransfer(baseToken, to, amountBaseOut);
+        reserveBase = reserveBase.sub(amountBaseOut);
         emit Deposit(msg.sender, reserveBase, reserveQuote, amountBaseOut, to);
     }
 
@@ -137,25 +135,25 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         require(deposited, 'DAOfiV1: UNINITIALIZED_SWAP');
         require(amountOut > 0, 'DAOfiV1: INSUFFICIENT_OUTPUT_AMOUNT');
         (uint256 _reserveBase, uint256 _reserveQuote)  = getReserves(); // gas savings
-        require(amountBaseOut <= _reserveBase && amountQuoteOut <= reserveQuote, 'DAOfiV1: INSUFFICIENT_LIQUIDITY');
         uint256 balanceBase;
         uint256 balanceQuote;
         { // scope for _token{Base,Quote}, avoids stack too deep errors
         address _tokenBase = baseToken;
         address _tokenQuote = quoteToken;
         require(to != _tokenBase && to != _tokenQuote, 'DAOfiV1: INVALID_TO');
-        _safeTransfer(tokenOut, to, amountBaseOut); // optimistically transfer tokens
-        if (amountQuoteOut > 0) _safeTransfer(_tokenQuote, to, amountQuoteOut); // optimistically transfer tokens
-        if (data.length > 0) IDAOfiV1Callee(to).daofiV1Call(msg.sender, amountBaseOut, amountQuoteOut, data);
+        _safeTransfer(tokenOut, to, amountOut); // optimistically transfer tokens
+        // allow chaining of output to another contract via interface
+        if (data.length > 0) IDAOfiV1Callee(to).daofiV1Call(msg.sender, tokenIn, tokenOut, amountOut, data);
         balanceBase = IERC20(_tokenBase).balanceOf(address(this)).sub(feesBase);
         balanceQuote = IERC20(_tokenQuote).balanceOf(address(this)).sub(feesQuote);
         }
         uint256 amountBaseIn = balanceBase > _reserveBase - amountBaseOut ? balanceBase - (_reserveBase - amountBaseOut) : 0;
         uint256 amountQuoteIn = balanceQuote > _reserveQuote - amountQuoteOut ? balanceQuote - (_reserveQuote - amountQuoteOut) : 0;
         require(amountBaseIn > 0 || amountQuoteIn > 0, 'DAOfiV1: INSUFFICIENT_INPUT_AMOUNT');
+        uint256 amountIn
         // Check that inputs equal output
-        // start with trading quote to base
-        if (amountQuoteIn > 0) {
+        // handle quote to base
+        if (amountQuoteIn > 0 && tokenOut == baseToken) {
             uint256 amountInWithFee = amountQuoteIn.mul(1000 - fee) / 1000;
             require(getBaseOut(amountInWithFee) == amountBaseOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
             supply = supply.add(amountBaseOut);
@@ -163,8 +161,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             reserveBase = _reserveBase.sub(amountBaseOut);
             feesQuote = feesQuote.add(amountQuoteIn).sub(amountInWithFee);
         }
-        // now trade base to quote
-        if (amountBaseIn > 0) {
+        // handle base to quote
+        if (amountBaseIn > 0 && tokenOut == quoteToken) {
             uint256 amountInWithFee = amountBaseIn.mul(1000 - fee) / 1000;
             require(getQuoteOut(amountInWithFee) == amountQuoteOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
             supply = supply.sub(amountInWithFee);
@@ -173,7 +171,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             feesBase = feesBase.add(amountBaseIn).sub(amountInWithFee);
         }
         require(supply <= IERC20(baseToken).totalSupply(), 'DAOfiV1: INSUFFICIENT_SUPPLY');
-        emit Swap(msg.sender, amountBaseIn, amountQuoteIn, amountBaseOut, amountQuoteOut, to);
+        emit Swap(msg.sender, tokenIn, tokenOut, amountBaseOut, amountQuoteOut, to);
     }
 
     // The amount of quote returned for 1 base
@@ -201,7 +199,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
-        amountBaseOut = _getFormula().purchaseTargetAmount(supply, reserveQuote, reserveRatio, amountQuoteIn);
+        // Case for 0 supply
+        // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquid-token/LiquidTokenConverter.sol#L148
+        if (supply == 0) {
+            amountBaseOut = amountQuoteIn.mul(MAX_WEIGHT).div(reserveRatio);
+        } else {
+            amountBaseOut = _getFormula().purchaseTargetAmount(supply, reserveQuote, reserveRatio, amountQuoteIn);
+        }
     }
 
     /**
@@ -217,7 +221,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
-        amountQuoteOut = _getFormula().saleTargetAmount(supply, reserveQuote, reserveRatio, amountBaseIn);
+        if (supply == amountBaseIn) {
+            amountQuoteOut = reserveQuote;
+        } else {
+            amountQuoteOut = _getFormula().saleTargetAmount(supply, reserveQuote, reserveRatio, amountBaseIn);
+        }
     }
 
     function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn) {
