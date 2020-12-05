@@ -163,11 +163,11 @@ describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
     const quoteAmountIn = expandTo18Decimals(1)
     const baseAmountOut = await pair.getBaseOut(quoteAmountIn)
     await tokenQuote.transfer(pair.address, quoteAmountIn)
-    await expect(pair.swap(baseAmountOut, 0, wallet.address, '0x'))
+    await expect(pair.swap(tokenQuote, tokenBase, quoteAmountIn, wallet.address, '0x'))
       .to.emit(tokenBase, 'Transfer')
       .withArgs(pair.address, wallet.address, baseAmountOut)
       .to.emit(pair, 'Swap')
-      .withArgs(wallet.address, 0, quoteAmountIn, baseAmountOut, 0, wallet.address)
+      .withArgs(wallet.address, tokenQuote, tokenBase, baseAmountOut, wallet.address)
 
     const reservesA = await pair.getReserves()
     expect(reservesA[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned))
@@ -180,11 +180,11 @@ describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
     const baseAmountIn = baseAmountOut
     const quoteAmountOut = await pair.getQuoteOut(baseAmountIn)
     await tokenBase.transfer(pair.address, baseAmountIn)
-    await expect(pair.swap(0, quoteAmountOut, wallet.address, '0x'))
+    await expect(pair.swap(tokenBase, tokenQuote, quoteAmountOut, wallet.address, '0x'))
       .to.emit(tokenQuote, 'Transfer')
       .withArgs(pair.address, wallet.address, quoteAmountOut)
       .to.emit(pair, 'Swap')
-      .withArgs(wallet.address, baseAmountIn, 0, 0, quoteAmountOut, wallet.address)
+      .withArgs(wallet.address, tokenBase, tokenQuote, quoteAmountOut, wallet.address)
 
     const reservesB = await pair.getReserves()
     expect(reservesB[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned).add(baseAmountIn))

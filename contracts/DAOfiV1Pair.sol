@@ -3,7 +3,7 @@ pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
 
 import '@daofi/bancor/solidity/contracts/converter/interfaces/IBancorFormula.sol';
-// import 'hardhat/console.sol';
+import 'hardhat/console.sol';
 import './interfaces/IDAOfiV1Callee.sol';
 import './interfaces/IDAOfiV1Factory.sol';
 import './interfaces/IDAOfiV1Pair.sol';
@@ -143,6 +143,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             _safeTransfer(tokenOut, to, amountOut); // optimistically transfer tokens
             // allow chaining of output to another contract via interface
             if (data.length > 0) IDAOfiV1Callee(to).daofiV1Call(msg.sender, tokenIn, tokenOut, amountOut, data);
+
             if (tokenIn == _tokenBase) {
                 reserveIn = reserveBase;
                 balanceIn = IERC20(_tokenBase).balanceOf(address(this)).sub(feesBase);
