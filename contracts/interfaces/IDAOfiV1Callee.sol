@@ -3,5 +3,5 @@ pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
 
 interface IDAOfiV1Callee {
-    function daofiV1Call(address sender, uint256 amountBaseOut, uint256 amountQuoteOut, bytes calldata data) external;
+    function daofiV1Call(address sender, address tokenIn, address tokenOut, uint256 amountOut, bytes calldata data) external;
 }

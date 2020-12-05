@@ -7,10 +7,9 @@ interface IDAOfiV1Pair {
     event Withdraw(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
     event Swap(
         address indexed sender,
-        uint256 amountBaseIn,
-        uint256 amountQuoteIn,
-        uint256 amountBaseOut,
-        uint256 amountQuoteOut,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountOut,
         address indexed to
     );
 
