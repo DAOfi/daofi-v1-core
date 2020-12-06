@@ -17,8 +17,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     uint32 private constant SLOPE_DENOM = 1000;
     uint32 private constant MAX_N = 3;
     uint256 public constant MAX_FEE = 10; // 1%
-    int8 private constant INTERNAL_DECIMALS = 6;
-    int8 private constant RESULT_DECIMALS = 3  ;
+    int8 private constant INTERNAL_DECIMALS = 5;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
     address public override factory;
     address public override token0;
@@ -61,43 +60,31 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'DAOfiV1: TRANSFER_FAILED');
     }
 
-    // function _abs(int256 x) internal pure returns (uint256 y) {
-    //     if (x < 0) {
-    //         y = uint256(-x);
-    //     } else if (x > 0) {
-    //         y = uint256(x);
-    //     } else {
-    //         y = 0;
-    //     }
-    // }
+    function _abs(int256 x) internal pure returns (uint256 y) {
+        if (x < 0) {
+            y = uint256(-x);
+        } else if (x > 0) {
+            y = uint256(x);
+        } else {
+            y = 0;
+        }
+    }
 
-    // function _roundDiv(uint256 _n, uint256 _d) internal pure returns (uint256) {
-    //     return _n / _d + (_n % _d) / (_d - _d / 2);
-    // }
-
-    // function _convertToDecimals(uint256 amountIn, int8 from, int8 to) internal pure returns (uint256 amountOut) {
-    //     amountOut = amountIn;
-    //     if (amountIn > 0) {
-    //         int8 diff = to - from;
-    //         // expand or contract resolution
-    //         uint factor = (10 ** _abs(diff));
-    //         if (diff < 0) {
-    //             amountOut = _roundDiv(amountIn, factor);
-    //         } else if (diff > 0 ) {
-    //             amountOut = amountIn * factor;
-    //         }
-    //     }
-    // }
-
-    // function _ceilSqrt(uint256 _num) internal pure returns (uint256) {
-    //     uint256 x = _num / 2 + 1;
-    //     uint256 y = (x + _num / x) / 2;
-    //     while (x > y) {
-    //         x = y;
-    //         y = (x + _num / x) / 2;
-    //     }
-    //     return x * x == _num ? x : x + 1;
-    // }
+    function _convertToDecimals(uint256 amountIn, int8 from, int8 to) internal pure returns (uint256 amountOut) {
+        amountOut = amountIn;
+        if (amountIn > 0) {
+            int8 diff = to - from;
+            // expand or contract resolution
+            uint factor = (10 ** _abs(diff));
+            if (diff < 0) {
+                amountOut = amountIn.div(factor);
+                amountOut = amountOut * factor;
+            } else if (diff > 0 ) {
+                amountOut = amountOut * factor;
+                amountOut = amountOut.div(factor);
+            }
+        }
+    }
 
     function _getFormula() private view returns (IBancorFormula) {
         return IBancorFormula(IDAOfiV1Factory(factory).formula());
@@ -271,6 +258,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         } else {
             amountBaseOut = _getFormula().purchaseTargetAmount(supply, reserveQuote, reserveRatio, amountQuoteIn);
         }
+        amountBaseOut = _convertToDecimals(amountBaseOut, int8(IERC20(baseToken).decimals()), INTERNAL_DECIMALS);
     }
 
     /**
@@ -290,6 +278,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         console.log("supply: %s", supply);
         amountQuoteOut = _getFormula().saleTargetAmount(supply, reserveQuote, reserveRatio, amountBaseIn);
         console.log("quote out: %s", amountQuoteOut);
+        amountQuoteOut = _convertToDecimals(amountQuoteOut, int8(IERC20(quoteToken).decimals()), INTERNAL_DECIMALS);
     }
 
     function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn) {
@@ -304,9 +293,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         if (reserveRatio == MAX_WEIGHT) return supply.mul(amountQuoteOut) / reserveQuote;
         uint256 baseN = reserveQuote.add(amountQuoteOut);
         (uint256 result, uint8 precision) = _getFormula().power(baseN, reserveQuote, reserveRatio, MAX_WEIGHT);
-        uint256 temp = (result >> precision)  + 1;
+        uint256 temp = (result >> precision);
         amountBaseIn = supply.sub(temp);
         console.log("base in: %s", amountBaseIn);
+        amountBaseIn = _convertToDecimals(amountBaseIn, int8(IERC20(baseToken).decimals()), INTERNAL_DECIMALS);
     }
 
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn) {
@@ -321,7 +311,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             MAX_WEIGHT,
             reserveRatio
         );
-        uint256 reserveAtSupply = (result.mul(reserveQuote) >> precision) + 1;
+        uint256 reserveAtSupply = (result.mul(reserveQuote) >> precision);
         amountQuoteIn = reserveAtSupply.sub(reserveQuote);
+        amountQuoteIn = _convertToDecimals(amountQuoteIn, int8(IERC20(quoteToken).decimals()), INTERNAL_DECIMALS);
     }
 }
