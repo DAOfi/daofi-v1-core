@@ -60,6 +60,24 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'DAOfiV1: TRANSFER_FAILED');
     }
 
+    function _roundDiv(uint256 _n, uint256 _d) internal pure returns (uint256) {
+        return _n / _d + (_n % _d) / (_d - _d / 2);
+    }
+
+    function _convertToDecimals(uint256 amountIn, int8 from, int8 to) internal pure returns (uint256 amountOut) {
+        amountOut = amountIn;
+        if (amountIn > 0) {
+            int8 diff = to - from;
+            // expand or contract resolution
+            uint factor = (10 ** Math.abs(diff));
+            if (diff < 0) {
+                amountOut = _roundDiv(amountIn, factor);
+            } else if (diff > 0 ) {
+                amountOut = amountIn * factor;
+            }
+        }
+    }
+
     function _getFormula() private view returns (IBancorFormula) {
         return IBancorFormula(IDAOfiV1Factory(factory).formula());
     }
