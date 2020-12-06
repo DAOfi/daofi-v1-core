@@ -7,11 +7,11 @@ const PERMIT_TYPEHASH = keccak256(
 )
 
 export function expandTo18Decimals(n: number): BigNumber {
-  return expandToMDecimals(n, 18)
+  return expandToDecimals(n, 18)
 }
 
-export function expandToMDecimals(n: number, m: number): BigNumber {
-  return ethers.BigNumber.from(n).mul(ethers.BigNumber.from(10).pow(m))
+export function expandToDecimals(num: number, decimals: number): BigNumber {
+  return ethers.BigNumber.from(num).mul(ethers.BigNumber.from(10).pow(decimals))
 }
 
 function getDomainSeparator(name: string, tokenAddress: string) {
@@ -32,7 +32,8 @@ function getDomainSeparator(name: string, tokenAddress: string) {
 export function getCreate2Address(
   factoryAddress: string,
   [tokenA, tokenB]: [string, string],
-  reserveRatio: number,
+  slopeNumerator: number,
+  n: number,
   fee: number,
   bytecode: string
 ): string {
@@ -40,7 +41,7 @@ export function getCreate2Address(
   const create2Inputs = [
     '0xff',
     factoryAddress,
-    keccak256(solidityPack(['address', 'address', 'uint32','uint32'], [token0, token1, reserveRatio, fee])),
+    keccak256(solidityPack(['address', 'address', 'uint32', 'uint32', 'uint32'], [token0, token1, slopeNumerator, n, fee])),
     keccak256(bytecode)
   ]
   const sanitizedInputs = `0x${create2Inputs.map(i => i.slice(2)).join('')}`
@@ -97,7 +98,7 @@ export async function getApprovalDigest(
 // then plug s into the antiderivative
 // y' = (slopeN * x ** (n + 1)) / (slopeD * (n + 1))
 // y' = quote reserve at price
-export function getReserveForStartPrice(price: number, slopeN: number, slopeD: number, n: number): number {
-  const s = (price * (slopeD / slopeN)) ** (1 / n)
-  return (slopeN * (s ** (n + 1))) / (slopeD * (n + 1))
+export function getReserveForStartPrice(price: number, slopeN: number, n: number): number {
+  const s = (price * (1e3 / slopeN)) ** (1 / n)
+  return (slopeN * (s ** (n + 1))) / (1e3 * (n + 1))
 }

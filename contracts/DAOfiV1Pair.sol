@@ -99,9 +99,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         baseToken = _baseToken;
         quoteToken = token0 == baseToken ? token1 : token0;
         pairOwner = _pairOwner;
-        reserveRatio = uint32(MAX_WEIGHT.div(n + 1));  // (1 / (n + 1)) * MAX_WEIGHT
+        slopeNumerator = _slopeNumerator;
+        n = _n;
         fee = _fee;
         supply = 0;
+        reserveRatio = uint32(MAX_WEIGHT.div(n + 1));  // (1 / (n + 1)) * MAX_WEIGHT
+        console.log("n: %s", n);
+        console.log("rr: %s", reserveRatio);
     }
 
     function setPairOwner(address _nextOwner) external override {
@@ -116,11 +120,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         reserveQuote = IERC20(quoteToken).balanceOf(address(this));
         // this function is locked and the contract can not reset reserves
         deposited = true;
-        // set initial supply from quoteReserve
-        supply = amountBaseOut = getBaseOut(reserveQuote);
-        if (amountBaseOut > 0) {
-            _safeTransfer(baseToken, to, amountBaseOut);
-            reserveBase = reserveBase.sub(amountBaseOut);
+        if (reserveQuote > 0) {
+            // set initial supply from quoteReserve
+            supply = amountBaseOut = getBaseOut(reserveQuote);
+            if (amountBaseOut > 0) {
+                console.log("quote in: %s", reserveQuote);
+                console.log("base out: %s", amountBaseOut);
+                _safeTransfer(baseToken, to, amountBaseOut);
+                reserveBase = reserveBase.sub(amountBaseOut);
+            }
         }
         emit Deposit(msg.sender, reserveBase, reserveQuote, amountBaseOut, to);
     }
@@ -208,10 +216,23 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
-        // Case for 0 supply
+        // Case for 0 supply, differing examples between research, bancor v1, bancor v2
+        // https://blog.relevant.community/bonding-curves-in-depth-intuition-parametrization-d3905a681e0a
         // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquid-token/LiquidTokenConverter.sol#L148
+        // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L512
         if (supply == 0) {
-            amountBaseOut = amountQuoteIn.mul(MAX_WEIGHT).div(reserveRatio);
+            console.log("slopeN: %s", slopeNumerator);
+            console.log("slopeD: %s", SLOPE_DENOM);
+            //amountBaseOut = //(amountQuoteIn.mul(MAX_WEIGHT).mul(slopeNumerator)).div(reserveRatio.mul(SLOPE_DENOM));
+            // amountBaseOut = amountQuoteIn;
+            (uint256 r, uint8 p) = _getFormula().power(
+                amountQuoteIn.mul(SLOPE_DENOM).mul(n + 1),
+                slopeNumerator,
+                MAX_WEIGHT,
+                uint32(MAX_WEIGHT.mul(n + 1))
+            );
+            amountBaseOut = r << p;
+
         } else {
             amountBaseOut = _getFormula().purchaseTargetAmount(supply, reserveQuote, reserveRatio, amountQuoteIn);
         }

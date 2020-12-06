@@ -23,28 +23,30 @@ describe('DAOfiV1Factory', async () => {
     tokenB: string,
     baseToken: string,
     owner: string,
-    reserveRatio: number,
+    slopeNumerator: number,
+    n: number,
     fee: number
   ) {
     const bytecode = `${DAOfiV1Pair.bytecode}`
-    const create2Address = getCreate2Address(factory.address, [tokenA, tokenB], reserveRatio, fee, bytecode)
-    await expect(factory.createPair(router, tokenA, tokenB, baseToken, owner, reserveRatio, fee))
+    const create2Address = getCreate2Address(factory.address, [tokenA, tokenB], slopeNumerator, n, fee, bytecode)
+    await expect(factory.createPair(router, tokenA, tokenB, baseToken, owner, slopeNumerator, n, fee))
       .to.emit(factory, 'PairCreated')
       .withArgs(
         TEST_ADDRESSES[0],
         TEST_ADDRESSES[1],
         baseToken,
         wallet.address,
-        ethers.BigNumber.from(reserveRatio),
+        ethers.BigNumber.from(slopeNumerator),
+        ethers.BigNumber.from(n),
         ethers.BigNumber.from(fee),
         create2Address,
         ethers.BigNumber.from(1)
       )
 
-    await expect(factory.createPair(router, tokenA, tokenB, tokenA, owner, reserveRatio, fee)).to.be.reverted // DAOfiV1: PAIR_EXISTS
-    await expect(factory.createPair(router, tokenB, tokenA, tokenA, owner, reserveRatio, fee)).to.be.reverted // DAOfiV1: PAIR_EXISTS
-    expect(await factory.getPair(tokenA, tokenB, reserveRatio, fee)).to.eq(create2Address)
-    expect(await factory.getPair(tokenB, tokenA, reserveRatio, fee)).to.eq(create2Address)
+    await expect(factory.createPair(router, tokenA, tokenB, tokenA, owner, slopeNumerator, n, fee)).to.be.reverted // DAOfiV1: PAIR_EXISTS
+    await expect(factory.createPair(router, tokenB, tokenA, tokenA, owner, slopeNumerator, n, fee)).to.be.reverted // DAOfiV1: PAIR_EXISTS
+    expect(await factory.getPair(tokenA, tokenB, slopeNumerator, n, fee)).to.eq(create2Address)
+    expect(await factory.getPair(tokenB, tokenA, slopeNumerator, n, fee)).to.eq(create2Address)
     expect(await factory.allPairs(0)).to.eq(create2Address)
     expect(await factory.allPairsLength()).to.eq(1)
 
@@ -60,11 +62,11 @@ describe('DAOfiV1Factory', async () => {
   })
 
   it('createPair', async () => {
-    await createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], TEST_ADDRESSES[0], wallet.address, 5e5, 3)
+    await createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], TEST_ADDRESSES[0], wallet.address, 1e3, 1, 0)
   })
 
   it('createPair:reverse', async () => {
-    await createPair(wallet.address, TEST_ADDRESSES[1], TEST_ADDRESSES[0], TEST_ADDRESSES[0], wallet.address, 5e5, 3)
+    await createPair(wallet.address, TEST_ADDRESSES[1], TEST_ADDRESSES[0], TEST_ADDRESSES[0], wallet.address, 1e3, 1, 0)
   })
 
   // it('createPair:gas', async () => {

@@ -26,7 +26,8 @@ interface PairFixture extends FactoryFixture {
 
 export async function pairFixture(
   wallet: SignerWithAddress,
-  reserveRatio: number = 5e5,
+  slopeNumerator: number = 1e3,
+  n: number = 1,
   fee: number = 0
 ): Promise<PairFixture> {
   const { factory } = await factoryFixture(wallet)
@@ -39,10 +40,11 @@ export async function pairFixture(
     tokenB.address,
     tokenA.address, // base token
     wallet.address,
-    reserveRatio,
+    slopeNumerator,
+    n,
     fee
   )
-  const pairAddress = await factory.getPair(tokenA.address, tokenB.address, reserveRatio, fee)
+  const pairAddress = await factory.getPair(tokenA.address, tokenB.address, slopeNumerator, n, fee)
   const pair = new Contract(pairAddress, JSON.stringify(DAOfiV1Pair.abi)).connect(wallet)
   const token0Address = (await pair.token0()).address
   const token0 = tokenA.address === token0Address ? tokenA : tokenB

@@ -2,7 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-wit
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 import { ethers } from 'hardhat'
-import { getReserveForStartPrice, expandTo18Decimals, expandToMDecimals } from './shared/utilities'
+import { getReserveForStartPrice, expandTo18Decimals, expandToDecimals } from './shared/utilities'
 import { pairFixture } from './shared/fixtures'
 
 const zero = ethers.BigNumber.from(0)
@@ -20,10 +20,10 @@ async function addLiquidity(baseAmount: BigNumber, quoteAmount: BigNumber) {
   await pair.deposit(wallet.address)
 }
 
-describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
+describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
   beforeEach(async () => {
     wallet = (await ethers.getSigners())[0]
-    const fixture = await pairFixture(wallet, 5e5, 0)
+    const fixture = await pairFixture(wallet, 1e3, 1, 0)
 
     factory = fixture.factory
     token0 = fixture.token0
@@ -55,21 +55,26 @@ describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
     await expect(pair.deposit(wallet.address)).to.be.revertedWith('DOUBLE_DEPOSIT')
   })
 
+  // price in quote, multiplier for BigNum, decimals to expand quote, expected base
   const depositTestCases: any[][] = [
-    [1, '100000000000000000'],
-    [5, '200000000000000000',   '200000000000000000'],
-    [10,'1000000000000000000',  '1000000000000000000'],
-    [100, '10000000000000000000', '10000000000000000000'],
-    [1000, '100000000000000000000','100000000000000000000'],
+    [1, 1],
+    // [3, '5'],
+    // [4, '2'],
+    // [5, '5'],
+    // [10, '10'],
+    // [100, '100'],
+    // [1000, '1000'],
   ]
 
   // Deposit tests which return base:
   depositTestCases.forEach((depositTestCase, i) => {
-    it(`deposit: ${i}`, async () => {
-      const [quoteIn, baseOut] = depositTestCase
+    it.only(`deposit: ${i}`, async () => {
+      const [quotePrice, baseOut] = depositTestCase
       const baseSupply = expandTo18Decimals(1e9)
-      const quoteReserve = ethers.BigNumber.from(quoteIn)
-      const baseOutput = ethers.BigNumber.from(baseOut)
+      const quoteReserveFloat = getReserveForStartPrice(quotePrice, 1e3, 1)
+      const quoteReserve = ethers.BigNumber.from(`${Math.ceil(quoteReserveFloat * (10 ** 18))}`)
+      console.log(`quote expanded 18 decimals`, quoteReserve)
+      const baseOutput = expandTo18Decimals(baseOut)
       const expectedS = baseOutput
       const expectedBaseReserve = baseSupply.sub(baseOutput)
 
@@ -198,10 +203,10 @@ describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
   })
 })
 
-describe('DAOfiV1Pair: (y = x^2) reserve ratio = 33%, fee = 0', () => {
+describe('DAOfiV1Pair: (y = 0.001x^2) m = 0.001, n = 2, fee = 0', () => {
   beforeEach(async () => {
     wallet = (await ethers.getSigners())[0]
-    const fixture = await pairFixture(wallet, 333333, 0)
+    const fixture = await pairFixture(wallet, 1, 2, 0)
 
     factory = fixture.factory
     token0 = fixture.token0
@@ -210,20 +215,25 @@ describe('DAOfiV1Pair: (y = x^2) reserve ratio = 33%, fee = 0', () => {
     pair = fixture.pair
   })
 
+  // price in quote, multiplier for BigNum, decimals to expand quote, expected base
   const depositTestCases: any[][] = [
-    ['100000000000000000',   '100000000000000000'],
-    ['200000000000000000',   '200000000000000000'],
-    ['1000000000000000000',  '1000000000000000000'],
-    ['10000000000000000000', '10000000000000000000'],
-    ['100000000000000000000','100000000000000000000'],
+    [1, '31622808224492015492'],
+    // [3, '5'],
+    // [4, '2'],
+    // [5, '5'],
+    // [10, '10'],
+    // [100, '100'],
+    // [1000, '1000'],
   ]
 
   // Deposit tests which return base:
   depositTestCases.forEach((depositTestCase, i) => {
-    it(`deposit: ${i}`, async () => {
-      const [quoteIn, baseOut] = depositTestCase
+    it.only(`deposit: ${i}`, async () => {
+      const [quotePrice, baseOut] = depositTestCase
       const baseSupply = expandTo18Decimals(1e9)
-      const quoteReserve = ethers.BigNumber.from(quoteIn)
+      const quoteReserveFloat = getReserveForStartPrice(quotePrice, 1, 2)
+      const quoteReserve = ethers.BigNumber.from(`${Math.ceil(quoteReserveFloat * (10 ** 18))}`)
+      console.log(`quote expanded 18 decimals`, quoteReserve)
       const baseOutput = ethers.BigNumber.from(baseOut)
       const expectedS = baseOutput
       const expectedBaseReserve = baseSupply.sub(baseOutput)
