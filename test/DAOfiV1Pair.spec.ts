@@ -258,7 +258,7 @@ describe('DAOfiV1Pair: m = 0.001, n = 2, fee = 0', () => {
     const bD = ethers.BigNumber.from(1)
     const eN = 1
     const eD = 3
-    const results = await pair._power(bN, bD, eN, eD);
+    const results = await pair.power(bN, bD, eN, eD);
     console.log(results)
   })
 })
