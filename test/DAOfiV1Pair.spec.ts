@@ -69,7 +69,7 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
 
   // Deposit tests which return base:
   depositTestCases.forEach((depositTestCase, i) => {
-    it.only(`deposit: ${i}`, async () => {
+    it(`deposit: ${i}`, async () => {
       const [quotePrice, baseOut] = depositTestCase
       const baseSupply = expandTo18Decimals(1e9)
       const quoteReserveFloat = getReserveForStartPrice(quotePrice, 1e3, 1)
@@ -230,7 +230,7 @@ describe('DAOfiV1Pair: (y = 0.001x^2) m = 0.001, n = 2, fee = 0', () => {
 
   // Deposit tests which return base:
   depositTestCases.forEach((depositTestCase, i) => {
-    it.only(`deposit: ${i}`, async () => {
+    it(`deposit: ${i}`, async () => {
       const [quotePrice, baseOut] = depositTestCase
       const baseSupply = expandTo18Decimals(1e9)
       const quoteReserveFloat = getReserveForStartPrice(quotePrice, 1, 2)
