@@ -17,7 +17,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     uint32 private constant SLOPE_DENOM = 1000;
     uint32 private constant MAX_N = 3;
     uint256 public constant MAX_FEE = 10; // 1%
-    uint8 private constant INTERNAL_DECIMALS = 6;
+    int8 private constant INTERNAL_DECIMALS = 6;
+    int8 private constant RESULT_DECIMALS = 3  ;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
     address public override factory;
     address public override token0;
@@ -60,23 +61,43 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'DAOfiV1: TRANSFER_FAILED');
     }
 
-    function _roundDiv(uint256 _n, uint256 _d) internal pure returns (uint256) {
-        return _n / _d + (_n % _d) / (_d - _d / 2);
-    }
+    // function _abs(int256 x) internal pure returns (uint256 y) {
+    //     if (x < 0) {
+    //         y = uint256(-x);
+    //     } else if (x > 0) {
+    //         y = uint256(x);
+    //     } else {
+    //         y = 0;
+    //     }
+    // }
 
-    function _convertToDecimals(uint256 amountIn, int8 from, int8 to) internal pure returns (uint256 amountOut) {
-        amountOut = amountIn;
-        if (amountIn > 0) {
-            int8 diff = to - from;
-            // expand or contract resolution
-            uint factor = (10 ** Math.abs(diff));
-            if (diff < 0) {
-                amountOut = _roundDiv(amountIn, factor);
-            } else if (diff > 0 ) {
-                amountOut = amountIn * factor;
-            }
-        }
-    }
+    // function _roundDiv(uint256 _n, uint256 _d) internal pure returns (uint256) {
+    //     return _n / _d + (_n % _d) / (_d - _d / 2);
+    // }
+
+    // function _convertToDecimals(uint256 amountIn, int8 from, int8 to) internal pure returns (uint256 amountOut) {
+    //     amountOut = amountIn;
+    //     if (amountIn > 0) {
+    //         int8 diff = to - from;
+    //         // expand or contract resolution
+    //         uint factor = (10 ** _abs(diff));
+    //         if (diff < 0) {
+    //             amountOut = _roundDiv(amountIn, factor);
+    //         } else if (diff > 0 ) {
+    //             amountOut = amountIn * factor;
+    //         }
+    //     }
+    // }
+
+    // function _ceilSqrt(uint256 _num) internal pure returns (uint256) {
+    //     uint256 x = _num / 2 + 1;
+    //     uint256 y = (x + _num / x) / 2;
+    //     while (x > y) {
+    //         x = y;
+    //         y = (x + _num / x) / 2;
+    //     }
+    //     return x * x == _num ? x : x + 1;
+    // }
 
     function _getFormula() private view returns (IBancorFormula) {
         return IBancorFormula(IDAOfiV1Factory(factory).formula());
@@ -123,8 +144,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         fee = _fee;
         supply = 0;
         reserveRatio = uint32(MAX_WEIGHT.div(n + 1));  // (1 / (n + 1)) * MAX_WEIGHT
-        console.log("n: %s", n);
-        console.log("rr: %s", reserveRatio);
     }
 
     function setPairOwner(address _nextOwner) external override {
@@ -141,7 +160,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         deposited = true;
         if (reserveQuote > 0) {
             // set initial supply from quoteReserve
-            console.log("quote in: %s", reserveQuote);
             supply = amountBaseOut = getBaseOut(reserveQuote);
             console.log("base out: %s", amountBaseOut);
             if (amountBaseOut > 0) {
@@ -236,24 +254,20 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
         // Case for 0 supply, differing examples between research, bancor v1, bancor v2
-        // https://blog.relevant.community/bonding-curves-in-depth-intuition-parametrization-d3905a681e0a
-        // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquid-token/LiquidTokenConverter.sol#L148
-        // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L512
-        if (supply == 0) {
-            // s = (b / rm)^r
-            amountQuoteIn = amountQuoteIn / (10 ** 12);
-            console.log("bN: %s", amountQuoteIn.mul(SLOPE_DENOM).mul(MAX_WEIGHT));
-            console.log("bD: %s", slopeNumerator.mul(reserveRatio));
-            (uint256 r, uint8 p) = _getFormula().power(
-                amountQuoteIn.mul(SLOPE_DENOM).mul(MAX_WEIGHT),
-                slopeNumerator.mul(reserveRatio),
-                reserveRatio,
-                MAX_WEIGHT
-            );
-            amountBaseOut = r >> p;
-            //amountBaseOut = (amountQuoteIn.mul(MAX_WEIGHT).mul(slopeNumerator)).div(reserveRatio.mul(SLOPE_DENOM));
-            // amountBaseOut = amountQuoteIn;
 
+        // s = (b / rm)^r
+        // https://blog.relevant.community/bonding-curves-in-depth-intuition-parametrization-d3905a681e0a
+
+        // s = b / r
+        // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquid-token/LiquidTokenConverter.sol#L148
+
+        // s = b
+        // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L512
+
+        // s = bm / r
+        // experimental
+        if (supply == 0) {
+            amountBaseOut = amountQuoteIn.mul(slopeNumerator).mul(MAX_WEIGHT).div(SLOPE_DENOM.mul(reserveRatio));
         } else {
             amountBaseOut = _getFormula().purchaseTargetAmount(supply, reserveQuote, reserveRatio, amountQuoteIn);
         }
@@ -272,19 +286,32 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
-        // condition handled internally
-        // if (supply == amountBaseIn) {
-        //     amountQuoteOut = reserveQuote;
-        // } else {
-            amountQuoteOut = _getFormula().saleTargetAmount(supply, reserveQuote, reserveRatio, amountBaseIn);
-        // }
+        amountQuoteOut = _getFormula().saleTargetAmount(supply, reserveQuote, reserveRatio, amountBaseIn);
     }
 
     function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn) {
-        //amountBaseIn = _getFormula().fundSupplyAmount(supply, reserveQuote, reserveRatio, amountQuoteOut);
+        // special case for 0 deposit amount
+        if (amountQuoteOut == 0) return 0;
+        // special case, all the quote
+        if (amountQuoteOut == reserveQuote) return supply;
+        // special case if the weight = 100%
+        if (reserveRatio == MAX_WEIGHT) return supply.mul(amountQuoteOut) / reserveQuote;
+        uint256 baseN = reserveQuote.add(amountQuoteOut);
+        (uint256 result, uint8 precision) = _getFormula().power(baseN, reserveQuote, reserveRatio, MAX_WEIGHT);
+        uint256 temp = (result >> precision)  + 1;
+        return supply.sub(temp);
     }
 
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn) {
-        //amountQuoteIn = _getFormula().fundCost(supply, reserveQuote, reserveRatio, amountBaseOut);
+        require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
+        // special case for 0 sell amount
+        if (amountBaseOut == 0) return 0;
+        // special case if the weight = 100%
+        if (reserveRatio == MAX_WEIGHT) return reserveQuote.mul(amountBaseOut) / supply;
+        uint256 baseN = supply.add(amountBaseOut);
+        (uint256 result, uint8 precision) = _getFormula().power(baseN, supply, MAX_WEIGHT, reserveRatio);
+        uint256 temp1 = reserveQuote.mul(result) << precision;
+        uint256 temp2 = reserveQuote << precision;
+        return (temp1 - temp2) / (result);//(temp1 - temp2) / result;
     }
 }
