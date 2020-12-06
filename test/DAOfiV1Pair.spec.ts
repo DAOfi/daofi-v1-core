@@ -326,10 +326,10 @@ describe('DAOfiV1Pair: (y = 0.001x^2) m = 0.001, n = 2, fee = 0', () => {
   })
 
   it.only('power:', async () => {
-    const bN = expandTo18Decimals(50).mul(1e3).mul(3);
-    const bD = ethers.BigNumber.from(1)
-    const eN = 1
-    const eD = 3
+    const bN = expandTo18Decimals(Math.floor(getReserveForStartPrice(10, 1, 2))).mul(1e3).mul(33333);
+    const bD = ethers.BigNumber.from(1e6)
+    const eN = 1e6
+    const eD = 33333
     console.log('params:', bN, bD, eN, eD)
     const results = await formula.power(bN, bD, eN, eD);
     console.log(results)
