@@ -264,10 +264,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         // s = b
         // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L512
 
-        // s = bm / r
-        // experimental
+        // s = b / rm
+        // experimental, works well for relatively small numbers
         if (supply == 0) {
-            amountBaseOut = amountQuoteIn.mul(slopeNumerator).mul(MAX_WEIGHT).div(SLOPE_DENOM.mul(reserveRatio));
+            amountBaseOut = amountQuoteIn.mul(SLOPE_DENOM).mul(MAX_WEIGHT).div(slopeNumerator.mul(reserveRatio));
         } else {
             amountBaseOut = _getFormula().purchaseTargetAmount(supply, reserveQuote, reserveRatio, amountQuoteIn);
         }
@@ -286,10 +286,16 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
+        console.log("base in: %s", amountBaseIn);
+        console.log("supply: %s", supply);
         amountQuoteOut = _getFormula().saleTargetAmount(supply, reserveQuote, reserveRatio, amountBaseIn);
+        console.log("quote out: %s", amountQuoteOut);
     }
 
     function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn) {
+        console.log("quote out: %s", amountQuoteOut);
+        console.log("reserve quote: %s", reserveQuote);
+        console.log("supply: %s", supply);
         // special case for 0 deposit amount
         if (amountQuoteOut == 0) return 0;
         // special case, all the quote
@@ -299,7 +305,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         uint256 baseN = reserveQuote.add(amountQuoteOut);
         (uint256 result, uint8 precision) = _getFormula().power(baseN, reserveQuote, reserveRatio, MAX_WEIGHT);
         uint256 temp = (result >> precision)  + 1;
-        return supply.sub(temp);
+        amountBaseIn = supply.sub(temp);
+        console.log("base in: %s", amountBaseIn);
     }
 
     function getQuoteIn(uint256 amountBaseOut) public view override returns (uint256 amountQuoteIn) {
@@ -308,10 +315,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         if (amountBaseOut == 0) return 0;
         // special case if the weight = 100%
         if (reserveRatio == MAX_WEIGHT) return reserveQuote.mul(amountBaseOut) / supply;
-        uint256 baseN = supply.add(amountBaseOut);
-        (uint256 result, uint8 precision) = _getFormula().power(baseN, supply, MAX_WEIGHT, reserveRatio);
-        uint256 temp1 = reserveQuote.mul(result) << precision;
-        uint256 temp2 = reserveQuote << precision;
-        return (temp1 - temp2) / (result);//(temp1 - temp2) / result;
+        (uint256 result, uint8 precision)  = _getFormula().power(
+            supply.add(amountBaseOut),
+            uint256(supply),
+            MAX_WEIGHT,
+            reserveRatio
+        );
+        uint256 reserveAtSupply = (result.mul(reserveQuote) >> precision) + 1;
+        amountQuoteIn = reserveAtSupply.sub(reserveQuote);
     }
 }
