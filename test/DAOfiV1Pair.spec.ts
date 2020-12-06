@@ -241,22 +241,24 @@ describe('DAOfiV1Pair: m = 1, n = 1, fee = 3', () => {
   })
 })
 
-describe('DAOfiV1Pair: m = 2, n = 1, fee = 3', () => {
-  // const provider = new MockProvider({
-  //   hardfork: 'istanbul',
-  //   mnemonic: 'horn horn horn horn horn horn horn horn horn horn horn horn',
-  //   gasLimit: 9999999
-  // })
-  // const [wallet] = provider.getWallets()
-  // beforeEach(async () => {
-  //   const fixture = await pairFixture(provider, wallet, 2e6, 1, 3)
-  //   factory = fixture.factory
-  //   token0 = fixture.token0
-  //   tokenBase = fixture.tokenBase
-  //   tokenQuote = fixture.tokenQuote
-  //   pair = fixture.pair
-  // })
-  // it('deposit: price 0', async () => {
-  //   console.log('TODO')
-  // })
+describe('DAOfiV1Pair: m = 0.001, n = 2, fee = 0', () => {
+  beforeEach(async () => {
+    wallet = (await ethers.getSigners())[0]
+    const fixture = await pairFixture(wallet, 1e3, 2, 3)
+
+    factory = fixture.factory
+    token0 = fixture.token0
+    tokenBase = fixture.tokenBase
+    tokenQuote = fixture.tokenQuote
+    pair = fixture.pair
+  })
+
+  it.only('power:', async () => {
+    const bN = expandTo18Decimals(50).mul(1e3).mul(3);
+    const bD = ethers.BigNumber.from(1)
+    const eN = 1
+    const eD = 3
+    const results = await pair._power(bN, bD, eN, eD);
+    console.log(results)
+  })
 })

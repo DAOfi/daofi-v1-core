@@ -131,9 +131,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair, Power {
         }
     }
 
-    function _power(uint256 bN, uint256 bD, uint32 eN, uint32 eD) internal view returns (uint256) {
+    function _power(uint256 bN, uint256 bD, uint32 eN, uint32 eD) public view returns (uint256) {
         (uint256 result, uint32 precision) = power(bN, bD, eN, eD);
-        return (result >> precision);
+        if (eN > eD)
+            return (result >> precision);
+        else
+            return (result << precision);
+        return 0;
     }
 
     function setPairOwner(address _nextOwner) external override {
