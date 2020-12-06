@@ -17,6 +17,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     uint32 private constant SLOPE_DENOM = 1000;
     uint32 private constant MAX_N = 3;
     uint256 public constant MAX_FEE = 10; // 1%
+    uint8 private constant INTERNAL_DECIMALS = 6;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
     address public override factory;
     address public override token0;
@@ -122,10 +123,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         deposited = true;
         if (reserveQuote > 0) {
             // set initial supply from quoteReserve
+            console.log("quote in: %s", reserveQuote);
             supply = amountBaseOut = getBaseOut(reserveQuote);
+            console.log("base out: %s", amountBaseOut);
             if (amountBaseOut > 0) {
-                console.log("quote in: %s", reserveQuote);
-                console.log("base out: %s", amountBaseOut);
                 _safeTransfer(baseToken, to, amountBaseOut);
                 reserveBase = reserveBase.sub(amountBaseOut);
             }
@@ -221,17 +222,19 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquid-token/LiquidTokenConverter.sol#L148
         // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L512
         if (supply == 0) {
-            console.log("slopeN: %s", slopeNumerator);
-            console.log("slopeD: %s", SLOPE_DENOM);
-            //amountBaseOut = //(amountQuoteIn.mul(MAX_WEIGHT).mul(slopeNumerator)).div(reserveRatio.mul(SLOPE_DENOM));
-            // amountBaseOut = amountQuoteIn;
+            // s = (b / rm)^r
+            amountQuoteIn = amountQuoteIn / (10 ** 12);
+            console.log("bN: %s", amountQuoteIn.mul(SLOPE_DENOM).mul(MAX_WEIGHT));
+            console.log("bD: %s", slopeNumerator.mul(reserveRatio));
             (uint256 r, uint8 p) = _getFormula().power(
-                amountQuoteIn.mul(SLOPE_DENOM).mul(n + 1),
-                slopeNumerator,
-                MAX_WEIGHT,
-                uint32(MAX_WEIGHT.mul(n + 1))
+                amountQuoteIn.mul(SLOPE_DENOM).mul(MAX_WEIGHT),
+                slopeNumerator.mul(reserveRatio),
+                reserveRatio,
+                MAX_WEIGHT
             );
-            amountBaseOut = r << p;
+            amountBaseOut = r >> p;
+            //amountBaseOut = (amountQuoteIn.mul(MAX_WEIGHT).mul(slopeNumerator)).div(reserveRatio.mul(SLOPE_DENOM));
+            // amountBaseOut = amountQuoteIn;
 
         } else {
             amountBaseOut = _getFormula().purchaseTargetAmount(supply, reserveQuote, reserveRatio, amountQuoteIn);

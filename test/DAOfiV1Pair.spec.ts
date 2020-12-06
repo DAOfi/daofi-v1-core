@@ -74,7 +74,7 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
       const baseSupply = expandTo18Decimals(1e9)
       const quoteReserveFloat = getReserveForStartPrice(quotePrice, 1e3, 1)
       const quoteReserve = ethers.BigNumber.from(`${Math.ceil(quoteReserveFloat * (10 ** 18))}`)
-      console.log(`quote expanded 18 decimals`, quoteReserve)
+      console.log(`quote float`, quoteReserveFloat)
       const baseOutput = expandTo18Decimals(baseOut)
       const expectedS = baseOutput
       const expectedBaseReserve = baseSupply.sub(baseOutput)
@@ -235,7 +235,7 @@ describe('DAOfiV1Pair: (y = 0.001x^2) m = 0.001, n = 2, fee = 0', () => {
       const baseSupply = expandTo18Decimals(1e9)
       const quoteReserveFloat = getReserveForStartPrice(quotePrice, 1, 2)
       const quoteReserve = ethers.BigNumber.from(`${Math.ceil(quoteReserveFloat * (10 ** 18))}`)
-      console.log(`quote expanded 18 decimals`, quoteReserve)
+      console.log(`quote float`, quoteReserveFloat)
       const baseOutput = ethers.BigNumber.from(baseOut)
       const expectedS = baseOutput
       const expectedBaseReserve = baseSupply.sub(baseOutput)
@@ -268,11 +268,11 @@ describe('DAOfiV1Pair: (y = 0.001x^2) m = 0.001, n = 2, fee = 0', () => {
     expect(ethers.BigNumber.from('322800826607665426')).to.eq(price)
   })
 
-  it('getBaseOut:', async () => {
-    await addLiquidity(expandTo18Decimals(1e9), expandTo18Decimals(10))
-    const quoteIn = expandTo18Decimals(1)
+  it.only('getBaseOut:', async () => {
+    await addLiquidity(expandTo18Decimals(1e9), zero)
+    const quoteIn = expandTo18Decimals(333)
     const baseOut = await pair.getBaseOut(quoteIn)
-    expect(ethers.BigNumber.from('322800826607665426')).to.eq(baseOut)
+    expect(ethers.BigNumber.from('100000000000000000000')).to.eq(baseOut)
   })
 
   it('getQuoteOut:', async () => {
@@ -323,15 +323,5 @@ describe('DAOfiV1Pair: (y = 0.001x^2) m = 0.001, n = 2, fee = 0', () => {
     expect(await tokenQuote.balanceOf(wallet.address)).to.eq(
       (await tokenQuote.totalSupply()).sub(quoteReserve).sub(quoteAmountIn).add(quoteAmountOut)
     )
-  })
-
-  it.only('power:', async () => {
-    const bN = expandTo18Decimals(Math.floor(getReserveForStartPrice(10, 1, 2))).mul(1e3).mul(33333);
-    const bD = ethers.BigNumber.from(1e6)
-    const eN = 1e6
-    const eD = 33333
-    console.log('params:', bN, bD, eN, eD)
-    const results = await formula.power(bN, bD, eN, eD);
-    console.log(results)
   })
 })
