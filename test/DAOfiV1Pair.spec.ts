@@ -254,10 +254,10 @@ describe('DAOfiV1Pair: m = 0.001, n = 2, fee = 0', () => {
   })
 
   it.only('power:', async () => {
-    const bN = expandTo18Decimals(50).mul(1e3).mul(3);
+    const bN = expandTo18Decimals(10).mul(1e3).mul(3);
     const bD = ethers.BigNumber.from(1)
-    const eN = 1
-    const eD = 3
+    const eN = 33333
+    const eD = 1e6
     console.log('params:', bN, bD, eN, eD)
     const results = await pair.power(bN, bD, eN, eD);
     console.log(results)
