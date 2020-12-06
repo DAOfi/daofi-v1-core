@@ -7,6 +7,7 @@ import DAOfiV1Pair from '../../build/contracts/DAOfiV1Pair.sol/DAOfiV1Pair.json'
 
 interface FactoryFixture {
   factory: Contract
+  formula: Contract
 }
 
 export async function factoryFixture(wallet: SignerWithAddress): Promise<FactoryFixture> {
@@ -14,7 +15,7 @@ export async function factoryFixture(wallet: SignerWithAddress): Promise<Factory
   const formula = await deployContract(wallet, BancorFormula as any)
   const Factory = await ethers.getContractFactory("DAOfiV1Factory")
   const factory = await Factory.deploy(formula.address)
-  return { factory }
+  return { factory, formula }
 }
 
 interface PairFixture extends FactoryFixture {
@@ -30,7 +31,7 @@ export async function pairFixture(
   n: number = 1,
   fee: number = 0
 ): Promise<PairFixture> {
-  const { factory } = await factoryFixture(wallet)
+  const { factory, formula } = await factoryFixture(wallet)
   const Token = await ethers.getContractFactory("ERC20")
   const tokenA = await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
   const tokenB =  await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
@@ -48,5 +49,5 @@ export async function pairFixture(
   const pair = new Contract(pairAddress, JSON.stringify(DAOfiV1Pair.abi)).connect(wallet)
   const token0Address = (await pair.token0()).address
   const token0 = tokenA.address === token0Address ? tokenA : tokenB
-  return { factory, token0, tokenBase: tokenA, tokenQuote: tokenB, pair }
+  return { factory, formula, token0, tokenBase: tokenA, tokenQuote: tokenB, pair }
 }
