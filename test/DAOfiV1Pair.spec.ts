@@ -34,9 +34,9 @@ describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
 
   it('deposit: only once', async () => {
     const baseSupply = expandTo18Decimals(1e9)
-    const quoteReserve = expandTo18Decimals(1)
-    const expectedBaseReserve = baseSupply.sub(quoteReserve)
-    const expectedS = quoteReserve
+    const quoteReserve = zero
+    const expectedBaseReserve = baseSupply
+    const expectedS = zero
 
     await tokenBase.transfer(pair.address, baseSupply)
     await tokenQuote.transfer(pair.address, quoteReserve)
@@ -56,11 +56,11 @@ describe('DAOfiV1Pair: (y = x) reserve ratio = 50%, fee = 0', () => {
   })
 
   const depositTestCases: any[][] = [
-    ['100000000000000000',   '100000000000000000'],
-    ['200000000000000000',   '200000000000000000'],
-    ['1000000000000000000',  '1000000000000000000'],
-    ['10000000000000000000', '10000000000000000000'],
-    ['100000000000000000000','100000000000000000000'],
+    [1, '100000000000000000'],
+    [5, '200000000000000000',   '200000000000000000'],
+    [10,'1000000000000000000',  '1000000000000000000'],
+    [100, '10000000000000000000', '10000000000000000000'],
+    [1000, '100000000000000000000','100000000000000000000'],
   ]
 
   // Deposit tests which return base:

@@ -14,6 +14,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     using SafeMath for *;
 
     uint32 private constant MAX_WEIGHT = 1000000;
+    uint32 private constant SLOPE_DENOM = 1000;
+    uint32 private constant MAX_N = 3;
     uint256 public constant MAX_FEE = 10; // 1%
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
     address public override factory;
@@ -27,13 +29,14 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * multiple depends on deposit, specifically supply and reserveQuote parameters
     * Note, we are specifically disallowing values > MAX_WEIGHT / 2 to force positive exponents
     */
-    uint32 public reserveRatio;
-
+    uint32 public override reserveRatio;
+    uint32 public override slopeNumerator;
+    uint32 public override n;
+    uint32 public override fee;
     address public override baseToken;
     address public override quoteToken;
     address public override pairOwner;
     uint256 public override supply; // track base tokens issued
-    uint32 public override fee;
 
     address private router;
     uint256 private reserveBase;       // uses single storage slot, accessible via getReserves
@@ -63,6 +66,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     constructor() {
         factory = msg.sender;
         reserveRatio = MAX_WEIGHT >> 1; // max weight / 2 for default curve y = x
+        slopeNumerator = SLOPE_DENOM;
+        n = 1;
         fee = 0;
         supply = 0;
     }
@@ -79,13 +84,14 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         address _token1,
         address _baseToken,
         address _pairOwner,
-        uint32 _reserveRatio,
+        uint32 _slopeNumerator,
+        uint32 _n,
         uint32 _fee
     ) external override {
         require(msg.sender == factory, 'DAOfiV1: FORBIDDEN'); // sufficient check
         require(_baseToken == _token0 || _baseToken == _token1, 'DAOfiV1: INVALID_BASETOKEN');
-        // restrict reserve ratio to only allow curves with whole number exponents
-        require(_reserveRatio > 0 && _reserveRatio <= (MAX_WEIGHT >> 1), 'DAOfiV1: INVALID_RESERVE_RATIO');
+        require(_slopeNumerator > 0 && _slopeNumerator <= SLOPE_DENOM, 'DAOfiV1: INVALID_SLOPE_NUMERATOR');
+        require(_n > 0 && _n <= MAX_N, 'DAOfiV1: INVALID_N');
         require(_fee <= MAX_FEE, 'DAOfiV1: INVALID_FEE');
         router = _router;
         token0 = _token0;
@@ -93,7 +99,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         baseToken = _baseToken;
         quoteToken = token0 == baseToken ? token1 : token0;
         pairOwner = _pairOwner;
-        reserveRatio = _reserveRatio;
+        reserveRatio = uint32(MAX_WEIGHT.div(n + 1));  // (1 / (n + 1)) * MAX_WEIGHT
         fee = _fee;
         supply = 0;
     }
@@ -108,13 +114,14 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         require(deposited == false, 'DAOfiV1: DOUBLE_DEPOSIT');
         reserveBase = IERC20(baseToken).balanceOf(address(this));
         reserveQuote = IERC20(quoteToken).balanceOf(address(this));
-        require(reserveQuote > 0 && reserveBase > 0, 'DAOfiV1: ZERO_RESERVE');
         // this function is locked and the contract can not reset reserves
         deposited = true;
         // set initial supply from quoteReserve
         supply = amountBaseOut = getBaseOut(reserveQuote);
-        if (amountBaseOut > 0) _safeTransfer(baseToken, to, amountBaseOut);
-        reserveBase = reserveBase.sub(amountBaseOut);
+        if (amountBaseOut > 0) {
+            _safeTransfer(baseToken, to, amountBaseOut);
+            reserveBase = reserveBase.sub(amountBaseOut);
+        }
         emit Deposit(msg.sender, reserveBase, reserveQuote, amountBaseOut, to);
     }
 
@@ -152,7 +159,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 balanceIn = IERC20(_tokenQuote).balanceOf(address(this)).sub(feesQuote);
             }
         }
-        uint256 amounIn = balanceIn > reserveIn - amountOut ? balanceIn - (reserveIn - amountOut) : 0;
+        uint256 amounIn = balanceIn > reserveIn ? balanceIn - reserveIn : 0;
         require(amounIn > 0, 'DAOfiV1: INSUFFICIENT_INPUT_AMOUNT');
         // Check that inputs equal output
         // handle quote to base
@@ -223,11 +230,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
-        if (supply == amountBaseIn) {
-            amountQuoteOut = reserveQuote;
-        } else {
+        // condition handled internally
+        // if (supply == amountBaseIn) {
+        //     amountQuoteOut = reserveQuote;
+        // } else {
             amountQuoteOut = _getFormula().saleTargetAmount(supply, reserveQuote, reserveRatio, amountBaseIn);
-        }
+        // }
     }
 
     function getBaseIn(uint256 amountQuoteOut) public view override returns (uint256 amountBaseIn) {

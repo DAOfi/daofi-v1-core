@@ -8,14 +8,15 @@ interface IDAOfiV1Factory {
         address indexed token1,
         address baseToken,
         address pairOwner,
-        uint32 reserveRatio,
+        uint32 m,
+        uint32 n,
         uint32 fee,
         address pair,
         uint length
     );
     function formula() external view returns (address);
     function pairs(address tokenA, address tokenB, bytes calldata encoded) external view returns (address pair);
-    function getPair(address tokenA, address tokenB, uint32 reserveRatio, uint32 fee)
+    function getPair(address tokenA, address tokenB, uint32 m, uint32 n, uint32 fee)
         external view returns (address pair);
     function allPairs(uint) external view returns (address pair);
     function allPairsLength() external view returns (uint);
@@ -25,7 +26,8 @@ interface IDAOfiV1Factory {
         address tokenB,
         address baseToken,
         address pairOwner,
-        uint32 reserveRatio,
+        uint32 slopeNumerator,
+        uint32 n,
         uint32 fee
     ) external returns (address pair);
 }

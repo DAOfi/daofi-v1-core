@@ -14,10 +14,10 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
         formula = _formula;
     }
 
-    function getPair(address token0, address token1, uint32 reserveRatio, uint32 fee)
+    function getPair(address token0, address token1, uint32 slopeNumerator, uint32 n, uint32 fee)
         public override view returns (address pair)
     {
-        return pairs[token0][token1][abi.encode(reserveRatio, fee)];
+        return pairs[token0][token1][abi.encode(slopeNumerator, n, fee)];
     }
 
     function allPairsLength() external override view returns (uint) {
@@ -30,22 +30,23 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
         address tokenB,
         address baseToken,
         address pairOwner,
-        uint32 reserveRatio,
+        uint32 slopeNumerator,
+        uint32 n,
         uint32 fee
     ) external override returns (address pair) {
         require(tokenA != tokenB, 'DAOfiV1: IDENTICAL_ADDRESSES');
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         require(token0 != address(0), 'DAOfiV1: ZERO_ADDRESS');
-        require(getPair(token0, token1, reserveRatio, fee) == address(0), 'DAOfiV1: PAIR_EXISTS'); // single check is sufficient
+        require(getPair(token0, token1, slopeNumerator, n, fee) == address(0), 'DAOfiV1: PAIR_EXISTS'); // single check is sufficient
         bytes memory bytecode = type(DAOfiV1Pair).creationCode;
-        bytes32 salt = keccak256(abi.encodePacked(token0, token1, reserveRatio, fee));
+        bytes32 salt = keccak256(abi.encodePacked(token0, token1, slopeNumerator, n, fee));
         assembly {
             pair := create2(0, add(bytecode, 32), mload(bytecode), salt)
         }
-        IDAOfiV1Pair(pair).initialize(router, token0, token1, baseToken, pairOwner, reserveRatio, fee);
-        pairs[token0][token1][abi.encode(reserveRatio, fee)] = pair;
-        pairs[token1][token0][abi.encode(reserveRatio, fee)] = pair; // populate mapping in the reverse direction
+        IDAOfiV1Pair(pair).initialize(router, token0, token1, baseToken, pairOwner, slopeNumerator, n, fee);
+        pairs[token0][token1][abi.encode(slopeNumerator, n, fee)] = pair;
+        pairs[token1][token0][abi.encode(slopeNumerator, n, fee)] = pair; // populate mapping in the reverse direction
         allPairs.push(pair);
-        emit PairCreated(token0, token1, baseToken, pairOwner, reserveRatio, fee, pair, allPairs.length);
+        emit PairCreated(token0, token1, baseToken, pairOwner, slopeNumerator, n, fee, pair, allPairs.length);
     }
 }

@@ -19,9 +19,12 @@ interface IDAOfiV1Pair {
     function baseToken() external view returns (address);
     function quoteToken() external view returns (address);
     function pairOwner() external view returns (address);
+    function slopeNumerator() external view returns (uint32);
+    function n() external view returns (uint32);
     function fee() external view returns (uint32);
+    function reserveRatio() external view returns (uint32);
     function supply() external view returns (uint256);
-    function initialize(address, address, address, address, address, uint32, uint32) external;
+    function initialize(address, address, address, address, address, uint32, uint32, uint32) external;
     function setPairOwner(address) external;
     function getReserves() external view returns (uint256 reserveBase, uint256 reserveQuote);
     function basePrice() external view returns (uint256 price);
