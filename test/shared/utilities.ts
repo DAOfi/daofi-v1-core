@@ -1,7 +1,7 @@
 import { ethers } from 'hardhat'
 import { BigNumber, Contract } from 'ethers'
-const { getAddress, keccak256, defaultAbiCoder, toUtf8Bytes, solidityPack } = ethers.utils;
 
+const { getAddress, keccak256, defaultAbiCoder, toUtf8Bytes, solidityPack } = ethers.utils;
 const PERMIT_TYPEHASH = keccak256(
   toUtf8Bytes('Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)')
 )
@@ -31,17 +31,17 @@ function getDomainSeparator(name: string, tokenAddress: string) {
 
 export function getCreate2Address(
   factoryAddress: string,
-  [tokenA, tokenB]: [string, string],
+  tokenBase: string,
+  tokenQuote: string,
   slopeNumerator: number,
   n: number,
   fee: number,
   bytecode: string
 ): string {
-  const [token0, token1] = tokenA < tokenB ? [tokenA, tokenB] : [tokenB, tokenA]
   const create2Inputs = [
     '0xff',
     factoryAddress,
-    keccak256(solidityPack(['address', 'address', 'uint32', 'uint32', 'uint32'], [token0, token1, slopeNumerator, n, fee])),
+    keccak256(solidityPack(['address', 'address', 'uint32', 'uint32', 'uint32'], [tokenBase, tokenQuote, slopeNumerator, n, fee])),
     keccak256(bytecode)
   ]
   const sanitizedInputs = `0x${create2Inputs.map(i => i.slice(2)).join('')}`
@@ -49,7 +49,7 @@ export function getCreate2Address(
 }
 
 export async function getApprovalDigest(
-  token: Contract, // y no contract type
+  token: Contract,
   approve: {
     owner: string
     spender: string
@@ -78,6 +78,7 @@ export async function getApprovalDigest(
   )
 }
 
+// TODO Upgrade to hardhat
 // export async function mineBlock(provider: Web3Provider, timestamp: number): Promise<void> {
 //   await new Promise(async (resolve, reject) => {
 //     ;(provider._web3Provider.sendAsync as any)(

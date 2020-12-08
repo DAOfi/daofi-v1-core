@@ -12,7 +12,7 @@ interface FactoryFixture {
 
 export async function factoryFixture(wallet: SignerWithAddress): Promise<FactoryFixture> {
   // deploy formula
-  const formula = await deployContract(wallet, BancorFormula as any)
+  const formula = await deployContract(wallet, BancorFormula as any) //waffle doesn't like the type from truffle
   const Factory = await ethers.getContractFactory("DAOfiV1Factory")
   const factory = await Factory.deploy(formula.address)
   return { factory, formula }
@@ -21,7 +21,6 @@ export async function factoryFixture(wallet: SignerWithAddress): Promise<Factory
 interface PairFixture extends FactoryFixture {
   tokenBase: Contract
   tokenQuote: Contract
-  token0: Contract
   pair: Contract
 }
 
@@ -33,21 +32,18 @@ export async function pairFixture(
 ): Promise<PairFixture> {
   const { factory, formula } = await factoryFixture(wallet)
   const Token = await ethers.getContractFactory("ERC20")
-  const tokenA = await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
-  const tokenB =  await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
+  const tokenBase = await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
+  const tokenQuote =  await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
   await factory.createPair(
     wallet.address, // router is ourself in tests
-    tokenA.address,
-    tokenB.address,
-    tokenA.address, // base token
+    tokenBase.address,
+    tokenQuote.address,
     wallet.address,
     slopeNumerator,
     n,
     fee
   )
-  const pairAddress = await factory.getPair(tokenA.address, tokenB.address, slopeNumerator, n, fee)
-  const pair = new Contract(pairAddress, JSON.stringify(DAOfiV1Pair.abi)).connect(wallet)
-  const token0Address = (await pair.token0()).address
-  const token0 = tokenA.address === token0Address ? tokenA : tokenB
-  return { factory, formula, token0, tokenBase: tokenA, tokenQuote: tokenB, pair }
+  const pairAddress = await factory.getPair(tokenBase.address, tokenQuote.address, slopeNumerator, n, fee)
+  const pair = new Contract(pairAddress, JSON.stringify(DAOfiV1Pair.abi), wallet)
+  return { factory, formula, tokenBase, tokenQuote, pair }
 }

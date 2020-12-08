@@ -9,7 +9,6 @@ const zero = ethers.BigNumber.from(0)
 
 let factory: Contract
 let formula: Contract
-let token0: Contract
 let tokenBase: Contract
 let tokenQuote: Contract
 let pair: Contract
@@ -27,7 +26,6 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
     const fixture = await pairFixture(wallet, 1e3, 1, 0)
 
     factory = fixture.factory
-    token0 = fixture.token0
     tokenBase = fixture.tokenBase
     tokenQuote = fixture.tokenQuote
     pair = fixture.pair
@@ -207,7 +205,6 @@ describe('DAOfiV1Pair: (y = 0.001x^2) m = 0.001, n = 2, fee = 0', () => {
 
     factory = fixture.factory
     formula = fixture.formula
-    token0 = fixture.token0
     tokenBase = fixture.tokenBase
     tokenQuote = fixture.tokenQuote
     pair = fixture.pair
