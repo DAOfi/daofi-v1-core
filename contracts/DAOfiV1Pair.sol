@@ -3,7 +3,7 @@ pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
 
 import '@daofi/bancor/solidity/contracts/converter/interfaces/IBancorFormula.sol';
-import 'hardhat/console.sol';
+// import 'hardhat/console.sol';
 import './interfaces/IDAOfiV1Factory.sol';
 import './interfaces/IDAOfiV1Pair.sol';
 import './interfaces/IERC20.sol';
@@ -160,7 +160,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         require(amountIn <= surplus, 'DAOfiV1: INCORRECT_INPUT_AMOUNT');
         // Check that inputs equal output
         uint256 amountInWithFee = amountIn.mul(1000 - (fee + PLATFORM_FEE)) / 1000;
-        console.log("amountInWithFee: %s", amountInWithFee);
         // handle quote to base
         if (tokenOut == baseToken) {
             require(getBaseOut(amountInWithFee) == amountOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
