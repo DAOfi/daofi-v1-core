@@ -117,7 +117,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         if (reserveQuote > 0) {
             // set initial supply from quoteReserve
             supply = amountBaseOut = getBaseOut(reserveQuote);
-            console.log("base deposit return: %s", amountBaseOut);
             if (amountBaseOut > 0) {
                 _safeTransfer(baseToken, to, amountBaseOut);
                 reserveBase = reserveBase.sub(amountBaseOut);
@@ -157,10 +156,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             reserveIn = reserveQuote;
             balanceIn = IERC20(quoteToken).balanceOf(address(this)).sub(feesQuote);
         }
-        uint256 amounIn = balanceIn > reserveIn ? balanceIn - reserveIn : 0;
-        require(amounIn > 0, 'DAOfiV1: INSUFFICIENT_INPUT_AMOUNT');
+        uint256 surplus = balanceIn > reserveIn ? balanceIn - reserveIn : 0;
+        require(amountIn <= surplus, 'DAOfiV1: INCORRECT_INPUT_AMOUNT');
         // Check that inputs equal output
-        uint256 amountInWithFee = amounIn.mul((1000 - (fee + PLATFORM_FEE)) / 1000);
+        uint256 amountInWithFee = amountIn.mul(1000 - (fee + PLATFORM_FEE)) / 1000;
+        console.log("amountInWithFee: %s", amountInWithFee);
         // handle quote to base
         if (tokenOut == baseToken) {
             require(getBaseOut(amountInWithFee) == amountOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
@@ -168,16 +168,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             supply = supply.add(amountOut);
             reserveQuote = reserveQuote.add(amountInWithFee);
             reserveBase = reserveBase.sub(amountOut);
-            feesQuote = feesQuote.add(amounIn).sub(amountInWithFee);
+            feesQuote = feesQuote.add(amountIn).sub(amountInWithFee);
         } else if (tokenOut == quoteToken) {
             require(getQuoteOut(amountInWithFee) == amountOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
             require(amountOut <= reserveQuote, 'DAOfiV1: INSUFFICIENT_QUOTE_RESERVE');
             supply = supply.sub(amountInWithFee);
             reserveQuote = reserveQuote.sub(amountOut);
             reserveBase = reserveBase.add(amountInWithFee);
-            feesBase = feesBase.add(amounIn).sub(amountInWithFee);
+            feesBase = feesBase.add(amountIn).sub(amountInWithFee);
         }
-
         emit Swap(msg.sender, tokenIn, tokenOut, amountIn, amountOut, to);
     }
 
@@ -224,7 +223,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         } else {
             amountBaseOut = _getFormula().purchaseTargetAmount(supply, reserveQuote, reserveRatio, amountQuoteIn);
         }
-        console.log("getBaseOut: %s", amountQuoteIn);
     }
 
     /**
@@ -241,6 +239,5 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
         amountQuoteOut = _getFormula().saleTargetAmount(supply, reserveQuote, reserveRatio, amountBaseIn);
-        console.log("getQuoteOut: %s", amountBaseIn);
     }
 }

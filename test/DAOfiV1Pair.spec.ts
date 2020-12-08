@@ -138,43 +138,50 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
     expect(ethers.BigNumber.from('500000000000000000')).to.eq(quoteOut)
   })
 
-  it.skip('swap: quote for base and back to quote', async () => {
+  it.only('swap: quote for base and back to quote', async () => {
     const baseSupply = expandTo18Decimals(1e9)
-    const baseReturned = expandTo18Decimals(50)
-    const quoteReserve = expandTo18Decimals(50)
+    const quoteReserve = expandToDecimals(5, 17) // price 1
+    const baseReturned = expandTo18Decimals(1)
     await addLiquidity(baseSupply, quoteReserve)
-
+    // account for platform fee
     const quoteAmountIn = expandTo18Decimals(1)
-    const baseAmountOut = await pair.getBaseOut(quoteAmountIn)
+    const quoteAmountInWithFee = ethers.BigNumber.from('999000000000000000')
+    const baseAmountOut = await pair.getBaseOut(quoteAmountInWithFee)
+    // transfer and swap
     await tokenQuote.transfer(pair.address, quoteAmountIn)
-    await expect(pair.swap(tokenQuote, tokenBase, quoteAmountIn, wallet.address, '0x'))
+    await expect(pair.swap(tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut, wallet.address))
       .to.emit(tokenBase, 'Transfer')
       .withArgs(pair.address, wallet.address, baseAmountOut)
       .to.emit(pair, 'Swap')
-      .withArgs(wallet.address, tokenQuote, tokenBase, baseAmountOut, wallet.address)
-
+      .withArgs(wallet.address, tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut, wallet.address)
+    // check reserves at point A
     const reservesA = await pair.getReserves()
     expect(reservesA[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned))
-    expect(reservesA[1]).to.eq(quoteAmountIn.add(quoteReserve))
+    expect(reservesA[1]).to.eq(quoteAmountInWithFee.add(quoteReserve))
+    // reserves + fees
     expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned))
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn.add(quoteReserve))
+    // wallet balances
     expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseAmountOut.add(baseReturned))
     expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteReserve).sub(quoteAmountIn))
 
     const baseAmountIn = baseAmountOut
-    const quoteAmountOut = await pair.getQuoteOut(baseAmountIn)
+    const baseAmountInWithFee = ethers.BigNumber.from('730741887681511862')
+    const quoteAmountOut = await pair.getQuoteOut(baseAmountInWithFee)
     await tokenBase.transfer(pair.address, baseAmountIn)
-    await expect(pair.swap(tokenBase, tokenQuote, quoteAmountOut, wallet.address, '0x'))
+    await expect(pair.swap(tokenBase.address, tokenQuote.address, baseAmountIn, quoteAmountOut, wallet.address))
       .to.emit(tokenQuote, 'Transfer')
       .withArgs(pair.address, wallet.address, quoteAmountOut)
       .to.emit(pair, 'Swap')
-      .withArgs(wallet.address, tokenBase, tokenQuote, quoteAmountOut, wallet.address)
-
+      .withArgs(wallet.address, tokenBase.address, tokenQuote.address, baseAmountIn, quoteAmountOut, wallet.address)
+    // check reserves at point B
     const reservesB = await pair.getReserves()
-    expect(reservesB[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned).add(baseAmountIn))
-    expect(reservesB[1]).to.eq(quoteReserve.add(quoteAmountIn).sub(quoteAmountOut))
+    expect(reservesB[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned).add(baseAmountInWithFee))
+    expect(reservesB[1]).to.eq(quoteReserve.add(quoteAmountInWithFee).sub(quoteAmountOut))
+    // reserves + fees
     expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned).add(baseAmountIn))
     expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn.add(quoteReserve).sub(quoteAmountOut))
+    // wallet balances
     expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseReturned)
     expect(await tokenQuote.balanceOf(wallet.address)).to.eq(
       (await tokenQuote.totalSupply()).sub(quoteReserve).sub(quoteAmountIn).add(quoteAmountOut)
