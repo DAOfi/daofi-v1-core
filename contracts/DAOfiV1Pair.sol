@@ -16,7 +16,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     uint32 private constant SLOPE_DENOM = 1000;
     uint32 private constant MAX_N = 3;
     uint8 public constant MAX_FEE = 10; // 1%
-    uint8 public constant PLATFORM_FEE = 1; // 0.1%
+    uint8 public constant override PLATFORM_FEE = 1; // 0.1%
     address public constant PLATFORM = 0x31b2d5f134De0A737360693Ed5D5Bd42b705bCa2;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
 

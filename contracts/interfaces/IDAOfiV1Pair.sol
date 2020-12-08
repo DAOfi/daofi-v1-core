@@ -14,6 +14,7 @@ interface IDAOfiV1Pair {
         address indexed to
     );
 
+    function PLATFORM_FEE() external view returns (uint8);
     function factory() external view returns (address);
     function baseToken() external view returns (address);
     function quoteToken() external view returns (address);
