@@ -14,7 +14,7 @@ const TEST_ADDRESSES: [string, string] = [
 
 let wallet: SignerWithAddress
 
-describe.only('DAOfiV1Factory', async () => {
+describe('DAOfiV1Factory', async () => {
   let factory: Contract
 
   async function createPair(
