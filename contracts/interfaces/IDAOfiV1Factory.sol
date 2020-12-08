@@ -4,27 +4,30 @@ pragma experimental ABIEncoderV2;
 
 interface IDAOfiV1Factory {
     event PairCreated(
-        address indexed token0,
-        address indexed token1,
-        address baseToken,
+        address indexed baseToken,
+        address indexed quoteToken,
         address pairOwner,
-        uint32 m,
+        uint32 slopeNumerator,
         uint32 n,
         uint32 fee,
         address pair,
         uint length
     );
     function formula() external view returns (address);
-    function pairs(address tokenA, address tokenB, bytes calldata encoded) external view returns (address pair);
-    function getPair(address tokenA, address tokenB, uint32 m, uint32 n, uint32 fee)
-        external view returns (address pair);
+    function pairs(bytes32 hashedParams) external view returns (address);
+    function getPair(
+        address baseToken,
+        address quoteToken,
+        uint32 slopeNumerator,
+        uint32 n,
+        uint32 fee
+    ) external view returns (address pair);
     function allPairs(uint) external view returns (address pair);
     function allPairsLength() external view returns (uint);
     function createPair(
         address router,
-        address tokenA,
-        address tokenB,
         address baseToken,
+        address quoteToken,
         address pairOwner,
         uint32 slopeNumerator,
         uint32 n,

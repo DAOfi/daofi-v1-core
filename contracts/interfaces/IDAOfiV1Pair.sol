@@ -9,13 +9,12 @@ interface IDAOfiV1Pair {
         address indexed sender,
         address tokenIn,
         address tokenOut,
+        uint256 amountIn,
         uint256 amountOut,
         address indexed to
     );
 
     function factory() external view returns (address);
-    function token0() external view returns (address);
-    function token1() external view returns (address);
     function baseToken() external view returns (address);
     function quoteToken() external view returns (address);
     function pairOwner() external view returns (address);
@@ -24,16 +23,22 @@ interface IDAOfiV1Pair {
     function fee() external view returns (uint32);
     function reserveRatio() external view returns (uint32);
     function supply() external view returns (uint256);
-    function initialize(address, address, address, address, address, uint32, uint32, uint32) external;
+    function initialize(
+        address _router,
+        address _baseToken,
+        address _quoteToken,
+        address _pairOwner,
+        uint32 _slopeNumerator,
+        uint32 _n,
+        uint32 _fee
+    ) external;
     function setPairOwner(address) external;
     function getReserves() external view returns (uint256 reserveBase, uint256 reserveQuote);
     function basePrice() external view returns (uint256 price);
     function quotePrice() external view returns (uint256 price);
     function deposit(address to) external returns (uint256 amountBase);
     function withdraw(address to) external returns (uint256 amountBase, uint256 amountQuote);
-    function swap(address tokenIn, address tokenOut, uint256 amountOut, address to, bytes calldata data) external;
+    function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address to) external;
     function getBaseOut(uint256 amountQuoteIn) external view returns (uint256 amountBaseOut);
     function getQuoteOut(uint256 amountBaseIn) external view returns (uint256 amountQuoteOut);
-    function getBaseIn(uint256 amountQuoteOut) external view returns (uint256 amountBaseIn);
-    function getQuoteIn(uint256 amountBaseOut) external view returns (uint256 amountQuoteIn);
 }

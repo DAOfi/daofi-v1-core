@@ -215,7 +215,7 @@ describe('DAOfiV1Pair: (y = 0.001x^2) m = 0.001, n = 2, fee = 0', () => {
 
   // price in quote, multiplier for BigNum, decimals to expand quote, expected base
   const depositTestCases: any[][] = [
-    [1, '31622821622821622821622'],
+    [1, '31622821620000000000000'],
     [10, '1000001020001020001020001'],
     [100, '31622808242808242808242808'],
     [900, '853815822075822075822075822'],

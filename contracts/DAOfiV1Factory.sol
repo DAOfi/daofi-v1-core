@@ -6,7 +6,7 @@ import './interfaces/IDAOfiV1Factory.sol';
 import './DAOfiV1Pair.sol';
 
 contract DAOfiV1Factory is IDAOfiV1Factory {
-    mapping(address => mapping(address => mapping(bytes => address))) public override pairs;
+    mapping(bytes32 => address) public override pairs;
     address[] public override allPairs;
     address public override formula;
 
@@ -14,10 +14,12 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
         formula = _formula;
     }
 
-    function getPair(address token0, address token1, uint32 slopeNumerator, uint32 n, uint32 fee)
+    function getPair(address baseToken, address quoteToken, uint32 slopeNumerator, uint32 n, uint32 fee)
         public override view returns (address pair)
     {
-        return pairs[token0][token1][abi.encode(slopeNumerator, n, fee)];
+        return pairs[keccak256(
+            abi.encodePacked(baseToken, quoteToken, slopeNumerator, n, fee)
+        )];
     }
 
     function allPairsLength() external override view returns (uint) {
@@ -26,27 +28,24 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
 
     function createPair(
         address router,
-        address tokenA,
-        address tokenB,
         address baseToken,
+        address quoteToken,
         address pairOwner,
         uint32 slopeNumerator,
         uint32 n,
         uint32 fee
     ) external override returns (address pair) {
-        require(tokenA != tokenB, 'DAOfiV1: IDENTICAL_ADDRESSES');
-        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        require(token0 != address(0), 'DAOfiV1: ZERO_ADDRESS');
-        require(getPair(token0, token1, slopeNumerator, n, fee) == address(0), 'DAOfiV1: PAIR_EXISTS'); // single check is sufficient
+        require(baseToken != quoteToken, 'DAOfiV1: IDENTICAL_ADDRESSES');
+        require(baseToken != address(0) && quoteToken != address(0), 'DAOfiV1: ZERO_ADDRESS');
+        require(getPair(baseToken, quoteToken, slopeNumerator, n, fee) == address(0), 'DAOfiV1: PAIR_EXISTS'); // single check is sufficient
         bytes memory bytecode = type(DAOfiV1Pair).creationCode;
-        bytes32 salt = keccak256(abi.encodePacked(token0, token1, slopeNumerator, n, fee));
+        bytes32 salt = keccak256(abi.encodePacked(baseToken, quoteToken, slopeNumerator, n, fee));
         assembly {
             pair := create2(0, add(bytecode, 32), mload(bytecode), salt)
         }
-        IDAOfiV1Pair(pair).initialize(router, token0, token1, baseToken, pairOwner, slopeNumerator, n, fee);
-        pairs[token0][token1][abi.encode(slopeNumerator, n, fee)] = pair;
-        pairs[token1][token0][abi.encode(slopeNumerator, n, fee)] = pair; // populate mapping in the reverse direction
+        IDAOfiV1Pair(pair).initialize(router, baseToken, quoteToken, pairOwner, slopeNumerator, n, fee);
+        pairs[salt] = pair;
         allPairs.push(pair);
-        emit PairCreated(token0, token1, baseToken, pairOwner, slopeNumerator, n, fee, pair, allPairs.length);
+        emit PairCreated(baseToken, quoteToken, pairOwner, slopeNumerator, n, fee, pair, allPairs.length);
     }
 }
