@@ -35,6 +35,8 @@ interface IDAOfiV1Pair {
     ) external;
     function setPairOwner(address) external;
     function getReserves() external view returns (uint256 reserveBase, uint256 reserveQuote);
+    function getPlatformFees() external view returns (uint256 feesBase, uint256 feesQuote);
+    function getOwnerFees() external view returns (uint256 feesBase, uint256 feesQuote);
     function basePrice() external view returns (uint256 price);
     function quotePrice() external view returns (uint256 price);
     function deposit(address to) external returns (uint256 amountBase);

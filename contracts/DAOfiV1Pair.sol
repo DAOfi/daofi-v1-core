@@ -19,7 +19,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     uint8 public constant override PLATFORM_FEE = 1; // 0.1%
     address public constant PLATFORM = 0x31b2d5f134De0A737360693Ed5D5Bd42b705bCa2;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
-
     address public override factory;
     /*
     * @dev reserve ratio, represented in ppm, 1-1000000
@@ -30,7 +29,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * Note, we are specifically disallowing values > MAX_WEIGHT / 2 to force positive exponents
     */
     uint32 public override reserveRatio;
-    // slope = slopeNumerator / SLOPE_DENOM, this values is baked into the equations by the initial supply
+    // slope = slopeNumerator / SLOPE_DENOM, this value is baked into the equations by the initial supply
     uint32 public override slopeNumerator;
     uint32 public override n;
     uint32 public override fee;
@@ -49,6 +48,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     bool private deposited = false;
     uint private unlocked = 1;
 
+    constructor() {
+        factory = msg.sender;
+        reserveRatio = MAX_WEIGHT >> 1; // max weight / 2 for default curve y = x
+        slopeNumerator = SLOPE_DENOM;
+        n = 1;
+        fee = 0;
+        supply = 0;
+    }
+
     modifier lock() {
         require(unlocked == 1, 'DAOfiV1: LOCKED');
         unlocked = 0;
@@ -65,18 +73,19 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         return IBancorFormula(IDAOfiV1Factory(factory).formula());
     }
 
-    constructor() {
-        factory = msg.sender;
-        reserveRatio = MAX_WEIGHT >> 1; // max weight / 2 for default curve y = x
-        slopeNumerator = SLOPE_DENOM;
-        n = 1;
-        fee = 0;
-        supply = 0;
-    }
-
     function getReserves() public override view returns (uint256 _reserveBase, uint256 _reserveQuote) {
         _reserveBase = reserveBase;
         _reserveQuote = reserveQuote;
+    }
+
+    function getPlatformFees() public override view returns (uint256 feesBase, uint256 feesQuote) {
+        feesBase = feesBasePlatform;
+        feesQuote = feesQuotePlatform;
+    }
+
+    function getOwnerFees() public override view returns (uint256 feesBase, uint256 feesQuote) {
+        feesBase = feesBaseOwner;
+        feesQuote = feesQuoteOwner;
     }
 
     // called once by the factory at time of deployment
@@ -176,10 +185,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         }
         uint256 surplus = balanceIn > reserveIn ? balanceIn - reserveIn : 0;
         require(amountIn <= surplus, 'DAOfiV1: INCORRECT_INPUT_AMOUNT');
-        // Check that inputs equal output
+        // account for owner and platform fees separately
         uint256 amountInSubOwnerFee = amountIn.mul(1000 - fee) / 1000;
         uint256 amountInSubPlatformFee = amountIn.mul(1000 - PLATFORM_FEE) / 1000;
         uint256 amountInSubFees = amountIn.mul(1000 - (fee + PLATFORM_FEE)) / 1000;
+        // Check that inputs equal output
         // handle quote to base
         if (tokenOut == baseToken) {
             require(getBaseOut(amountInSubFees) == amountOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
