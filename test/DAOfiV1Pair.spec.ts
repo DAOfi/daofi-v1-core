@@ -99,7 +99,7 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
     await tokenQuote.transfer(pair.address, quoteReserve)
     await pair.deposit(wallet.address)
 
-    await expect(pair.withdraw(wallet.address))
+    await expect(pair.withdraw(wallet.address, false))
       .to.emit(pair, 'Withdraw')
       .withArgs(wallet.address, expectedBaseReserve, quoteReserve, wallet.address)
     expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseSupply)

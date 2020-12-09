@@ -127,13 +127,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         emit Deposit(msg.sender, reserveBase, reserveQuote, amountBaseOut, to);
     }
 
-    function withdraw(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
+    function withdraw(address to, bool isETH) external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN_WITHDRAW');
         require(deposited, 'DAOfiV1: UNINITIALIZED');
         amountBase = IERC20(baseToken).balanceOf(address(this)).sub(feesBasePlatform);
         amountQuote = IERC20(quoteToken).balanceOf(address(this)).sub(feesQuotePlatform);
         _safeTransfer(baseToken, to, amountBase);
-        _safeTransfer(quoteToken, to, amountQuote);
+        if(!isETH) {
+            _safeTransfer(quoteToken, to, amountQuote);
+        }
         reserveBase = feesBaseOwner = 0;
         reserveQuote = feesQuoteOwner = 0;
         emit Withdraw(msg.sender, amountBase, amountQuote, to);

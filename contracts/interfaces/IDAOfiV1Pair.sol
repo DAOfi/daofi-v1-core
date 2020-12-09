@@ -38,7 +38,7 @@ interface IDAOfiV1Pair {
     function basePrice() external view returns (uint256 price);
     function quotePrice() external view returns (uint256 price);
     function deposit(address to) external returns (uint256 amountBase);
-    function withdraw(address to) external returns (uint256 amountBase, uint256 amountQuote);
+    function withdraw(address to, bool isETH) external returns (uint256 amountBase, uint256 amountQuote);
     function withdrawPlatformFees(address to) external returns (uint256 amountBase, uint256 amountQuote);
     function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address to) external;
     function getBaseOut(uint256 amountQuoteIn) external view returns (uint256 amountBaseOut);
