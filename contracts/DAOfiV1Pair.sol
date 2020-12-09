@@ -42,8 +42,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     address private router;
     uint256 private reserveBase;       // uses single storage slot, accessible via getReserves
     uint256 private reserveQuote;      // uses single storage slot, accessible via getReserves
-    uint256 private feesBase;
-    uint256 private feesQuote;
+    uint256 private feesBaseOwner;
+    uint256 private feesQuoteOwner;
+    uint256 private feesBasePlatform;
+    uint256 private feesQuotePlatform;
     bool private deposited = false;
     uint private unlocked = 1;
 
@@ -128,13 +130,23 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     function withdraw(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN_WITHDRAW');
         require(deposited, 'DAOfiV1: UNINITIALIZED');
-        amountBase = IERC20(baseToken).balanceOf(address(this));
-        amountQuote = IERC20(quoteToken).balanceOf(address(this));
+        amountBase = IERC20(baseToken).balanceOf(address(this)).sub(feesBasePlatform);
+        amountQuote = IERC20(quoteToken).balanceOf(address(this)).sub(feesQuotePlatform);
         _safeTransfer(baseToken, to, amountBase);
         _safeTransfer(quoteToken, to, amountQuote);
         reserveBase = 0;
         reserveQuote = 0;
         emit Withdraw(msg.sender, amountBase, amountQuote, to);
+    }
+
+    function withdrawPlatformFees(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
+        require(msg.sender == PLATFORM, 'DAOfiV1: FORBIDDEN_WITHDRAW');
+        require(deposited, 'DAOfiV1: UNINITIALIZED');
+        amountBase = feesBasePlatform;
+        amountQuote = feesQuotePlatform;
+        _safeTransfer(baseToken, to, feesBasePlatform);
+        _safeTransfer(quoteToken, to, feesQuotePlatform);
+        emit Withdraw(msg.sender, feesBasePlatform, feesQuotePlatform, to);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
@@ -151,30 +163,38 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         uint256 reserveIn;
         if (tokenIn == baseToken) {
             reserveIn = reserveBase;
-            balanceIn = IERC20(baseToken).balanceOf(address(this)).sub(feesBase);
+            balanceIn = IERC20(baseToken).balanceOf(address(this))
+                .sub(feesBaseOwner)
+                .sub(feesBasePlatform);
         } else if (tokenIn == quoteToken) {
             reserveIn = reserveQuote;
-            balanceIn = IERC20(quoteToken).balanceOf(address(this)).sub(feesQuote);
+            balanceIn = IERC20(quoteToken).balanceOf(address(this))
+                .sub(feesQuoteOwner)
+                .sub(feesQuotePlatform);
         }
         uint256 surplus = balanceIn > reserveIn ? balanceIn - reserveIn : 0;
         require(amountIn <= surplus, 'DAOfiV1: INCORRECT_INPUT_AMOUNT');
         // Check that inputs equal output
-        uint256 amountInWithFee = amountIn.mul(1000 - (fee + PLATFORM_FEE)) / 1000;
+        uint256 amountInSubOwnerFee = amountIn.mul(1000 - fee) / 1000;
+        uint256 amountInSubPlatformFee = amountIn.mul(1000 - PLATFORM_FEE) / 1000;
+        uint256 amountInSubFees = amountIn.mul(1000 - (fee + PLATFORM_FEE)) / 1000;
         // handle quote to base
         if (tokenOut == baseToken) {
-            require(getBaseOut(amountInWithFee) == amountOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
+            require(getBaseOut(amountInSubFees) == amountOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
             require(amountOut <= reserveBase, 'DAOfiV1: INSUFFICIENT_BASE_RESERVE');
             supply = supply.add(amountOut);
-            reserveQuote = reserveQuote.add(amountInWithFee);
+            reserveQuote = reserveQuote.add(amountInSubFees);
             reserveBase = reserveBase.sub(amountOut);
-            feesQuote = feesQuote.add(amountIn).sub(amountInWithFee);
+            feesQuoteOwner = feesQuoteOwner.add(amountIn).sub(amountInSubOwnerFee);
+            feesQuotePlatform = feesQuotePlatform.add(amountIn).sub(amountInSubPlatformFee);
         } else if (tokenOut == quoteToken) {
-            require(getQuoteOut(amountInWithFee) == amountOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
+            require(getQuoteOut(amountInSubFees) == amountOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
             require(amountOut <= reserveQuote, 'DAOfiV1: INSUFFICIENT_QUOTE_RESERVE');
-            supply = supply.sub(amountInWithFee);
+            supply = supply.sub(amountInSubFees);
             reserveQuote = reserveQuote.sub(amountOut);
-            reserveBase = reserveBase.add(amountInWithFee);
-            feesBase = feesBase.add(amountIn).sub(amountInWithFee);
+            reserveBase = reserveBase.add(amountInSubFees);
+            feesBaseOwner = feesBaseOwner.add(amountIn).sub(amountInSubOwnerFee);
+            feesBasePlatform = feesBasePlatform.add(amountIn).sub(amountInSubPlatformFee);
         }
         emit Swap(msg.sender, tokenIn, tokenOut, amountIn, amountOut, to);
     }
