@@ -144,9 +144,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         require(deposited, 'DAOfiV1: UNINITIALIZED');
         amountBase = feesBasePlatform;
         amountQuote = feesQuotePlatform;
-        _safeTransfer(baseToken, to, feesBasePlatform);
-        _safeTransfer(quoteToken, to, feesQuotePlatform);
-        emit Withdraw(msg.sender, feesBasePlatform, feesQuotePlatform, to);
+        _safeTransfer(baseToken, to, amountBase);
+        _safeTransfer(quoteToken, to, amountQuote);
+        feesBasePlatform = 0;
+        feesQuotePlatform = 0;
+        emit Withdraw(msg.sender, amountBase, amountQuote, to);
     }
 
     // this low-level function should be called from a contract which performs important safety checks
