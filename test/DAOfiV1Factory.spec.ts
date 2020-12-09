@@ -72,6 +72,6 @@ describe('DAOfiV1Factory', async () => {
       0
     )
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(3060158)
+    expect(receipt.gasUsed).to.eq(3063775)
   })
 })

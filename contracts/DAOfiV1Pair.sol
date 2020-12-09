@@ -134,8 +134,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         amountQuote = IERC20(quoteToken).balanceOf(address(this)).sub(feesQuotePlatform);
         _safeTransfer(baseToken, to, amountBase);
         _safeTransfer(quoteToken, to, amountQuote);
-        reserveBase = 0;
-        reserveQuote = 0;
+        reserveBase = feesBaseOwner = 0;
+        reserveQuote = feesQuoteOwner = 0;
         emit Withdraw(msg.sender, amountBase, amountQuote, to);
     }
 
