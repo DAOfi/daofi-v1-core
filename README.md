@@ -2,7 +2,7 @@
 
 # Local Development
 
-The following assumes the use of `node@>=10`.
+The following assumes the use of `node@>=12`.
 
 ## Install Dependencies
 
