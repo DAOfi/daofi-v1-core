@@ -157,7 +157,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         _safeTransfer(quoteToken, to, amountQuote);
         feesBasePlatform = 0;
         feesQuotePlatform = 0;
-        emit Withdraw(msg.sender, amountBase, amountQuote, to);
+        emit WithdrawFees(msg.sender, amountBase, amountQuote, to);
     }
 
     // this low-level function should be called from a contract which performs important safety checks

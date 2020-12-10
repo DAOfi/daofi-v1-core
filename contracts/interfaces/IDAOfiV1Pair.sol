@@ -5,6 +5,7 @@ pragma experimental ABIEncoderV2;
 interface IDAOfiV1Pair {
     event Deposit(address indexed sender, uint256 amountBase, uint256 amountQuote, uint256 output, address indexed to);
     event Withdraw(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
+    event WithdrawFees(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
     event Swap(
         address indexed sender,
         address tokenIn,
