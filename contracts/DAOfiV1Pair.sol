@@ -96,7 +96,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     /**
     * @dev Get the base and quote reserves, as a tuple
     *
-    * @return _reserveBase, _reserveQuote
+    * @return _reserveBase
+    * @return _reserveQuote
     */
     function getReserves() public override view returns (uint256 _reserveBase, uint256 _reserveQuote) {
         _reserveBase = reserveBase;
@@ -106,7 +107,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     /**
     * @dev Get the accumlated base and quote fees for the platform, as a tuple
     *
-    * @return feesBase, feesQuote
+    * @return feesBase
+    * @return feesQuote
     */
     function getPlatformFees() public override view returns (uint256 feesBase, uint256 feesQuote) {
         feesBase = feesBasePlatform;
@@ -116,7 +118,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     /**
     * @dev Get the accumlated base and quote fees for the owner, as a tuple
     *
-    * @return feesBase, feesQuote
+    * @return feesBase
+    * @return feesQuote
     */
     function getOwnerFees() public override view returns (uint256 feesBase, uint256 feesQuote) {
         feesBase = feesBaseOwner;
@@ -131,9 +134,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @param _baseToken token address of the base token
     * @param _quoteToken token address of the quote token
     * @param _pairOwner address of the pair owner
-    * @param _slopeNumerator value between 1 - 1000 which determines the curve slope
-    * @param _n 
-    * @param amountBaseIn base token input amount
+    * @param _slopeNumerator value between 1 - 1000 which determines the curve slope (slopeNumerator / SLOPE_DENOM)
+    * @param _n value between 1 - 3 which determines the reserve ratio of the curve (r = 1 / (n + 1))
+    * @param _fee value between 1 - 10 which determines (1 / fee)% swap fee
     */
     function initialize(
         address _router,
@@ -160,15 +163,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a base input amount,
-    * calculates the return for a given conversion (in the quote token)
-    *
-    * Formula:
-    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
-    *
-    * @param amountBaseIn base token input amount
-    *
-    * @return amountQuoteOut
+    * @dev Transfer ownership of the pair's reserves and owner fees
     */
     function setPairOwner(address _nextOwner) external override {
         require(msg.sender == pairOwner, 'DAOfiV1: FORBIDDEN_PAIR_OWNER');
@@ -176,15 +171,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a base input amount,
-    * calculates the return for a given conversion (in the quote token)
+    * @dev Used to initialize a pair's reserves, called via periphery addLiquidity function only.
+    * This function uses the amount of quote reserve to determine an initial supply of base,
+    * which is returned from the base reserve.
     *
-    * Formula:
-    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
+    * @param to address of the initial supply recipient
     *
-    * @param amountBaseIn base token input amount
-    *
-    * @return amountQuoteOut
+    * @return amountBaseOut initial supply amount for the recipient
     */
     function deposit(address to) external override lock returns (uint256 amountBaseOut) {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN_DEPOSIT');
@@ -205,15 +198,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a base input amount,
-    * calculates the return for a given conversion (in the quote token)
+    * @dev
     *
-    * Formula:
-    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
+    * @param to address of
     *
-    * @param amountBaseIn base token input amount
-    *
-    * @return amountQuoteOut
+    * @return amountBase
+    * @return amountQuote
     */
     function withdraw(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN_WITHDRAW');
@@ -228,15 +218,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a base input amount,
-    * calculates the return for a given conversion (in the quote token)
+    * @dev
     *
-    * Formula:
-    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
+    * @param to address of the initial supply recipient
     *
-    * @param amountBaseIn base token input amount
-    *
-    * @return amountQuoteOut
+    * @return amountBase
+    * @return amountQuote
     */
     function withdrawPlatformFees(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(msg.sender == PLATFORM, 'DAOfiV1: FORBIDDEN_WITHDRAW');
@@ -251,15 +238,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a base input amount,
-    * calculates the return for a given conversion (in the quote token)
+    * @dev
     *
-    * Formula:
-    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
-    *
-    * @param amountBaseIn base token input amount
-    *
-    * @return amountQuoteOut
+    * @param tokenIn address of
+    * @param tokenOut address of
+    * @param amountIn
+    * @param amountOut
+    * @param to address of
     */
     function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address to) external override lock {
         require(deposited, 'DAOfiV1: UNINITIALIZED_SWAP');
@@ -312,15 +297,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a base input amount,
-    * calculates the return for a given conversion (in the quote token)
+    * @dev
     *
-    * Formula:
-    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
-    *
-    * @param amountBaseIn base token input amount
-    *
-    * @return amountQuoteOut
+    * @return price
     */
     function basePrice() public view override returns (uint256 price) {
         require(deposited, 'DAOfiV1: UNINITIALIZED_BASE_PRICE');
@@ -328,15 +307,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a base input amount,
-    * calculates the return for a given conversion (in the quote token)
+    * @dev
     *
-    * Formula:
-    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
-    *
-    * @param amountBaseIn base token input amount
-    *
-    * @return amountQuoteOut
+    * @return price
     */
     function quotePrice() public view override returns (uint256 price) {
         require(deposited, 'DAOfiV1: UNINITIALIZED_QUOTE_PRICE');
