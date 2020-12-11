@@ -164,7 +164,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address to) external override lock {
         require(deposited, 'DAOfiV1: UNINITIALIZED_SWAP');
         require(
-            (tokenIn == baseToken || tokenIn == quoteToken) && (tokenOut == baseToken || tokenOut == quoteToken),
+            (tokenIn == baseToken && tokenOut == quoteToken) || (tokenOut == baseToken && tokenIn == quoteToken),
             'DAOfiV1: INCORRECT_TOKENS'
         );
         require(to != baseToken && to != quoteToken, 'DAOfiV1: INVALID_TO');
