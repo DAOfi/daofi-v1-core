@@ -21,7 +21,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
     address public override factory;
     /**
-    * @dev reserve ratio, represented in ppm, 1-1000000
+    * @dev Reserve ratio, represented in ppm, 1-1000000
     * 1/3 corresponds to y = slope * x^2
     * 1/2 corresponds to y = slope * x
     * 2/3 corresponds to y = slope * x^1/2
@@ -96,12 +96,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     /**
     * @dev Get the base and quote reserves, as a tuple
     *
-    * Formula:
-    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
-    *
-    * @param amountBaseIn base token input amount
-    *
-    * @return amountQuoteOut
+    * @return _reserveBase, _reserveQuote
     */
     function getReserves() public override view returns (uint256 _reserveBase, uint256 _reserveQuote) {
         _reserveBase = reserveBase;
@@ -109,15 +104,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a base input amount,
-    * calculates the return for a given conversion (in the quote token)
+    * @dev Get the accumlated base and quote fees for the platform, as a tuple
     *
-    * Formula:
-    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
-    *
-    * @param amountBaseIn base token input amount
-    *
-    * @return amountQuoteOut
+    * @return feesBase, feesQuote
     */
     function getPlatformFees() public override view returns (uint256 feesBase, uint256 feesQuote) {
         feesBase = feesBasePlatform;
@@ -125,15 +114,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a base input amount,
-    * calculates the return for a given conversion (in the quote token)
+    * @dev Get the accumlated base and quote fees for the owner, as a tuple
     *
-    * Formula:
-    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
-    *
-    * @param amountBaseIn base token input amount
-    *
-    * @return amountQuoteOut
+    * @return feesBase, feesQuote
     */
     function getOwnerFees() public override view returns (uint256 feesBase, uint256 feesQuote) {
         feesBase = feesBaseOwner;
@@ -141,15 +124,16 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a base input amount,
-    * calculates the return for a given conversion (in the quote token)
+    * @dev Initialize the pair with a set of tokens, slope, exponent and fee.
+    * This function is called immediately after a pair is created by the periphery.
     *
-    * Formula:
-    * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
-    *
+    * @param _router address of the router (periphery contract)
+    * @param _baseToken token address of the base token
+    * @param _quoteToken token address of the quote token
+    * @param _pairOwner address of the pair owner
+    * @param _slopeNumerator value between 1 - 1000 which determines the curve slope
+    * @param _n 
     * @param amountBaseIn base token input amount
-    *
-    * @return amountQuoteOut
     */
     function initialize(
         address _router,
