@@ -198,12 +198,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev
+    * @dev Withdraw function will remove all funds from the contract, minus fees attributed to the platform.
+    * once this function is called, the pair is effectively closed.
     *
-    * @param to address of
+    * @param to address of the withdrawal recipient
     *
-    * @return amountBase
-    * @return amountQuote
+    * @return amountBase amount of base token withdrawn
+    * @return amountQuote amount of quote token withdrawn
     */
     function withdraw(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN_WITHDRAW');
@@ -218,12 +219,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev
+    * @dev Platform-only function to remove fees attributed to platform.
+    * Fees for the platform are reset to 0 once called.
     *
-    * @param to address of the initial supply recipient
+    * @param to address of the fee recipient
     *
-    * @return amountBase
-    * @return amountQuote
+    * @return amountBase amount of base token withdrawn
+    * @return amountQuote amount of quote token withdrawn
     */
     function withdrawPlatformFees(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(msg.sender == PLATFORM, 'DAOfiV1: FORBIDDEN_WITHDRAW');
@@ -238,13 +240,13 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev
+    * @dev Given token in, token out, amount in, amount out, verify the amount out is correct and send to recipient.
     *
-    * @param tokenIn address of
-    * @param tokenOut address of
-    * @param amountIn
-    * @param amountOut
-    * @param to address of
+    * @param tokenIn address of input token, either base or quote
+    * @param tokenOut address of output token, either base or quote, depending on input token
+    * @param amountIn amount of token in
+    * @param amountOut desired amount of token out
+    * @param to address of token out recipient
     */
     function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address to) external override lock {
         require(deposited, 'DAOfiV1: UNINITIALIZED_SWAP');
@@ -297,7 +299,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev
+    * @dev Returns the price of 1 base token, in quote
     *
     * @return price
     */
@@ -307,7 +309,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev
+    * @dev Returns the price of 1 quote token, in base
     *
     * @return price
     */
@@ -317,15 +319,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a quote input amount,
-    * calculates the return for a given conversion (in the base token)
+    * @dev Given the base token supply, quote reserve, reserve ratio and a quote token input amount,
+    * calculate the amount of base token returned
     *
     * Formula:
     * base out = supply * ((1 + amountQuoteIn / reserveQuote) ^ (reserveRatio / 1000000) - 1)
     *
     * @param amountQuoteIn quote token input amount
     *
-    * @return amountBaseOut
+    * @return amountBaseOut amount of base token returned
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
@@ -350,15 +352,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a base input amount,
-    * calculates the return for a given conversion (in the quote token)
+    * @dev Given the base token supply, quote reserve, reserve ratio and a base token input amount,
+    * calculate the amount of quote token returned
     *
     * Formula:
     * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
     *
     * @param amountBaseIn base token input amount
     *
-    * @return amountQuoteOut
+    * @return amountQuoteOut amount of quote token returned
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
