@@ -136,7 +136,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @param _pairOwner address of the pair owner
     * @param _slopeNumerator value between 1 - 1000 which determines the curve slope (slopeNumerator / SLOPE_DENOM)
     * @param _n value between 1 - 3 which determines the reserve ratio of the curve (r = 1 / (n + 1))
-    * @param _fee value between 1 - 10 which determines (1 / fee)% swap fee
+    * @param _fee value between 0 - 10 which determines swap fee
     */
     function initialize(
         address _router,
