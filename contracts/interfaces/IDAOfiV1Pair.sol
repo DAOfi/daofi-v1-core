@@ -8,11 +8,12 @@ interface IDAOfiV1Pair {
     event WithdrawFees(address indexed sender, uint256 amountBase, uint256 amountQuote, address indexed to);
     event Swap(
         address indexed pair,
-        address indexed to,
+        address indexed sender,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
-        uint256 amountOut
+        uint256 amountOut,
+        address indexed to
     );
 
     function PLATFORM_FEE() external view returns (uint8);

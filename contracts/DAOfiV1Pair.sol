@@ -295,7 +295,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             feesBaseOwner = feesBaseOwner.add(amountIn).sub(amountInSubOwnerFee);
             feesBasePlatform = feesBasePlatform.add(amountIn).sub(amountInSubPlatformFee);
         }
-        emit Swap(address(this), to, tokenIn, tokenOut, amountIn, amountOut);
+        emit Swap(address(this), msg.sender, tokenIn, tokenOut, amountIn, amountOut, to);
     }
 
     /**

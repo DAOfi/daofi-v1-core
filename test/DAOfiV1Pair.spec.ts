@@ -153,7 +153,7 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
       .to.emit(tokenBase, 'Transfer')
       .withArgs(pair.address, wallet.address, baseAmountOut)
       .to.emit(pair, 'Swap')
-      .withArgs(pair.address, wallet.address, tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut)
+      .withArgs(pair.address, wallet.address, tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut, wallet.address)
     // check reserves at point A
     const reservesA = await pair.getReserves()
     expect(reservesA[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned))
@@ -173,7 +173,7 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
       .to.emit(tokenQuote, 'Transfer')
       .withArgs(pair.address, wallet.address, quoteAmountOut)
       .to.emit(pair, 'Swap')
-      .withArgs(pair.address, wallet.address, tokenBase.address, tokenQuote.address, baseAmountIn, quoteAmountOut)
+      .withArgs(pair.address, wallet.address, tokenBase.address, tokenQuote.address, baseAmountIn, quoteAmountOut, wallet.address)
     // check reserves at point B
     const reservesB = await pair.getReserves()
     expect(reservesB[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned).add(baseAmountInWithFee))
@@ -287,7 +287,7 @@ describe('DAOfiV1Pair: (y = 0.001x^2) m = 0.001, n = 2, fee = 0', () => {
       .to.emit(tokenBase, 'Transfer')
       .withArgs(pair.address, wallet.address, baseAmountOut)
       .to.emit(pair, 'Swap')
-      .withArgs(pair.address, wallet.address, tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut)
+      .withArgs(pair.address, wallet.address, tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut, wallet.address)
     // check reserves at point A
     const reservesA = await pair.getReserves()
     expect(reservesA[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned))
@@ -307,7 +307,7 @@ describe('DAOfiV1Pair: (y = 0.001x^2) m = 0.001, n = 2, fee = 0', () => {
       .to.emit(tokenQuote, 'Transfer')
       .withArgs(pair.address, wallet.address, quoteAmountOut)
       .to.emit(pair, 'Swap')
-      .withArgs(pair.address, wallet.address, tokenBase.address, tokenQuote.address, baseAmountIn, quoteAmountOut)
+      .withArgs(pair.address, wallet.address, tokenBase.address, tokenQuote.address, baseAmountIn, quoteAmountOut, wallet.address)
     // check reserves at point B
     const reservesB = await pair.getReserves()
     expect(reservesB[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned).add(baseAmountInWithFee))
