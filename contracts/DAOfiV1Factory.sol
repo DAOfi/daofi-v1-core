@@ -10,10 +10,26 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
     address[] public override allPairs;
     address public override formula;
 
+    /**
+    * @dev Create the factory
+    *
+    * @param _formula address of the bancor formula
+    */
     constructor(address _formula) {
         formula = _formula;
     }
 
+    /**
+    * @dev Get a pair from the tokens and params
+    *
+    * @param baseToken address of the base token
+    * @param quoteToken address of the quote token
+    * @param slopeNumerator value 1 - 1000 which represents the curve's slope numerator (denominator 1000)
+    * @param n value 1 - 3 which represents the curve's exponential parameter
+    * @param fee value 1-10 which represents the pair owner's fee (1 = 0.1%)
+    *
+    * @return pair address of the pair, derived from the params
+    */
     function getPair(address baseToken, address quoteToken, uint32 slopeNumerator, uint32 n, uint32 fee)
         public override view returns (address pair)
     {
@@ -22,10 +38,27 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
         )];
     }
 
+    /**
+    * @dev Get the total number of pairs created
+    *
+    * @return uint number of pairs
+    */
     function allPairsLength() external override view returns (uint) {
         return allPairs.length;
     }
 
+    /**
+    * @dev Create a pair from the tokens and params
+    *
+    * @param router address of the router creating the pair, used to restrict pair accesss
+    * @param baseToken address of the base token
+    * @param quoteToken address of the quote token
+    * @param slopeNumerator value 1 - 1000 which represents the curve's slope numerator (denominator 1000)
+    * @param n value 1 - 3 which represents the curve's exponential parameter
+    * @param fee value 1-10 which represents the pair owner's fee (1 = 0.1%)
+    *
+    * @return pair address of the pair, derived from the params
+    */
     function createPair(
         address router,
         address baseToken,
