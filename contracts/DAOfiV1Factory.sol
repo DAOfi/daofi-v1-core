@@ -26,7 +26,7 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
     * @param quoteToken address of the quote token
     * @param slopeNumerator value 1 - 1000 which represents the curve's slope numerator (denominator 1000)
     * @param n value 1 - 3 which represents the curve's exponential parameter
-    * @param fee value 1-10 which represents the pair owner's fee (1 = 0.1%)
+    * @param fee value 0-10 which represents the pair owner's fee (1 = 0.1%)
     *
     * @return pair address of the pair, derived from the params
     */
@@ -55,7 +55,7 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
     * @param quoteToken address of the quote token
     * @param slopeNumerator value 1 - 1000 which represents the curve's slope numerator (denominator 1000)
     * @param n value 1 - 3 which represents the curve's exponential parameter
-    * @param fee value 1-10 which represents the pair owner's fee (1 = 0.1%)
+    * @param fee value 0-10 which represents the pair owner's fee (1 = 0.1%)
     *
     * @return pair address of the pair, derived from the params
     */
