@@ -11,7 +11,7 @@ async function main() {
   const factory = await deployContract(
     wallet,
     DAOfiV1Factory,
-    [],
+    ['0x3d9a79e02C35A8867222Bc69FfA9CcA59D23041c'],
     {
       chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 0x4d,
       gasLimit: 9999999,

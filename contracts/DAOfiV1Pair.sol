@@ -20,8 +20,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     address public constant PLATFORM = 0x31b2d5f134De0A737360693Ed5D5Bd42b705bCa2;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
     address public override factory;
-    /*
-    * @dev reserve ratio, represented in ppm, 1-1000000
+    /**
+    * @dev Reserve ratio, represented in ppm, 1-1000000
     * 1/3 corresponds to y = slope * x^2
     * 1/2 corresponds to y = slope * x
     * 2/3 corresponds to y = slope * x^1/2
@@ -48,6 +48,10 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     bool private deposited = false;
     uint private unlocked = 1;
 
+    /**
+    * @dev Create the contract and set initial values of slope and exponent such that
+    * the default price curve is y = mx^n, where m = 1 and n = 1.
+    */
     constructor() {
         factory = msg.sender;
         reserveRatio = MAX_WEIGHT >> 1; // max weight / 2 for default curve y = x
@@ -57,6 +61,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         supply = 0;
     }
 
+    /**
+    * @dev Used to prevent reentrancy attack
+    */
     modifier lock() {
         require(unlocked == 1, 'DAOfiV1: LOCKED');
         unlocked = 0;
@@ -64,31 +71,73 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         unlocked = 1;
     }
 
+    /**
+    * @dev Helper function to safely call ERC20 transfer
+    *
+    * @param token address of token
+    * @param to recipient address of transfer
+    * @param value token value to transfer
+    */
     function _safeTransfer(address token, address to, uint256 value) private {
         (bool success, bytes memory data) = token.call(abi.encodeWithSelector(SELECTOR, to, value));
         require(success && (data.length == 0 || abi.decode(data, (bool))), 'DAOfiV1: TRANSFER_FAILED');
     }
 
+    /**
+    * @dev Wrapper function to retrieve the bancor formula address from the factory
+    * and return the contract interface of the formula.
+    *
+    * @return IBancorFormula
+    */
     function _getFormula() private view returns (IBancorFormula) {
         return IBancorFormula(IDAOfiV1Factory(factory).formula());
     }
 
+    /**
+    * @dev Get the base and quote reserves, as a tuple
+    *
+    * @return _reserveBase
+    * @return _reserveQuote
+    */
     function getReserves() public override view returns (uint256 _reserveBase, uint256 _reserveQuote) {
         _reserveBase = reserveBase;
         _reserveQuote = reserveQuote;
     }
 
+    /**
+    * @dev Get the accumlated base and quote fees for the platform, as a tuple
+    *
+    * @return feesBase
+    * @return feesQuote
+    */
     function getPlatformFees() public override view returns (uint256 feesBase, uint256 feesQuote) {
         feesBase = feesBasePlatform;
         feesQuote = feesQuotePlatform;
     }
 
+    /**
+    * @dev Get the accumlated base and quote fees for the owner, as a tuple
+    *
+    * @return feesBase
+    * @return feesQuote
+    */
     function getOwnerFees() public override view returns (uint256 feesBase, uint256 feesQuote) {
         feesBase = feesBaseOwner;
         feesQuote = feesQuoteOwner;
     }
 
-    // called once by the factory at time of deployment
+    /**
+    * @dev Initialize the pair with a set of tokens, slope, exponent and fee.
+    * This function is called immediately after a pair is created by the periphery.
+    *
+    * @param _router address of the router (periphery contract)
+    * @param _baseToken token address of the base token
+    * @param _quoteToken token address of the quote token
+    * @param _pairOwner address of the pair owner
+    * @param _slopeNumerator value between 1 - 1000 which determines the curve slope (slopeNumerator / SLOPE_DENOM)
+    * @param _n value between 1 - 3 which determines the reserve ratio of the curve (r = 1 / (n + 1))
+    * @param _fee value between 1 - 10 which determines (1 / fee)% swap fee
+    */
     function initialize(
         address _router,
         address _baseToken,
@@ -113,11 +162,23 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         reserveRatio = uint32(MAX_WEIGHT.div(n + 1));  // (1 / (n + 1)) * MAX_WEIGHT
     }
 
+    /**
+    * @dev Transfer ownership of the pair's reserves and owner fees
+    */
     function setPairOwner(address _nextOwner) external override {
         require(msg.sender == pairOwner, 'DAOfiV1: FORBIDDEN_PAIR_OWNER');
         pairOwner = _nextOwner;
     }
 
+    /**
+    * @dev Used to initialize a pair's reserves, called via periphery addLiquidity function only.
+    * This function uses the amount of quote reserve to determine an initial supply of base,
+    * which is returned from the base reserve.
+    *
+    * @param to address of the initial supply recipient
+    *
+    * @return amountBaseOut initial supply amount for the recipient
+    */
     function deposit(address to) external override lock returns (uint256 amountBaseOut) {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN_DEPOSIT');
         require(deposited == false, 'DAOfiV1: DOUBLE_DEPOSIT');
@@ -136,6 +197,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         emit Deposit(msg.sender, reserveBase, reserveQuote, amountBaseOut, to);
     }
 
+    /**
+    * @dev Withdraw function will remove all funds from the contract, minus fees attributed to the platform.
+    * once this function is called, the pair is effectively closed.
+    *
+    * @param to address of the withdrawal recipient
+    *
+    * @return amountBase amount of base token withdrawn
+    * @return amountQuote amount of quote token withdrawn
+    */
     function withdraw(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN_WITHDRAW');
         require(deposited, 'DAOfiV1: UNINITIALIZED');
@@ -148,6 +218,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         emit Withdraw(msg.sender, amountBase, amountQuote, to);
     }
 
+    /**
+    * @dev Platform-only function to remove fees attributed to platform.
+    * Fees for the platform are reset to 0 once called.
+    *
+    * @param to address of the fee recipient
+    *
+    * @return amountBase amount of base token withdrawn
+    * @return amountQuote amount of quote token withdrawn
+    */
     function withdrawPlatformFees(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(msg.sender == PLATFORM, 'DAOfiV1: FORBIDDEN_WITHDRAW');
         require(deposited, 'DAOfiV1: UNINITIALIZED');
@@ -160,7 +239,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         emit WithdrawFees(msg.sender, amountBase, amountQuote, to);
     }
 
-    // this low-level function should be called from a contract which performs important safety checks
+    /**
+    * @dev Given token in, token out, amount in, amount out, verify the amount out is correct and send to recipient.
+    *
+    * @param tokenIn address of input token, either base or quote
+    * @param tokenOut address of output token, either base or quote, depending on input token
+    * @param amountIn amount of token in
+    * @param amountOut desired amount of token out
+    * @param to address of token out recipient
+    */
     function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address to) external override lock {
         require(deposited, 'DAOfiV1: UNINITIALIZED_SWAP');
         require(
@@ -211,28 +298,36 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         emit Swap(address(this), to, tokenIn, tokenOut, amountIn, amountOut);
     }
 
-    // The amount of quote returned for 1 base
+    /**
+    * @dev Returns the price of 1 base token, in quote
+    *
+    * @return price
+    */
     function basePrice() public view override returns (uint256 price) {
         require(deposited, 'DAOfiV1: UNINITIALIZED_BASE_PRICE');
         price = getQuoteOut(10 ** IERC20(baseToken).decimals());
     }
 
-    // The amount of base returned for 1 quote
+    /**
+    * @dev Returns the price of 1 quote token, in base
+    *
+    * @return price
+    */
     function quotePrice() public view override returns (uint256 price) {
         require(deposited, 'DAOfiV1: UNINITIALIZED_QUOTE_PRICE');
         price = getBaseOut(10 ** IERC20(quoteToken).decimals());
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a quote input amount,
-    * calculates the return for a given conversion (in the base token)
+    * @dev Given the base token supply, quote reserve, reserve ratio and a quote token input amount,
+    * calculate the amount of base token returned
     *
     * Formula:
     * base out = supply * ((1 + amountQuoteIn / reserveQuote) ^ (reserveRatio / 1000000) - 1)
     *
     * @param amountQuoteIn quote token input amount
     *
-    * @return amountBaseOut
+    * @return amountBaseOut amount of base token returned
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
@@ -257,15 +352,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev given the base token supply, quote reserve, weight and a base input amount,
-    * calculates the return for a given conversion (in the quote token)
+    * @dev Given the base token supply, quote reserve, reserve ratio and a base token input amount,
+    * calculate the amount of quote token returned
     *
     * Formula:
     * quote out = reserveQuote * (1 - (1 - amountBaseIn / supply) ^ (1000000 / reserveRatio)))
     *
     * @param amountBaseIn base token input amount
     *
-    * @return amountQuoteOut
+    * @return amountQuoteOut amount of quote token returned
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
