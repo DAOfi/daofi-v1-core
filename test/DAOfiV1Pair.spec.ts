@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
-import { BigNumber, Contract } from 'ethers'
+import { BigNumber, Contract, ContractFactory } from 'ethers'
 import { ethers } from 'hardhat'
 import { getReserveForStartPrice, expandTo18Decimals, expandToDecimals } from './shared/utilities'
 import { pairFixture } from './shared/fixtures'
@@ -13,12 +13,61 @@ let tokenBase: Contract
 let tokenQuote: Contract
 let pair: Contract
 let wallet: SignerWithAddress
+let wallet2: SignerWithAddress
 
 async function addLiquidity(baseAmount: BigNumber, quoteAmount: BigNumber) {
   if (baseAmount.gt(zero)) await tokenBase.transfer(pair.address, baseAmount)
   if (quoteAmount.gt(zero)) await tokenQuote.transfer(pair.address, quoteAmount)
   await pair.deposit(wallet.address)
 }
+
+describe('DAOfiV1Pair: initialization', () => {
+  let Pair: ContractFactory
+
+  beforeEach(async () => {
+    const Token = await ethers.getContractFactory("ERC20")
+    wallet = (await ethers.getSigners())[0]
+    Pair = await ethers.getContractFactory("DAOfiV1Pair")
+    tokenBase = await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
+    tokenQuote =  await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
+  })
+
+  it('DAOfiV1: FORBIDDEN', async () => {
+    // call from a different address than the creator (router)
+    wallet2 = (await ethers.getSigners())[1]
+    pair = (await Pair.deploy()).connect(wallet2)
+    await expect(pair.initialize(
+      wallet.address,
+      tokenBase.address,
+      tokenQuote.address,
+      wallet.address,
+      1e3,
+      1,
+      0
+    )).to.be.reverted
+  })
+
+  it('DAOfiV1: INVALID_SLOPE_NUMERATOR', async () => {
+    await expect(pair.initialize(
+      wallet.address,
+      tokenBase.address,
+      tokenQuote.address,
+      wallet.address,
+      0,
+      1,
+      0
+    )).to.be.reverted
+    await expect(pair.initialize(
+      wallet.address,
+      tokenBase.address,
+      tokenQuote.address,
+      wallet.address,
+      1e3 + 1,
+      1,
+      0
+    )).to.be.reverted
+  })
+})
 
 describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
   beforeEach(async () => {

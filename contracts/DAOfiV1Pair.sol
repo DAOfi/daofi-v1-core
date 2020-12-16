@@ -26,7 +26,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * 1/2 corresponds to y = slope * x
     * 2/3 corresponds to y = slope * x^1/2
     *
-    * Note, we are specifically disallowing values > MAX_WEIGHT / 2 to force positive exponents
+    * Note: slope is determined by initial supply and we are specifically
+    * restricting reserveRatio <= MAX_WEIGHT / 2 to force integer exponents >= 1
     */
     uint32 public override reserveRatio;
     // slope = slopeNumerator / SLOPE_DENOM, this value is baked into the equations by the initial supply
