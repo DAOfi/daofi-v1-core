@@ -67,6 +67,27 @@ describe('DAOfiV1Pair: initialization', () => {
       0
     )).to.be.reverted
   })
+
+  it('DAOfiV1: INVALID_N', async () => {
+    await expect(pair.initialize(
+      wallet.address,
+      tokenBase.address,
+      tokenQuote.address,
+      wallet.address,
+      1e3,
+      0,
+      0
+    )).to.be.reverted
+    await expect(pair.initialize(
+      wallet.address,
+      tokenBase.address,
+      tokenQuote.address,
+      wallet.address,
+      1e3,
+      4,
+      0
+    )).to.be.reverted
+  })
 })
 
 describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
