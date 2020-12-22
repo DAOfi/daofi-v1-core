@@ -69,7 +69,7 @@ describe('DAOfiV1Factory', async () => {
       TEST_ADDRESSES[0],
       TEST_ADDRESSES[1],
       wallet.address,
-      1e3,
+      1e6,
       1,
       0
     )

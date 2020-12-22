@@ -10,6 +10,7 @@ interface FactoryFixture {
   formula: Contract
 }
 
+const slopeD = 1e6
 export async function factoryFixture(wallet: SignerWithAddress): Promise<FactoryFixture> {
   // deploy formula
   const formula = await deployContract(wallet, BancorFormula as any) //waffle doesn't like the type from truffle
@@ -26,7 +27,7 @@ interface PairFixture extends FactoryFixture {
 
 export async function pairFixture(
   wallet: SignerWithAddress,
-  slopeNumerator: number = 1e3,
+  slopeNumerator: number = slopeD,
   n: number = 1,
   fee: number = 0
 ): Promise<PairFixture> {
