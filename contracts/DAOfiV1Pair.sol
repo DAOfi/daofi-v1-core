@@ -111,11 +111,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         uint256 diff = 0;
         uint256 factor = 0;
         console.log("converted in: %s", amount);
-        converted = amount;
+        converted = 0;
         if (decimals > resolution) {
             diff = uint256(decimals.sub(resolution));
             factor = 10 ** diff;
-            if (to && amount > factor) {
+            if (to && amount >= factor) {
                 converted = amount.div(factor);
             } else if (!to) {
                 converted = amount.mul(factor);
@@ -125,7 +125,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             factor = 10 ** diff;
             if (to) {
                 converted = amount.mul(factor);
-            } else if (!to && amount > factor) {
+            } else if (!to && amount >= factor) {
                 converted = amount.div(factor);
             }
         }
@@ -395,15 +395,29 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         console.log("amountQuoteIn: %s", amountQuoteIn);
         if (supply == 0) {
             // Handle amounts as internal decimals then convert back to token decimals before returning
-            amountQuoteIn = _convert(quoteToken, amountQuoteIn, INITIAL_DECIMALS, true);
-            amountBaseOut = _convert(
-                baseToken,
-                Math.sqrt(
-                    (amountQuoteIn.mul(2).mul(SLOPE_DENOM)).div(slopeNumerator)
-                ),
-                INITIAL_DECIMALS,
-                false
+            console.log("bN: %s", amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()));
+            console.log("bD: %s", slopeNumerator.mul(reserveRatio));
+            console.log("eN: %s", reserveRatio);
+            console.log("eD: %s", _getFormula().MAX_WEIGHT());
+            (uint256 result, uint8 precision) = _getFormula().power(
+                amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()),
+                slopeNumerator.mul(reserveRatio),
+                reserveRatio,
+                _getFormula().MAX_WEIGHT()
             );
+            console.log("result: %s", result);
+            console.log("precision: %s", precision);
+            amountBaseOut = _convert(
+                result << precision,
+            // amountQuoteIn = _convert(quoteToken, amountQuoteIn, INITIAL_DECIMALS, true);
+            // amountBaseOut = _convert(
+            //     baseToken,
+            //     Math.sqrt(
+            //         (amountQuoteIn.mul(2).mul(SLOPE_DENOM)).div(slopeNumerator)
+            //     ),
+            //     INITIAL_DECIMALS,
+            //     false
+            // );
         } else {
             amountQuoteIn = _convert(quoteToken, amountQuoteIn, INTERNAL_DECIMALS, true);
             amountBaseOut = _convert(
