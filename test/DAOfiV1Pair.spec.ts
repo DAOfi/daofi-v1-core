@@ -23,7 +23,7 @@ async function addLiquidity(baseAmount: BigNumber, quoteAmount: BigNumber) {
 describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
   beforeEach(async () => {
     wallet = (await ethers.getSigners())[0]
-    const fixture = await pairFixture(wallet, 1e3, 1, 0)
+    const fixture = await pairFixture(wallet, 1e6, 1, 0)
 
     factory = fixture.factory
     tokenBase = fixture.tokenBase
@@ -67,7 +67,7 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
     it(`deposit: ${i}`, async () => {
       const [quotePrice, baseOut] = depositTestCase
       const baseSupply = expandTo18Decimals(1e9)
-      const quoteReserveFloat = Math.ceil(getReserveForStartPrice(quotePrice, 1e3, 1) * 100000)
+      const quoteReserveFloat = Math.ceil(getReserveForStartPrice(quotePrice, 1e6, 1) * 100000)
       const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
       const baseOutput = ethers.BigNumber.from(baseOut)
       const expectedS = baseOutput
@@ -189,10 +189,10 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
   })
 })
 
-describe('DAOfiV1Pair: (y = 0.001x^2) m = 0.001, n = 2, fee = 0', () => {
+describe('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
   beforeEach(async () => {
     wallet = (await ethers.getSigners())[0]
-    const fixture = await pairFixture(wallet, 1, 2, 0)
+    const fixture = await pairFixture(wallet, 1, 1, 0)
 
     factory = fixture.factory
     formula = fixture.formula
@@ -346,7 +346,7 @@ describe('DAOfiV1Pair: (y = 0.001x^2) m = 0.001, n = 2, fee = 0', () => {
 describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 3', () => {
   beforeEach(async () => {
     wallet = (await ethers.getSigners())[0]
-    const fixture = await pairFixture(wallet, 1e3, 1, 3)
+    const fixture = await pairFixture(wallet, 1e6, 1, 3)
 
     factory = fixture.factory
     tokenBase = fixture.tokenBase
@@ -357,7 +357,7 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 3', () => {
   it('withdraw: including fees', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     // price 1
-    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1e3, 1) * 100000)
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1e6, 1) * 100000)
     const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
     const baseReturned = expandTo18Decimals(1)
     await addLiquidity(baseSupply, quoteReserve)
