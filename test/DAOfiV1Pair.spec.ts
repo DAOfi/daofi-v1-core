@@ -207,7 +207,7 @@ describe.only('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () =>
 
   // Deposit tests which return base:
   depositTestCases.forEach((depositTestCase, i) => {
-    it(`deposit: ${i}`, async () => {
+    it.only(`deposit: ${i}`, async () => {
       const [quotePrice, baseOut] = depositTestCase
       const baseSupply = expandTo18Decimals(1e9)
       const quoteReserveFloat = Math.ceil(getReserveForStartPrice(quotePrice, 1, 1) * 100000)

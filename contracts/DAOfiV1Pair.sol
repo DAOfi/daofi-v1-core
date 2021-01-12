@@ -383,12 +383,20 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 reserveRatio,
                 _getFormula().MAX_WEIGHT()
             );
+            console.log("bN: %s", amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()));
+            console.log("bD: %s", slopeNumerator.mul(reserveRatio));
+            console.log("eN: %s", reserveRatio);
+            console.log("eD: %s",  _getFormula().MAX_WEIGHT());
+            console.log("result: %s", result);
+            console.log("precision: %s", precision);
+            console.log("result >> precision: %s", result >> precision);
             amountBaseOut = _convert(
                 baseToken,
                 result >> precision,
                 INTERNAL_DECIMALS >> 1,
                 false
             );
+            console.log("amount base out: %s", amountBaseOut);
         } else {
             amountQuoteIn = _convert(quoteToken, amountQuoteIn, INTERNAL_DECIMALS, true);
             amountBaseOut = _convert(
@@ -403,7 +411,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 false
             );
         }
-        console.log("amountBaseOut: %s", amountBaseOut);
+
     }
 
     /**
