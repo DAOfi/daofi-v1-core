@@ -14,7 +14,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
 
     uint32 private constant SLOPE_DENOM = 1000000;
     uint32 private constant MAX_N = 1;
-    uint8 private constant INTERNAL_DECIMALS = 8;
+    uint8 private constant INTERNAL_DECIMALS = 18;
     uint8 public constant MAX_FEE = 10; // 1%
     uint8 public constant override PLATFORM_FEE = 1; // 0.1%
     address public constant PLATFORM = 0x31b2d5f134De0A737360693Ed5D5Bd42b705bCa2;
@@ -109,7 +109,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         uint256 diff = 0;
         uint256 factor = 0;
         console.log("converted in: %s", amount);
-        converted = 0;
+        converted = amount;
         if (decimals > resolution) {
             diff = uint256(decimals.sub(resolution));
             factor = 10 ** diff;
@@ -408,8 +408,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             console.log("precision: %s", precision);
             amountBaseOut = _convert(
                 baseToken,
-                result << precision,
-                INTERNAL_DECIMALS,
+                result >> precision,
+                INTERNAL_DECIMALS >> 1,
                 false
             );
         } else {
