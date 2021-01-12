@@ -20,7 +20,7 @@ async function addLiquidity(baseAmount: BigNumber, quoteAmount: BigNumber) {
   await pair.deposit(wallet.address)
 }
 
-describe.only('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
+describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
   beforeEach(async () => {
     wallet = (await ethers.getSigners())[0]
     const fixture = await pairFixture(wallet, 1e6, 1, 0)
@@ -187,7 +187,7 @@ describe.only('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
   })
 })
 
-describe('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
+describe.only('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
   beforeEach(async () => {
     wallet = (await ethers.getSigners())[0]
     const fixture = await pairFixture(wallet, 1, 1, 0)
@@ -201,10 +201,8 @@ describe('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
 
   // price in quote, expected base returned
   const depositTestCases: any[][] = [
-    [1, '31622821622821622821622'],
-    [10, '1000001020001020001020001'],
-    [100, '31622808242808242808242808'],
-    [900, '853815822075822075822075822'],
+    [1, '440758266154048000000000'],
+    [10, '2976539322672258000000000'],
   ]
 
   // Deposit tests which return base:
@@ -212,7 +210,7 @@ describe('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
     it(`deposit: ${i}`, async () => {
       const [quotePrice, baseOut] = depositTestCase
       const baseSupply = expandTo18Decimals(1e9)
-      const quoteReserveFloat = Math.ceil(getReserveForStartPrice(quotePrice, 1, 2) * 100000)
+      const quoteReserveFloat = Math.ceil(getReserveForStartPrice(quotePrice, 1, 1) * 100000)
       const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
       const baseOutput = ethers.BigNumber.from(baseOut)
       const expectedS = baseOutput
@@ -235,23 +233,23 @@ describe('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
   })
 
   it('basePrice:', async () => {
-    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 2) * 100000)
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 1) * 100000)
     const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
     await addLiquidity(expandTo18Decimals(1e9), quoteReserve)
     const price = await pair.basePrice()
-    expect(ethers.BigNumber.from('999968377554319')).to.eq(price)
+    expect(ethers.BigNumber.from('37448234096610180')).to.eq(price)
   })
 
   it('quotePrice:', async () => {
-    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 2) * 100000)
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 1) * 100000)
     const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
     await addLiquidity(expandTo18Decimals(1e9), quoteReserve)
     const price = await pair.quotePrice()
-    expect(ethers.BigNumber.from('969945308940930655108')).to.eq(price)
+    expect(ethers.BigNumber.from('26682781740841691307')).to.eq(price)
   })
 
   it('getBaseOut:', async () => {
-    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 2) * 100000)
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 1) * 100000)
     const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
     await addLiquidity(expandTo18Decimals(1e9), quoteReserve)
     const quoteIn = expandTo18Decimals(1)
@@ -260,7 +258,7 @@ describe('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
   })
 
   it('getQuoteOut:', async () => {
-    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 2) * 100000)
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 1) * 100000)
     const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
     await addLiquidity(expandTo18Decimals(1e9), quoteReserve)
     const baseIn = expandTo18Decimals(1)
@@ -271,7 +269,7 @@ describe('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
   it('swap: quote for base and back to quote', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     // price 1
-    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 2) * 100000)
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 1) * 100000)
     const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
     const baseReturned = ethers.BigNumber.from('31622821622821622821622')
     await addLiquidity(baseSupply, quoteReserve)
@@ -323,7 +321,7 @@ describe('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
   it('withdrawPlatformFees:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     // price 1
-    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 2) * 100000)
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 1) * 100000)
     const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
     const baseReturned = ethers.BigNumber.from('31622821622821622821622')
     await addLiquidity(baseSupply, quoteReserve)
@@ -383,7 +381,7 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 3', () => {
   it('withdrawPlatformFees:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     // price 1
-    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 2) * 100000)
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1e6, 1) * 100000)
     const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
     const baseReturned = expandTo18Decimals(1)
     await addLiquidity(baseSupply, quoteReserve)

@@ -372,20 +372,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         // Cases for 0 supply,with differing examples between research, bancor v1, bancor v2
         // given quote reserve = b, reserve ratio = r, slope = m, find supply s
 
-        // DAOfi: use linear approximation:
-        // b = (m / 2) * (s^2)
-        // s = sqrt(b / (m / 2))
-
-        // See also: s = (b / rm)^r
-        // Note: does not appear to work with latest bancor formula
-        // DAOfi approximation: s = (b / rm)
+        // s = (b / rm)^r
         // https://blog.relevant.community/bonding-curves-in-depth-intuition-parametrization-d3905a681e0a
-
-        // See also for comparison: s = b / r
-        // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquid-token/LiquidTokenConverter.sol#L148
-
-        // See also for comparison: s = b
-        // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L512
         amountQuoteIn = _convert(quoteToken, amountQuoteIn, INTERNAL_DECIMALS, true);
         if (supply == 0) {
             // Handle amounts as internal decimals then convert back to token decimals before returning
@@ -415,6 +403,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 false
             );
         }
+        console.log("amountBaseOut: %s", amountBaseOut);
     }
 
     /**
@@ -446,5 +435,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 false
             );
         }
+        console.log("amountQuoteOut: %s", amountQuoteOut);
     }
 }
