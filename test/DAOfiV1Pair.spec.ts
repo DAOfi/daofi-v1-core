@@ -90,7 +90,7 @@ describe.only('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
   it('withdraw:', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     const quoteReserve = expandToDecimals(5, 17) // price 1
-    const expectedBaseOutput = ethers.BigNumber.from('1000000000000000000')
+    const expectedBaseOutput = ethers.BigNumber.from('995443602000000000')
     const expectedBaseReserve = baseSupply.sub(expectedBaseOutput)
 
     await tokenBase.transfer(pair.address, baseSupply)
@@ -136,7 +136,7 @@ describe.only('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
     expect(ethers.BigNumber.from('500000000000000000')).to.eq(quoteOut)
   })
 
-  it('swap: quote for base and back to quote', async () => {
+  it.only('swap: quote for base and back to quote', async () => {
     const baseSupply = expandTo18Decimals(1e9)
     const quoteReserve = expandToDecimals(5, 17) // price 1
     const baseReturned = expandTo18Decimals(1)

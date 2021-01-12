@@ -108,7 +108,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         uint8 decimals = IERC20(token).decimals();
         uint256 diff = 0;
         uint256 factor = 0;
-        console.log("converted in: %s", amount);
         converted = amount;
         if (decimals > resolution) {
             diff = uint256(decimals.sub(resolution));
@@ -127,7 +126,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 converted = amount.div(factor);
             }
         }
-        console.log("converted out: %s", converted);
     }
 
     /**
@@ -193,7 +191,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         quoteToken = _quoteToken;
         pairOwner = _pairOwner;
         slopeNumerator = _slopeNumerator;
-        console.log("slopeNumerator: %s", slopeNumerator);
         n = _n;
         fee = _fee;
         supply = 0;
@@ -227,7 +224,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         // this function is locked and the contract can not reset reserves
         deposited = true;
         if (reserveQuote > 0) {
-            // set initial supply from quoteReserve
+            // set initial supply from reserveQuote
             supply = amountBaseOut = getBaseOut(reserveQuote);
             if (amountBaseOut > 0) {
                 _safeTransfer(baseToken, to, amountBaseOut);
@@ -389,23 +386,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
 
         // See also for comparison: s = b
         // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L512
-
-        console.log("amountQuoteIn: %s", amountQuoteIn);
         amountQuoteIn = _convert(quoteToken, amountQuoteIn, INTERNAL_DECIMALS, true);
         if (supply == 0) {
             // Handle amounts as internal decimals then convert back to token decimals before returning
-            console.log("bN: %s", amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()));
-            console.log("bD: %s", slopeNumerator.mul(reserveRatio));
-            console.log("eN: %s", reserveRatio);
-            console.log("eD: %s", _getFormula().MAX_WEIGHT());
             (uint256 result, uint8 precision) = _getFormula().power(
                 amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()),
                 slopeNumerator.mul(reserveRatio),
                 reserveRatio,
                 _getFormula().MAX_WEIGHT()
             );
-            console.log("result: %s", result);
-            console.log("precision: %s", precision);
             amountBaseOut = _convert(
                 baseToken,
                 result >> precision,
@@ -426,7 +415,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 false
             );
         }
-        console.log("amountBaseOut: %s", amountBaseOut);
     }
 
     /**
@@ -442,20 +430,21 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
-        // Handle amounts as internal decimals then convert back to token decimals before returning
-        amountBaseIn = _convert(baseToken, amountBaseIn, INTERNAL_DECIMALS, true);
-        console.log("amountBaseIn: %s", amountBaseIn);
-        amountQuoteOut = _convert(
-            quoteToken,
-            _getFormula().saleTargetAmount(
-                _convert(baseToken, supply, INTERNAL_DECIMALS, true),
-                _convert(quoteToken, reserveQuote, INTERNAL_DECIMALS, true),
-                reserveRatio,
-                amountBaseIn
-            ),
-            INTERNAL_DECIMALS,
-            false
-        );
-        console.log("amountQuoteOut: %s", amountQuoteOut);
+        if (amountBaseIn >= supply) {
+            amountQuoteOut = reserveQuote;
+        } else {
+            amountBaseIn = _convert(baseToken, amountBaseIn, INTERNAL_DECIMALS, true);
+            amountQuoteOut = _convert(
+                quoteToken,
+                _getFormula().saleTargetAmount(
+                    _convert(baseToken, supply, INTERNAL_DECIMALS, true),
+                    _convert(quoteToken, reserveQuote, INTERNAL_DECIMALS, true),
+                    reserveRatio,
+                    amountBaseIn
+                ),
+                INTERNAL_DECIMALS,
+                false
+            );
+        }
     }
 }
