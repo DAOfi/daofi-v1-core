@@ -14,7 +14,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
 
     uint32 private constant SLOPE_DENOM = 1000000;
     uint32 private constant MAX_N = 1;
-    uint8 private constant INTERNAL_DECIMALS = 18;
+    uint8 private constant INITIAL_DECIMALS = 4;
+    uint8 private constant INTERNAL_DECIMALS = 8;
     uint8 public constant MAX_FEE = 10; // 1%
     uint8 public constant override PLATFORM_FEE = 1; // 0.1%
     address public constant PLATFORM = 0x31b2d5f134De0A737360693Ed5D5Bd42b705bCa2;
@@ -313,7 +314,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         uint256 amountInSubOwnerFee = amountIn.mul(1000 - fee) / 1000;
         uint256 amountInSubPlatformFee = amountIn.mul(1000 - PLATFORM_FEE) / 1000;
         uint256 amountInSubFees = amountIn.mul(1000 - (fee + PLATFORM_FEE)) / 1000;
-        console.log("amountInSubFees: %s", amountInSubFees);
         // Check that inputs equal output
         // handle quote to base
         if (tokenOut == baseToken) {
@@ -374,29 +374,22 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
 
         // s = (b / rm)^r
         // https://blog.relevant.community/bonding-curves-in-depth-intuition-parametrization-d3905a681e0a
-        amountQuoteIn = _convert(quoteToken, amountQuoteIn, INTERNAL_DECIMALS, true);
+
         if (supply == 0) {
             // Handle amounts as internal decimals then convert back to token decimals before returning
+            amountQuoteIn = _convert(quoteToken, amountQuoteIn, INITIAL_DECIMALS, true);
             (uint256 result, uint8 precision) = _getFormula().power(
                 amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()),
                 slopeNumerator.mul(reserveRatio),
                 reserveRatio,
                 _getFormula().MAX_WEIGHT()
             );
-            console.log("bN: %s", amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()));
-            console.log("bD: %s", slopeNumerator.mul(reserveRatio));
-            console.log("eN: %s", reserveRatio);
-            console.log("eD: %s",  _getFormula().MAX_WEIGHT());
-            console.log("result: %s", result);
-            console.log("precision: %s", precision);
-            console.log("result >> precision: %s", result >> precision);
             amountBaseOut = _convert(
                 baseToken,
                 result >> precision,
-                INTERNAL_DECIMALS >> 1,
+                INITIAL_DECIMALS >> 1,
                 false
             );
-            console.log("amount base out: %s", amountBaseOut);
         } else {
             amountQuoteIn = _convert(quoteToken, amountQuoteIn, INTERNAL_DECIMALS, true);
             amountBaseOut = _convert(
@@ -411,7 +404,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 false
             );
         }
-
     }
 
     /**
@@ -443,6 +435,5 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 false
             );
         }
-        console.log("amountQuoteOut: %s", amountQuoteOut);
     }
 }
