@@ -3,8 +3,8 @@ async function main() {
   const maxS: number = 1000000
   // adjust these params for your curve
   const startingPrice: number = 1.00
-  const slopeN: number = 1e3 // 1 - 1e3
-  const slopeD: number = 1e3 // don't change
+  const slopeN: number = 1e6 // 1 - 1e6
+  const slopeD: number = 1e6 // don't change
   const n: number = 1 // 1 - 10
 
   // quote price y = m(base sold x)^n
@@ -28,5 +28,3 @@ main()
     console.error(error)
     process.exit(1)
   });
-
-

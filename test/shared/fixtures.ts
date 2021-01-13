@@ -13,6 +13,7 @@ interface FactoryFixture {
 export async function factoryFixture(wallet: SignerWithAddress): Promise<FactoryFixture> {
   // deploy formula
   const formula = await deployContract(wallet, BancorFormula as any) //waffle doesn't like the type from truffle
+  await formula.init()
   const Factory = await ethers.getContractFactory("DAOfiV1Factory")
   const factory = await Factory.deploy(formula.address)
   return { factory, formula }
@@ -26,7 +27,7 @@ interface PairFixture extends FactoryFixture {
 
 export async function pairFixture(
   wallet: SignerWithAddress,
-  slopeNumerator: number = 1e3,
+  slopeNumerator: number = 1e6,
   n: number = 1,
   fee: number = 0
 ): Promise<PairFixture> {

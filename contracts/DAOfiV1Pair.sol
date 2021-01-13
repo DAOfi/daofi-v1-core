@@ -3,18 +3,19 @@ pragma solidity =0.7.4;
 pragma experimental ABIEncoderV2;
 
 import '@daofi/bancor/solidity/contracts/converter/interfaces/IBancorFormula.sol';
-// import 'hardhat/console.sol';
+import 'hardhat/console.sol';
 import './interfaces/IDAOfiV1Factory.sol';
 import './interfaces/IDAOfiV1Pair.sol';
 import './interfaces/IERC20.sol';
-import "./libraries/SafeMath.sol";
+import './libraries/SafeMath.sol';
 
 contract DAOfiV1Pair is IDAOfiV1Pair {
     using SafeMath for *;
 
-    uint32 private constant MAX_WEIGHT = 1000000;
-    uint32 private constant SLOPE_DENOM = 1000;
-    uint32 private constant MAX_N = 3;
+    uint32 private constant SLOPE_DENOM = 1000000;
+    uint32 private constant MAX_N = 1;
+    uint8 private constant INITIAL_DECIMALS = 4;
+    uint8 private constant INTERNAL_DECIMALS = 8;
     uint8 public constant MAX_FEE = 10; // 1%
     uint8 public constant override PLATFORM_FEE = 1; // 0.1%
     address public constant PLATFORM = 0x31b2d5f134De0A737360693Ed5D5Bd42b705bCa2;
@@ -26,7 +27,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * 1/2 corresponds to y = slope * x
     * 2/3 corresponds to y = slope * x^1/2
     *
-    * Note, we are specifically disallowing values > MAX_WEIGHT / 2 to force positive exponents
+    * Note: slope is determined by initial supply and we are specifically
+    * restricting reserveRatio <= MAX_WEIGHT / 2 to force integer exponents >= 1
     */
     uint32 public override reserveRatio;
     // slope = slopeNumerator / SLOPE_DENOM, this value is baked into the equations by the initial supply
@@ -54,7 +56,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     constructor() {
         factory = msg.sender;
-        reserveRatio = MAX_WEIGHT >> 1; // max weight / 2 for default curve y = x
+        reserveRatio = 500000; // max weight / 2 for default curve y = x
         slopeNumerator = SLOPE_DENOM;
         n = 1;
         fee = 0;
@@ -91,6 +93,40 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function _getFormula() private view returns (IBancorFormula) {
         return IBancorFormula(IDAOfiV1Factory(factory).formula());
+    }
+
+    /**
+    * @dev Convert token amounts to and from internal decimal places
+    *
+    * @param token address for the token of the amount being converted
+    * @param amount the amount of token being converted
+    * @param resolution the number of decimal places to or from
+    * @param to boolean to indicate conversion to or from resolution
+    *
+    * @return converted amount after conversion
+    */
+    function _convert(address token, uint256 amount, uint8 resolution, bool to) private view returns (uint256 converted) {
+        uint8 decimals = IERC20(token).decimals();
+        uint256 diff = 0;
+        uint256 factor = 0;
+        converted = amount;
+        if (decimals > resolution) {
+            diff = uint256(decimals.sub(resolution));
+            factor = 10 ** diff;
+            if (to && amount >= factor) {
+                converted = amount.div(factor);
+            } else if (!to) {
+                converted = amount.mul(factor);
+            }
+        } else if (decimals < resolution) {
+            diff = uint256(resolution.sub(decimals));
+            factor = 10 ** diff;
+            if (to) {
+                converted = amount.mul(factor);
+            } else if (!to && amount >= factor) {
+                converted = amount.div(factor);
+            }
+        }
     }
 
     /**
@@ -159,7 +195,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         n = _n;
         fee = _fee;
         supply = 0;
-        reserveRatio = uint32(MAX_WEIGHT.div(n + 1));  // (1 / (n + 1)) * MAX_WEIGHT
+        reserveRatio = uint32(
+            _getFormula().MAX_WEIGHT().div(n + 1)
+        );  // (1 / (n + 1)) * MAX_WEIGHT
     }
 
     /**
@@ -187,7 +225,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         // this function is locked and the contract can not reset reserves
         deposited = true;
         if (reserveQuote > 0) {
-            // set initial supply from quoteReserve
+            // set initial supply from reserveQuote
             supply = amountBaseOut = getBaseOut(reserveQuote);
             if (amountBaseOut > 0) {
                 _safeTransfer(baseToken, to, amountBaseOut);
@@ -331,23 +369,40 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
-        // Case for 0 supply, differing examples between research, bancor v1, bancor v2
+        // Cases for 0 supply,with differing examples between research, bancor v1, bancor v2
+        // given quote reserve = b, reserve ratio = r, slope = m, find supply s
 
         // s = (b / rm)^r
         // https://blog.relevant.community/bonding-curves-in-depth-intuition-parametrization-d3905a681e0a
 
-        // s = b / r
-        // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquid-token/LiquidTokenConverter.sol#L148
-
-        // s = b
-        // https://github.com/DAOfi/bancor/blob/main/solidity/contracts/converter/types/liquidity-pool-v2/LiquidityPoolV2Converter.sol#L512
-
-        // s = b / rm
-        // experimental, works well for relatively small numbers
         if (supply == 0) {
-            amountBaseOut = amountQuoteIn.mul(SLOPE_DENOM).mul(MAX_WEIGHT).div(slopeNumerator.mul(reserveRatio));
+            // Handle amounts as internal decimals then convert back to token decimals before returning
+            amountQuoteIn = _convert(quoteToken, amountQuoteIn, INITIAL_DECIMALS, true);
+            (uint256 result, uint8 precision) = _getFormula().power(
+                amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()),
+                slopeNumerator.mul(reserveRatio),
+                reserveRatio,
+                _getFormula().MAX_WEIGHT()
+            );
+            amountBaseOut = _convert(
+                baseToken,
+                result >> precision,
+                INITIAL_DECIMALS >> 1,
+                false
+            );
         } else {
-            amountBaseOut = _getFormula().purchaseTargetAmount(supply, reserveQuote, reserveRatio, amountQuoteIn);
+            amountQuoteIn = _convert(quoteToken, amountQuoteIn, INTERNAL_DECIMALS, true);
+            amountBaseOut = _convert(
+                baseToken,
+                _getFormula().purchaseTargetAmount(
+                    _convert(baseToken, supply, INTERNAL_DECIMALS, true),
+                    _convert(quoteToken, reserveQuote, INTERNAL_DECIMALS, true),
+                    reserveRatio,
+                    amountQuoteIn
+                ),
+                INTERNAL_DECIMALS,
+                false
+            );
         }
     }
 
@@ -364,6 +419,21 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
         require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
-        amountQuoteOut = _getFormula().saleTargetAmount(supply, reserveQuote, reserveRatio, amountBaseIn);
+        if (amountBaseIn >= supply) {
+            amountQuoteOut = reserveQuote;
+        } else {
+            amountBaseIn = _convert(baseToken, amountBaseIn, INTERNAL_DECIMALS, true);
+            amountQuoteOut = _convert(
+                quoteToken,
+                _getFormula().saleTargetAmount(
+                    _convert(baseToken, supply, INTERNAL_DECIMALS, true),
+                    _convert(quoteToken, reserveQuote, INTERNAL_DECIMALS, true),
+                    reserveRatio,
+                    amountBaseIn
+                ),
+                INTERNAL_DECIMALS,
+                false
+            );
+        }
     }
 }

@@ -58,7 +58,7 @@ describe('DAOfiV1Factory', async () => {
   })
 
   it('createPair', async () => {
-    await createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], wallet.address, 1e3, 1, 0)
+    await createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], wallet.address, 1e6, 1, 0)
   })
 
   it('createPair:gas', async () => {
@@ -67,11 +67,11 @@ describe('DAOfiV1Factory', async () => {
       TEST_ADDRESSES[0],
       TEST_ADDRESSES[1],
       wallet.address,
-      1e3,
+      1e6,
       1,
       0
     )
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(3095483)
+    expect(receipt.gasUsed).to.eq(3432259)
   })
 })
