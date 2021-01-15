@@ -49,7 +49,8 @@
     "compile": "npx hardhat compile",
     "pretest": "yarn compile",
     "test": "npx hardhat test",
-    "prepublishOnly": "yarn test"
+    "prepublishOnly": "yarn test",
+    "deploy": "ts-node scripts/deploy.ts"
   },
   "license": "GPL-3.0-or-later"
 }
