@@ -292,7 +292,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             (tokenIn == baseToken && tokenOut == quoteToken) || (tokenOut == baseToken && tokenIn == quoteToken),
             'DAOfiV1: INCORRECT_TOKENS'
         );
-        require(to != baseToken && to != quoteToken, 'DAOfiV1: INVALID_TO');
+        require(to != baseToken && to != quoteToken && to != address(0), 'DAOfiV1: INVALID_TO');
         require(amountOut > 0 && amountIn > 0, 'DAOfiV1: INSUFFICIENT_IO_AMOUNT');
         _safeTransfer(tokenOut, to, amountOut); // optimistically transfer tokens
         uint256 balanceIn;
