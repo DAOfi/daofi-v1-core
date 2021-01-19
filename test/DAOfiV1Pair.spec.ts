@@ -185,6 +185,58 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
       (await tokenQuote.totalSupply()).sub(quoteReserve).sub(quoteAmountIn).add(quoteAmountOut)
     )
   })
+
+  it.only('swap: same amount twice', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    const quoteReserve = expandToDecimals(0, 1) // price 1
+    const baseReturned = ethers.BigNumber.from('990000000000000000')
+    await addLiquidity(baseSupply, quoteReserve)
+    // account for platform fee
+    const quoteAmountIn = expandTo18Decimals(1)
+    const quoteAmountInWithFee = ethers.BigNumber.from('999000000000000000')
+    let baseAmountOut = await pair.getBaseOut(quoteAmountInWithFee)
+    // transfer and swap
+    await tokenQuote.transfer(pair.address, quoteAmountIn)
+    await expect(pair.swap(tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut, wallet.address))
+      .to.emit(tokenBase, 'Transfer')
+      .withArgs(pair.address, wallet.address, baseAmountOut)
+      .to.emit(pair, 'Swap')
+      .withArgs(pair.address, wallet.address, tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut, wallet.address)
+    // check reserves at point A
+    let reservesA = await pair.getReserves()
+    // expect(reservesA[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned))
+    // expect(reservesA[1]).to.eq(quoteAmountInWithFee.add(quoteReserve))
+    // // reserves + fees
+    // expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned))
+    // expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn.add(quoteReserve))
+    // // wallet balances
+    // expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseAmountOut.add(baseReturned))
+    // expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteReserve).sub(quoteAmountIn))
+
+
+
+    // transfer and swap same amount again
+    baseAmountOut = await pair.getBaseOut(quoteAmountInWithFee)
+    await tokenQuote.transfer(pair.address, quoteAmountIn)
+    // let address = "0x0";
+    // console.log(ethers.utils.getAddress(address))
+    // return
+    await expect(pair.swap(tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut, wallet.address))
+      .to.emit(tokenBase, 'Transfer')
+      .withArgs(pair.address, wallet.address, baseAmountOut)
+      .to.emit(pair, 'Swap')
+      .withArgs(pair.address, wallet.address, tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut, wallet.address)
+    // check reserves at point A
+    reservesA = await pair.getReserves()
+    // expect(reservesA[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned))
+    // expect(reservesA[1]).to.eq(quoteAmountInWithFee.add(quoteReserve))
+    // // reserves + fees
+    // expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned))
+    // expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn.add(quoteReserve))
+    // // wallet balances
+    // expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseAmountOut.add(baseReturned))
+    // expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteReserve).sub(quoteAmountIn))    
+  })
 })
 
 describe('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
