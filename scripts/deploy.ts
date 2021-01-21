@@ -1,19 +1,29 @@
-import { ethers } from 'ethers'
+import BancorFormula from '@daofi/bancor/solidity/build/contracts/BancorFormula.json'
+ import { ethers } from 'hardhat'
 import { deployContract } from 'ethereum-waffle'
 import DAOfiV1Factory from '../build/contracts/DAOfiV1Factory.sol/DAOfiV1Factory.json'
 
 async function main() {
   const provider = new ethers.providers.JsonRpcProvider(
-    process.env.JSONRPC_URL || 'https://sokol.poa.network'
+    process.env.JSONRPC_URL || 'https://kovan.poa.network'
   )
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY || '', provider)
   console.log('wallet', wallet.address)
+  const formula = await deployContract(
+    wallet,
+    BancorFormula as any, [], {
+      chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 0x2a,
+      gasLimit: 9999999,
+      gasPrice: ethers.utils.parseUnits('120', 'gwei')
+    }
+  )
+  console.log('deployed formula', formula.address)
   const factory = await deployContract(
     wallet,
     DAOfiV1Factory,
-    ['0x3d9a79e02C35A8867222Bc69FfA9CcA59D23041c'],
+    [formula.adress],
     {
-      chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 0x4d,
+      chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 0x2a,
       gasLimit: 9999999,
       gasPrice: ethers.utils.parseUnits('120', 'gwei')
     }
