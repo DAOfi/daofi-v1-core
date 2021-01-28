@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 import { ethers } from 'hardhat'
 import { getReserveForStartPrice, expandTo18Decimals, expandToDecimals } from './shared/utilities'
-import { pairFixture } from './shared/fixtures'
+import { pairFixture, factoryFixture } from './shared/fixtures'
 
 const zero = ethers.BigNumber.from(0)
 
@@ -19,6 +19,56 @@ async function addLiquidity(baseAmount: BigNumber, quoteAmount: BigNumber) {
   if (quoteAmount.gt(zero)) await tokenQuote.transfer(pair.address, quoteAmount)
   await pair.deposit(wallet.address)
 }
+
+describe.only('DAOfiV1Pair: reverts', () => {
+  beforeEach(async () => {
+    const Token = await ethers.getContractFactory("ERC20")
+    wallet = (await ethers.getSigners())[0]
+    const fixture = await factoryFixture(wallet)
+    factory = fixture.factory
+    formula = fixture.formula
+    tokenBase = await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
+    tokenQuote =  await Token.deploy(ethers.BigNumber.from('0x033b2e3c9fd0803ce8000000')) // 1e9 tokens
+  })
+
+  it('initialize:', async () => {
+    const Pair = await ethers.getContractFactory("DAOfiV1Pair")
+    const wallet2 = (await ethers.getSigners())[1]
+    pair = await Pair.deploy()
+    // factory is the initial wallet in this case, switch wallet to test restriction
+    await pair.connect(wallet2)
+    await expect(pair.initialize(
+      wallet2.address,
+      tokenBase.address,
+      tokenQuote.address,
+      wallet2.address,
+      1e6,
+      1,
+      0
+    )).to.be.reverted // DAOfiV1: FORBIDDEN
+    // switch back to wallet1
+    await pair.connect(wallet)
+    // invalid numerator
+    await expect(pair.initialize(
+      wallet.address,
+      tokenBase.address,
+      tokenQuote.address,
+      wallet.address,
+      0,
+      1,
+      0
+    )).to.be.reverted // DAOfiV1: INVALID_SLOPE_NUMERATOR
+    await expect(pair.initialize(
+      wallet.address,
+      tokenBase.address,
+      tokenQuote.address,
+      wallet.address,
+      1e6 + 1,
+      1,
+      0
+    )).to.be.reverted // DAOfiV1: INVALID_SLOPE_NUMERATOR
+  })
+})
 
 describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
   beforeEach(async () => {
