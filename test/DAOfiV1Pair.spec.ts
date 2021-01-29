@@ -145,7 +145,10 @@ describe.only('DAOfiV1Pair: reverts', () => {
   })
 
   it('swap:', async () => {
-    pair = (await pairFixture(wallet, 1e6, 1, 0)).pair
+    const fixture = await pairFixture(wallet, 1e6, 1, 0)
+    pair = fixture.pair
+    tokenBase = fixture.tokenBase
+    tokenQuote = fixture.tokenQuote
     // not deposited
     await expect(pair.swap(
       tokenQuote.address,
@@ -155,7 +158,45 @@ describe.only('DAOfiV1Pair: reverts', () => {
       wallet.address
     )).to.be.revertedWith('DAOfiV1: UNINITIALIZED_SWAP')
     // successfull deposit
-    // await pair.deposit(wallet.address)
+    await pair.deposit(wallet.address)
+    // invalid token
+    await expect(pair.swap(
+      pair.address,
+      tokenBase.address,
+      expandTo18Decimals(1),
+      ethers.BigNumber.from('9900000000000000000'),
+      wallet.address
+    )).to.be.revertedWith('DAOfiV1: INCORRECT_TOKENS')
+    // invalid to
+    await expect(pair.swap(
+      tokenQuote.address,
+      tokenBase.address,
+      expandTo18Decimals(1),
+      ethers.BigNumber.from('9900000000000000000'),
+      tokenBase.address
+    )).to.be.revertedWith('DAOfiV1: INVALID_TO')
+    await expect(pair.swap(
+      tokenQuote.address,
+      tokenBase.address,
+      expandTo18Decimals(1),
+      ethers.BigNumber.from('9900000000000000000'),
+      tokenQuote.address
+    )).to.be.revertedWith('DAOfiV1: INVALID_TO')
+    // amount in / out
+    await expect(pair.swap(
+      tokenQuote.address,
+      tokenBase.address,
+      expandTo18Decimals(0),
+      ethers.BigNumber.from('9900000000000000000'),
+      wallet.address
+    )).to.be.revertedWith('DAOfiV1: INSUFFICIENT_IO_AMOUNT')
+    await expect(pair.swap(
+      tokenQuote.address,
+      tokenBase.address,
+      expandTo18Decimals(1),
+      ethers.BigNumber.from('0'),
+      wallet.address
+    )).to.be.revertedWith('DAOfiV1: INSUFFICIENT_IO_AMOUNT')
   })
 })
 
