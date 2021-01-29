@@ -36,7 +36,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
     const wallet2 = (await ethers.getSigners())[1]
     pair = await Pair.deploy()
     // factory is the initial wallet in this case, switch wallet to test restriction
-    await pair.connect(wallet2)
+    pair = await pair.connect(wallet2)
     await expect(pair.initialize(
       wallet2.address,
       tokenBase.address,
@@ -47,7 +47,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
       0
     )).to.be.reverted // DAOfiV1: FORBIDDEN
     // switch back to wallet1
-    await pair.connect(wallet)
+    pair = await pair.connect(wallet)
     // invalid slope
     await expect(pair.initialize(
       wallet.address,
@@ -96,6 +96,15 @@ describe.only('DAOfiV1Pair: reverts', () => {
       1,
       11
     )).to.be.reverted // DAOfiV1: INVALID_FEE
+  })
+
+  it('setPairOwner:', async () => {
+    const wallet2 = (await ethers.getSigners())[1]
+    const wallet3 = (await ethers.getSigners())[2]
+    pair = (await pairFixture(wallet, 1e6, 1, 0)).pair
+    // owner is the initial wallet in this case, switch wallet to test restriction
+    pair = await pair.connect(wallet2)
+    await expect(pair.setPairOwner(wallet3.address)).to.be.revertedWith('DAOfiV1: FORBIDDEN_PAIR_OWNER')
   })
 })
 
