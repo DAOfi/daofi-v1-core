@@ -13,6 +13,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     using SafeMath for *;
 
     uint32 private constant SLOPE_DENOM = 1000000;
+    uint32 private constant SLOPE_NUMER_LIMIT = SLOPE_DENOM * 100;
     uint32 private constant MAX_N = 1;
     uint8 private constant INITIAL_DECIMALS = 4;
     uint8 private constant INTERNAL_DECIMALS = 8;
@@ -184,7 +185,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         uint32 _fee
     ) external override {
         require(msg.sender == factory, 'DAOfiV1: FORBIDDEN');
-        require(_slopeNumerator > 0 && _slopeNumerator <= SLOPE_DENOM * 100, 'DAOfiV1: INVALID_SLOPE_NUMERATOR');
+        require(_slopeNumerator > 0 && _slopeNumerator <= SLOPE_NUMER_LIMIT, 'DAOfiV1: INVALID_SLOPE_NUMERATOR');
         require(_n > 0 && _n <= MAX_N, 'DAOfiV1: INVALID_N');
         require(_fee <= MAX_FEE, 'DAOfiV1: INVALID_FEE');
         router = _router;
