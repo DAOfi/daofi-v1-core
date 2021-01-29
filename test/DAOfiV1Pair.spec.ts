@@ -143,6 +143,20 @@ describe.only('DAOfiV1Pair: reverts', () => {
     pair = (await pairFixture(wallet, 1e6, 1, 0)).pair
     await expect(pair.withdrawPlatformFees(wallet.address)).to.be.revertedWith('DAOfiV1: FORBIDDEN_WITHDRAW')
   })
+
+  it('swap:', async () => {
+    pair = (await pairFixture(wallet, 1e6, 1, 0)).pair
+    // not deposited
+    await expect(pair.swap(
+      tokenQuote.address,
+      tokenBase.address,
+      expandTo18Decimals(1),
+      ethers.BigNumber.from('9900000000000000000'),
+      wallet.address
+    )).to.be.revertedWith('DAOfiV1: UNINITIALIZED_SWAP')
+    // successfull deposit
+    // await pair.deposit(wallet.address)
+  })
 })
 
 describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
