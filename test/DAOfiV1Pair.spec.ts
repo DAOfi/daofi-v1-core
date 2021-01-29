@@ -20,7 +20,7 @@ async function addLiquidity(baseAmount: BigNumber, quoteAmount: BigNumber) {
   await pair.deposit(wallet.address)
 }
 
-describe.only('DAOfiV1Pair: reverts', () => {
+describe('DAOfiV1Pair: reverts', () => {
   beforeEach(async () => {
     const Token = await ethers.getContractFactory("ERC20")
     wallet = (await ethers.getSigners())[0]
@@ -144,7 +144,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
     await expect(pair.withdrawPlatformFees(wallet.address)).to.be.revertedWith('DAOfiV1: FORBIDDEN_WITHDRAW')
   })
 
-  it('swap:', async () => {
+  it('swap: initial requires', async () => {
     const fixture = await pairFixture(wallet, 1e6, 1, 0)
     pair = fixture.pair
     tokenBase = fixture.tokenBase
@@ -154,7 +154,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
       tokenQuote.address,
       tokenBase.address,
       expandTo18Decimals(1),
-      ethers.BigNumber.from('9900000000000000000'),
+      ethers.BigNumber.from('99306510000000000'),
       wallet.address
     )).to.be.revertedWith('DAOfiV1: UNINITIALIZED_SWAP')
     // successfull deposit
@@ -164,7 +164,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
       pair.address,
       tokenBase.address,
       expandTo18Decimals(1),
-      ethers.BigNumber.from('9900000000000000000'),
+      ethers.BigNumber.from('99306510000000000'),
       wallet.address
     )).to.be.revertedWith('DAOfiV1: INCORRECT_TOKENS')
     // invalid to
@@ -172,31 +172,81 @@ describe.only('DAOfiV1Pair: reverts', () => {
       tokenQuote.address,
       tokenBase.address,
       expandTo18Decimals(1),
-      ethers.BigNumber.from('9900000000000000000'),
+      ethers.BigNumber.from('99306510000000000'),
       tokenBase.address
     )).to.be.revertedWith('DAOfiV1: INVALID_TO')
     await expect(pair.swap(
       tokenQuote.address,
       tokenBase.address,
       expandTo18Decimals(1),
-      ethers.BigNumber.from('9900000000000000000'),
+      ethers.BigNumber.from('99306510000000000'),
       tokenQuote.address
     )).to.be.revertedWith('DAOfiV1: INVALID_TO')
     // amount in / out
     await expect(pair.swap(
       tokenQuote.address,
       tokenBase.address,
-      expandTo18Decimals(0),
-      ethers.BigNumber.from('9900000000000000000'),
+      zero,
+      ethers.BigNumber.from('99306510000000000'),
       wallet.address
     )).to.be.revertedWith('DAOfiV1: INSUFFICIENT_IO_AMOUNT')
     await expect(pair.swap(
       tokenQuote.address,
       tokenBase.address,
       expandTo18Decimals(1),
-      ethers.BigNumber.from('0'),
+      zero,
       wallet.address
     )).to.be.revertedWith('DAOfiV1: INSUFFICIENT_IO_AMOUNT')
+  })
+
+  it('swap: amount requires', async () => {
+    const fixture = await pairFixture(wallet, 1e6, 1, 0)
+    pair = fixture.pair
+    tokenBase = fixture.tokenBase
+    tokenQuote = fixture.tokenQuote
+    await addLiquidity(expandTo18Decimals(1e3), expandTo18Decimals(50))
+    // input not sent to contract
+    await expect(pair.swap(
+      tokenQuote.address,
+      tokenBase.address,
+      expandTo18Decimals(1),
+      ethers.BigNumber.from('99306510000000000'),
+      wallet.address
+    )).to.be.revertedWith('DAOfiV1: INCORRECT_INPUT_AMOUNT')
+    // transfer input to contract
+    await tokenQuote.transfer(pair.address, expandTo18Decimals(1))
+    // invalid base output
+    await expect(pair.swap(
+      tokenQuote.address,
+      tokenBase.address,
+      expandTo18Decimals(1),
+      ethers.BigNumber.from('9900000000000000000'),
+      wallet.address
+    )).to.be.revertedWith('DAOfiV1: INVALID_BASE_OUTPUT')
+  })
+
+  it('basePrice:', async () => {
+    const fixture = await pairFixture(wallet, 1e6, 1, 0)
+    pair = fixture.pair
+    await expect(pair.basePrice()).to.be.revertedWith('DAOfiV1: UNINITIALIZED_BASE_PRICE')
+  })
+
+  it('quotePrice:', async () => {
+    const fixture = await pairFixture(wallet, 1e6, 1, 0)
+    pair = fixture.pair
+    await expect(pair.quotePrice()).to.be.revertedWith('DAOfiV1: UNINITIALIZED_QUOTE_PRICE')
+  })
+
+  it('getBaseOut:', async () => {
+    const fixture = await pairFixture(wallet, 1e6, 1, 0)
+    pair = fixture.pair
+    await expect(pair.getBaseOut(expandTo18Decimals(1))).to.be.revertedWith('DAOfiV1: UNINITIALIZED_BASE_OUT')
+  })
+
+  it('getQuoteOut:', async () => {
+    const fixture = await pairFixture(wallet, 1e6, 1, 0)
+    pair = fixture.pair
+    await expect(pair.getQuoteOut(expandTo18Decimals(1))).to.be.revertedWith('DAOfiV1: UNINITIALIZED_QUOTE_OUT')
   })
 })
 

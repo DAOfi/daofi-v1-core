@@ -369,7 +369,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @return amountBaseOut amount of base token returned
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
-        require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
+        require(deposited, 'DAOfiV1: UNINITIALIZED_BASE_OUT');
         // Cases for 0 supply,with differing examples between research, bancor v1, bancor v2
         // given quote reserve = b, reserve ratio = r, slope = m, find supply s
 
@@ -419,7 +419,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @return amountQuoteOut amount of quote token returned
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
-        require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
+        require(deposited, 'DAOfiV1: UNINITIALIZED_QUOTE_OUT');
         if (amountBaseIn >= supply) {
             amountQuoteOut = reserveQuote;
         } else {
