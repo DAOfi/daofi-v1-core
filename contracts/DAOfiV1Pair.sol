@@ -377,8 +377,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         // https://blog.relevant.community/bonding-curves-in-depth-intuition-parametrization-d3905a681e0a
         if (supply == 0) {
             // Handle amounts as internal decimals then convert back to token decimals before returning
-            uint8 decimals = SafeMath.decimalLength(amountQuoteIn) % 2 == 0 ? INITIAL_DECIMALS : INITIAL_DECIMALS + 1;
-            amountQuoteIn = _convert(quoteToken, amountQuoteIn, decimals, true);
+            amountQuoteIn = _convert(quoteToken, amountQuoteIn, INITIAL_DECIMALS, true);
             (uint256 result, uint8 precision) = _getFormula().power(
                 amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()),
                 slopeNumerator.mul(reserveRatio),
@@ -388,7 +387,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             amountBaseOut = _convert(
                 baseToken,
                 result >> precision,
-                decimals >> 1,
+                INITIAL_DECIMALS >> 1,
                 false
             );
         } else {
