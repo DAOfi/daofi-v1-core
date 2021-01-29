@@ -48,7 +48,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
     )).to.be.reverted // DAOfiV1: FORBIDDEN
     // switch back to wallet1
     await pair.connect(wallet)
-    // invalid numerator
+    // invalid slope
     await expect(pair.initialize(
       wallet.address,
       tokenBase.address,
@@ -67,6 +67,35 @@ describe.only('DAOfiV1Pair: reverts', () => {
       1,
       0
     )).to.be.reverted // DAOfiV1: INVALID_SLOPE_NUMERATOR
+    // invalid exponent
+    await expect(pair.initialize(
+      wallet.address,
+      tokenBase.address,
+      tokenQuote.address,
+      wallet.address,
+      1e6,
+      0,
+      0
+    )).to.be.reverted // DAOfiV1: INVALID_N
+    await expect(pair.initialize(
+      wallet.address,
+      tokenBase.address,
+      tokenQuote.address,
+      wallet.address,
+      1e6,
+      2,
+      0
+    )).to.be.reverted // DAOfiV1: INVALID_N
+    // invalid fee
+    await expect(pair.initialize(
+      wallet.address,
+      tokenBase.address,
+      tokenQuote.address,
+      wallet.address,
+      1e6,
+      1,
+      11
+    )).to.be.reverted // DAOfiV1: INVALID_FEE
   })
 })
 
