@@ -418,34 +418,33 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
 
   // supply, quote price
   const prices = [
-    ['0', '0'],
-    ['0', '0'],
-    ['0', '0'],
-    ['0', '0'],
-    ['0', '0'],
-    ['0', '0'],
-    ['0', '0'],
-    ['0', '0'],
-    ['0', '0'],
-    ['0', '0'],
+    ['9990000000000000000', '950900850000000000'],
+    ['8991000000000000000', '850800750000000000'],
+    ['7992000000000000000', '750700650000000000'],
+    ['6993000000000000000', '650600550000000000'],
+    ['5994000000000000000', '550500450000000000'],
+    ['4995000000000000000', '450400350000000000'],
+    ['3996000000000000000', '350300250000000000'],
+    ['2997000000000000000', '250200150000000000'],
+    ['1998000000000000000', '150100050000000000']
   ]
-  it.only('swap: verify price at supply', async () => {
+
+  it('swap: verify price at supply', async () => {
     const baseSupply = expandTo18Decimals(1e9)
-    const quoteReserve = expandTo18Decimals(5) // price 100
-    const baseReturned = ethers.BigNumber.from('990000000000000000')
+    const quoteReserve = expandTo18Decimals(5) // price 10
     await addLiquidity(baseSupply, quoteReserve)
     // account for platform fee
     const baseAmountIn = expandTo18Decimals(1)
     const baseAmountInWithFee = ethers.BigNumber.from('999000000000000000')
 
     for (let i = 0; i < prices.length; ++i) {
-      const price = ethers.BigNumber.from(prices[i][0])
-      const supply = ethers.BigNumber.from(prices[i][1])
+      const supply = ethers.BigNumber.from(prices[i][0])
+      const price = ethers.BigNumber.from(prices[i][1])
       // verify price
       const basePrice = await pair.basePrice()
-      console.log('basePrice:', basePrice.toString())
+      expect(price).to.eq(basePrice)
       const contractSupply = await pair.supply()
-      console.log('contractSupply:', contractSupply.toString())
+      expect(supply).to.eq(contractSupply)
       const quoteAmountOut = await pair.getQuoteOut(baseAmountInWithFee)
       // transfer and swap
       await tokenBase.transfer(pair.address, expandTo18Decimals(1))

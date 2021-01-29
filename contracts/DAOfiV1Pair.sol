@@ -379,7 +379,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             // Handle amounts as internal decimals then convert back to token decimals before returning
             uint8 decimals = SafeMath.decimalLength(amountQuoteIn) % 2 == 0 ? INITIAL_DECIMALS : INITIAL_DECIMALS + 1;
             amountQuoteIn = _convert(quoteToken, amountQuoteIn, decimals, true);
-            console.log("amountQuoteIn: %s", amountQuoteIn);
             (uint256 result, uint8 precision) = _getFormula().power(
                 amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()),
                 slopeNumerator.mul(reserveRatio),
@@ -406,7 +405,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 false
             );
         }
-        console.log("amountBaseOut: %s", amountBaseOut);
     }
 
     /**
