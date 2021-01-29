@@ -45,7 +45,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
       1e6,
       1,
       0
-    )).to.be.reverted // DAOfiV1: FORBIDDEN
+    )).to.be.revertedWith('DAOfiV1: FORBIDDEN')
     // switch back to wallet1
     pair = await pair.connect(wallet)
     // invalid slope
@@ -57,7 +57,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
       0,
       1,
       0
-    )).to.be.reverted // DAOfiV1: INVALID_SLOPE_NUMERATOR
+    )).to.be.revertedWith('DAOfiV1: INVALID_SLOPE_NUMERATOR')
     await expect(pair.initialize(
       wallet.address,
       tokenBase.address,
@@ -66,7 +66,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
       (1e6 * 100) + 1,
       1,
       0
-    )).to.be.reverted // DAOfiV1: INVALID_SLOPE_NUMERATOR
+    )).to.be.revertedWith('DAOfiV1: INVALID_SLOPE_NUMERATOR')
     // invalid exponent
     await expect(pair.initialize(
       wallet.address,
@@ -76,7 +76,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
       1e6,
       0,
       0
-    )).to.be.reverted // DAOfiV1: INVALID_N
+    )).to.be.revertedWith('DAOfiV1: INVALID_N')
     await expect(pair.initialize(
       wallet.address,
       tokenBase.address,
@@ -85,7 +85,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
       1e6,
       2,
       0
-    )).to.be.reverted // DAOfiV1: INVALID_N
+    )).to.be.revertedWith('DAOfiV1: INVALID_N')
     // invalid fee
     await expect(pair.initialize(
       wallet.address,
@@ -95,7 +95,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
       1e6,
       1,
       11
-    )).to.be.reverted // DAOfiV1: INVALID_FEE
+    )).to.be.revertedWith('DAOfiV1: INVALID_FEE')
   })
 
   it('setPairOwner:', async () => {
@@ -105,6 +105,21 @@ describe.only('DAOfiV1Pair: reverts', () => {
     // owner is the initial wallet in this case, switch wallet to test restriction
     pair = await pair.connect(wallet2)
     await expect(pair.setPairOwner(wallet3.address)).to.be.revertedWith('DAOfiV1: FORBIDDEN_PAIR_OWNER')
+  })
+
+  it('deposit:', async () => {
+    const wallet2 = (await ethers.getSigners())[1]
+    const wallet3 = (await ethers.getSigners())[2]
+    pair = (await pairFixture(wallet, 1e6, 1, 0)).pair
+    // router is the initial wallet in this case, switch wallet to test restriction
+    pair = await pair.connect(wallet2)
+    await expect(pair.deposit(wallet3.address)).to.be.revertedWith('DAOfiV1: FORBIDDEN_DEPOSIT')
+    // switch back to wallet1
+    pair = await pair.connect(wallet)
+    // successfull deposit
+    await pair.deposit(wallet.address)
+    // double deposit
+    await expect(pair.deposit(wallet.address)).to.be.revertedWith('DAOfiV1: DOUBLE_DEPOSIT')
   })
 })
 
