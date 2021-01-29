@@ -19,7 +19,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     uint8 private constant INTERNAL_DECIMALS = 8;
     uint8 public constant MAX_FEE = 10; // 1%
     uint8 public constant override PLATFORM_FEE = 1; // 0.1%
-    address public constant PLATFORM = 0x31b2d5f134De0A737360693Ed5D5Bd42b705bCa2;
+    address public constant PLATFORM = 0xAD10D4F9937D743cbEb1383B1D3A3AD15Ace75D6;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
     address public override factory;
     /**
@@ -375,10 +375,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
 
         // s = (b / rm)^r
         // https://blog.relevant.community/bonding-curves-in-depth-intuition-parametrization-d3905a681e0a
-
         if (supply == 0) {
             // Handle amounts as internal decimals then convert back to token decimals before returning
-            amountQuoteIn = _convert(quoteToken, amountQuoteIn, INITIAL_DECIMALS, true);
+            uint8 decimals = SafeMath.decimalLength(amountQuoteIn) % 2 == 0 ? INITIAL_DECIMALS : INITIAL_DECIMALS + 1;
+            amountQuoteIn = _convert(quoteToken, amountQuoteIn, decimals, true);
+            console.log("amountQuoteIn: %s", amountQuoteIn);
             (uint256 result, uint8 precision) = _getFormula().power(
                 amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()),
                 slopeNumerator.mul(reserveRatio),
@@ -388,7 +389,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             amountBaseOut = _convert(
                 baseToken,
                 result >> precision,
-                INITIAL_DECIMALS >> 1,
+                decimals >> 1,
                 false
             );
         } else {
@@ -405,6 +406,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 false
             );
         }
+        console.log("amountBaseOut: %s", amountBaseOut);
     }
 
     /**
