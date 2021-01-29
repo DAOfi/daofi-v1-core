@@ -121,6 +121,23 @@ describe.only('DAOfiV1Pair: reverts', () => {
     // double deposit
     await expect(pair.deposit(wallet.address)).to.be.revertedWith('DAOfiV1: DOUBLE_DEPOSIT')
   })
+
+  it('withdraw:', async () => {
+    const wallet2 = (await ethers.getSigners())[1]
+    const wallet3 = (await ethers.getSigners())[2]
+    pair = (await pairFixture(wallet, 1e6, 1, 0)).pair
+    // router is the initial wallet in this case, switch wallet to test restriction
+    pair = await pair.connect(wallet2)
+    await expect(pair.withdraw(wallet3.address)).to.be.revertedWith('DAOfiV1: FORBIDDEN_WITHDRAW')
+    // switch back to wallet1
+    pair = await pair.connect(wallet)
+    // not deposited
+    await expect(pair.withdraw(wallet.address)).to.be.revertedWith('DAOfiV1: UNINITIALIZED')
+    // successfull deposit
+    await pair.deposit(wallet.address)
+    // empty withdraw
+    await expect(pair.withdraw(wallet.address)).to.not.be.revertedWith('DAOfiV1: UNINITIALIZED')
+  })
 })
 
 describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
