@@ -63,7 +63,7 @@ describe.only('DAOfiV1Pair: reverts', () => {
       tokenBase.address,
       tokenQuote.address,
       wallet.address,
-      1e6 + 1,
+      (1e6 * 100) + 1,
       1,
       0
     )).to.be.reverted // DAOfiV1: INVALID_SLOPE_NUMERATOR

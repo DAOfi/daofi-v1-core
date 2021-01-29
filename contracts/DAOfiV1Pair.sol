@@ -184,7 +184,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         uint32 _fee
     ) external override {
         require(msg.sender == factory, 'DAOfiV1: FORBIDDEN');
-        require(_slopeNumerator > 0 && _slopeNumerator <= SLOPE_DENOM, 'DAOfiV1: INVALID_SLOPE_NUMERATOR');
+        require(_slopeNumerator > 0 && _slopeNumerator <= SLOPE_DENOM * 100, 'DAOfiV1: INVALID_SLOPE_NUMERATOR');
         require(_n > 0 && _n <= MAX_N, 'DAOfiV1: INVALID_N');
         require(_fee <= MAX_FEE, 'DAOfiV1: INVALID_FEE');
         router = _router;
