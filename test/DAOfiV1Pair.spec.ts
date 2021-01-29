@@ -138,6 +138,11 @@ describe.only('DAOfiV1Pair: reverts', () => {
     // empty withdraw
     await expect(pair.withdraw(wallet.address)).to.not.be.revertedWith('DAOfiV1: UNINITIALIZED')
   })
+
+  it('withdrawPlatformFees:', async () => {
+    pair = (await pairFixture(wallet, 1e6, 1, 0)).pair
+    await expect(pair.withdrawPlatformFees(wallet.address)).to.be.revertedWith('DAOfiV1: FORBIDDEN_WITHDRAW')
+  })
 })
 
 describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
