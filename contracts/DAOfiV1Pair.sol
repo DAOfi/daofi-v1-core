@@ -15,7 +15,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     uint32 private constant SLOPE_DENOM = 1000000;
     uint32 private constant SLOPE_NUMER_LIMIT = SLOPE_DENOM * 100;
     uint32 private constant MAX_N = 1;
-    uint8 private constant INITIAL_DECIMALS = 4;
     uint8 private constant INTERNAL_DECIMALS = 8;
     uint8 public constant MAX_FEE = 10; // 1%
     uint8 public constant override PLATFORM_FEE = 1; // 0.1%
@@ -377,7 +376,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         // https://blog.relevant.community/bonding-curves-in-depth-intuition-parametrization-d3905a681e0a
         if (supply == 0) {
             // Handle amounts as internal decimals then convert back to token decimals before returning
-            amountQuoteIn = _convert(quoteToken, amountQuoteIn, INITIAL_DECIMALS, true);
+            amountQuoteIn = _convert(quoteToken, amountQuoteIn, INTERNAL_DECIMALS, true);
             (uint256 result, uint8 precision) = _getFormula().power(
                 amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()),
                 slopeNumerator.mul(reserveRatio),
@@ -387,7 +386,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             amountBaseOut = _convert(
                 baseToken,
                 result >> precision,
-                INITIAL_DECIMALS >> 1,
+                INTERNAL_DECIMALS >> 1,
                 false
             );
         } else {
