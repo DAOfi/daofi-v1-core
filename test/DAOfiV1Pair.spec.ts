@@ -431,7 +431,7 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
 
   it('swap: verify price at supply', async () => {
     const baseSupply = expandTo18Decimals(1e9)
-    const quoteReserve = expandTo18Decimals(50) // price 10
+    const quoteReserve = expandTo18Decimals(50) // price 100
     await addLiquidity(baseSupply, quoteReserve)
     // account for platform fee
     const baseAmountIn = expandTo18Decimals(1)
@@ -582,6 +582,42 @@ describe('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
     expect(await tokenQuote.balanceOf(wallet.address)).to.eq(
       (await tokenQuote.totalSupply()).sub(quoteReserve).sub(quoteAmountIn).add(quoteAmountOut)
     )
+  })
+
+  // supply, base price
+  const prices = [
+    ['3161514300000000000000', '3162540000000000'],
+    ['3160515300000000000000', '3161540000000000'],
+    ['3159516300000000000000', '3160540000000000'],
+    ['3158517300000000000000', '3159540000000000'],
+    ['3157518300000000000000', '3158540000000000'],
+    ['3156519300000000000000', '3157540000000000'],
+    ['3155520300000000000000', '3156540000000000'],
+    ['3154521300000000000000', '3155540000000000'],
+    ['3153522300000000000000', '3154540000000000']
+  ]
+
+  it('swap: verify price at supply', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    const quoteReserve = expandTo18Decimals(5) // price 10
+    await addLiquidity(baseSupply, quoteReserve)
+    // account for platform fee
+    const baseAmountIn = expandTo18Decimals(1)
+    const baseAmountInWithFee = ethers.BigNumber.from('999000000000000000')
+
+    for (let i = 0; i < prices.length; ++i) {
+      const supply = ethers.BigNumber.from(prices[i][0])
+      const price = ethers.BigNumber.from(prices[i][1])
+      // verify price
+      const basePrice = await pair.basePrice()
+      expect(price).to.eq(basePrice)
+      const contractSupply = await pair.supply()
+      expect(supply).to.eq(contractSupply)
+      const quoteAmountOut = await pair.getQuoteOut(baseAmountInWithFee)
+      // transfer and swap
+      await tokenBase.transfer(pair.address, expandTo18Decimals(1))
+      await pair.swap(tokenBase.address, tokenQuote.address, baseAmountIn, quoteAmountOut, wallet.address)
+    }
   })
 
   it('withdrawPlatformFees:', async () => {
