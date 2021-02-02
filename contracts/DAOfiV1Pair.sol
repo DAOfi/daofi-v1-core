@@ -317,8 +317,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         // Check that inputs equal output
         // handle quote to base
         if (tokenOut == baseToken) {
-            console.log("swap quote in : %s", amountInSubFees);
-            console.log("swap base out: %s", getBaseOut(amountInSubFees));
             require(getBaseOut(amountInSubFees) == amountOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
             require(amountOut <= reserveBase, 'DAOfiV1: INSUFFICIENT_BASE_RESERVE');
             supply = supply.add(amountOut);
@@ -327,8 +325,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             feesQuoteOwner = feesQuoteOwner.add(amountIn).sub(amountInSubOwnerFee);
             feesQuotePlatform = feesQuotePlatform.add(amountIn).sub(amountInSubPlatformFee);
         } else if (tokenOut == quoteToken) {
-            console.log("swap base in : %s", amountInSubFees);
-            console.log("swap quote out: %s", getQuoteOut(amountInSubFees));
             require(getQuoteOut(amountInSubFees) == amountOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
             require(amountOut <= reserveQuote, 'DAOfiV1: INSUFFICIENT_QUOTE_RESERVE');
             supply = supply.sub(amountInSubFees);
@@ -407,7 +403,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 false
             );
         }
-        console.log("amount base out: %s", amountBaseOut);
     }
 
     /**
@@ -439,6 +434,5 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
                 false
             );
         }
-        console.log("amount quote out: %s", amountQuoteOut);
     }
 }
