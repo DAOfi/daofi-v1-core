@@ -13,12 +13,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     using SafeMath for *;
 
     uint32 private constant SLOPE_DENOM = 1000000;
+    uint32 private constant SLOPE_NUMER_LIMIT = SLOPE_DENOM * 100;
     uint32 private constant MAX_N = 1;
-    uint8 private constant INITIAL_DECIMALS = 4;
     uint8 private constant INTERNAL_DECIMALS = 8;
     uint8 public constant MAX_FEE = 10; // 1%
     uint8 public constant override PLATFORM_FEE = 1; // 0.1%
-    address public constant PLATFORM = 0x31b2d5f134De0A737360693Ed5D5Bd42b705bCa2;
+    address public constant PLATFORM = 0xAD10D4F9937D743cbEb1383B1D3A3AD15Ace75D6;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
     address public override factory;
     /**
@@ -184,7 +184,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         uint32 _fee
     ) external override {
         require(msg.sender == factory, 'DAOfiV1: FORBIDDEN');
-        require(_slopeNumerator > 0 && _slopeNumerator <= SLOPE_DENOM, 'DAOfiV1: INVALID_SLOPE_NUMERATOR');
+        require(_slopeNumerator > 0 && _slopeNumerator <= SLOPE_NUMER_LIMIT, 'DAOfiV1: INVALID_SLOPE_NUMERATOR');
         require(_n > 0 && _n <= MAX_N, 'DAOfiV1: INVALID_N');
         require(_fee <= MAX_FEE, 'DAOfiV1: INVALID_FEE');
         router = _router;
@@ -368,16 +368,15 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @return amountBaseOut amount of base token returned
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
-        require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
+        require(deposited, 'DAOfiV1: UNINITIALIZED_BASE_OUT');
         // Cases for 0 supply,with differing examples between research, bancor v1, bancor v2
         // given quote reserve = b, reserve ratio = r, slope = m, find supply s
 
         // s = (b / rm)^r
         // https://blog.relevant.community/bonding-curves-in-depth-intuition-parametrization-d3905a681e0a
-
         if (supply == 0) {
             // Handle amounts as internal decimals then convert back to token decimals before returning
-            amountQuoteIn = _convert(quoteToken, amountQuoteIn, INITIAL_DECIMALS, true);
+            amountQuoteIn = _convert(quoteToken, amountQuoteIn, INTERNAL_DECIMALS, true);
             (uint256 result, uint8 precision) = _getFormula().power(
                 amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()),
                 slopeNumerator.mul(reserveRatio),
@@ -387,7 +386,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             amountBaseOut = _convert(
                 baseToken,
                 result >> precision,
-                INITIAL_DECIMALS >> 1,
+                INTERNAL_DECIMALS >> 1,
                 false
             );
         } else {
@@ -418,7 +417,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @return amountQuoteOut amount of quote token returned
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
-        require(deposited, 'DAOfiV1Pair: UNINITIALIZED');
+        require(deposited, 'DAOfiV1: UNINITIALIZED_QUOTE_OUT');
         if (amountBaseIn >= supply) {
             amountQuoteOut = reserveQuote;
         } else {

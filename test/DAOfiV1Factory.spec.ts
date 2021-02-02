@@ -40,7 +40,8 @@ describe('DAOfiV1Factory', async () => {
         create2Address,
         ethers.BigNumber.from(1)
       )
-
+    await expect(factory.createPair(router, tokenBase, tokenBase, owner, slopeNumerator, n, fee)).to.be.reverted // DAOfiV1: IDENTICAL_ADDRESSES
+    await expect(factory.createPair(router, '0x0', tokenQuote, owner, slopeNumerator, n, fee)).to.be.reverted // DAOfiV1: ZERO_ADDRESS
     await expect(factory.createPair(router, tokenBase, tokenQuote, owner, slopeNumerator, n, fee)).to.be.reverted // DAOfiV1: PAIR_EXISTS
     expect(await factory.getPair(tokenBase, tokenQuote, slopeNumerator, n, fee)).to.eq(create2Address)
     expect(await factory.allPairs(0)).to.eq(create2Address)
@@ -72,6 +73,6 @@ describe('DAOfiV1Factory', async () => {
       0
     )
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(3432259)
+    expect(receipt.gasUsed).to.eq(3452138)
   })
 })
