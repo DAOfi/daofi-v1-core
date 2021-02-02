@@ -431,7 +431,9 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
 
   it('swap: verify price at supply', async () => {
     const baseSupply = expandTo18Decimals(1e9)
-    const quoteReserve = expandTo18Decimals(50) // price 100
+    // price 10
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(10, 1e6, 1) * 100000)
+    const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
     await addLiquidity(baseSupply, quoteReserve)
     // account for platform fee
     const baseAmountIn = expandTo18Decimals(1)
@@ -450,6 +452,215 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 0', () => {
       await tokenBase.transfer(pair.address, expandTo18Decimals(1))
       await pair.swap(tokenBase.address, tokenQuote.address, baseAmountIn, quoteAmountOut, wallet.address)
     }
+  })
+
+  it('withdrawPlatformFees:', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    // price 1
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1e6, 1) * 100000)
+    const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
+    await addLiquidity(baseSupply, quoteReserve)
+    // account for platform fee
+    const quoteAmountIn = expandTo18Decimals(1)
+    const quoteAmountInWithFee = ethers.BigNumber.from('999000000000000000')
+    const baseAmountOut = await pair.getBaseOut(quoteAmountInWithFee)
+    // transfer and swap
+    await tokenQuote.transfer(pair.address, quoteAmountIn)
+    await pair.swap(tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut, wallet.address)
+
+    // check platform quote fees
+    const fees = await pair.getPlatformFees()
+    expect(fees[1]).to.eq(quoteAmountIn.sub(quoteAmountInWithFee))
+  })
+})
+
+describe('DAOfiV1Pair: (y = 100x) m = 100, n = 1, fee = 0', () => {
+  beforeEach(async () => {
+    wallet = (await ethers.getSigners())[0]
+    const fixture = await pairFixture(wallet, 1e6 * 100, 1, 0)
+
+    factory = fixture.factory
+    formula = fixture.formula
+    tokenBase = fixture.tokenBase
+    tokenQuote = fixture.tokenQuote
+    pair = fixture.pair
+  })
+
+  // price in quote, expected base returned
+  const depositTestCases: any[][] = [
+    [1, '9900000000000000'],
+    [10, '100000000000000000'],
+  ]
+
+  // Deposit tests which return base:
+  depositTestCases.forEach((depositTestCase, i) => {
+    it(`deposit: ${i}`, async () => {
+      const [quotePrice, baseOut] = depositTestCase
+      const baseSupply = expandTo18Decimals(1e9)
+      const quoteReserveFloat = Math.ceil(getReserveForStartPrice(quotePrice, 1e8, 1) * 100000)
+      const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
+      const baseOutput = ethers.BigNumber.from(baseOut)
+      const expectedS = baseOutput
+      const expectedBaseReserve = baseSupply.sub(baseOutput)
+
+      await tokenBase.transfer(pair.address, baseSupply)
+      await tokenQuote.transfer(pair.address, quoteReserve)
+      await expect(pair.deposit(wallet.address))
+        .to.emit(pair, 'Deposit')
+        .withArgs(wallet.address, expectedBaseReserve, quoteReserve, baseOutput, wallet.address)
+      expect(await pair.supply()).to.eq(expectedS)
+      expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseOutput)
+      expect(await tokenBase.balanceOf(pair.address)).to.eq(expectedBaseReserve)
+      expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteReserve)
+
+      const reserves = await pair.getReserves()
+      expect(reserves[0]).to.eq(expectedBaseReserve)
+      expect(reserves[1]).to.eq(quoteReserve)
+    })
+  })
+
+  it('basePrice:', async () => {
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1e8, 1) * 100000)
+    const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
+    await addLiquidity(expandTo18Decimals(1e9), quoteReserve)
+    const price = await pair.basePrice()
+    expect(ethers.BigNumber.from('5000000000000000')).to.eq(price)
+  })
+
+  it('quotePrice:', async () => {
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1e8, 1) * 100000)
+    const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
+    await addLiquidity(expandTo18Decimals(1e9), quoteReserve)
+    const price = await pair.quotePrice()
+    expect(ethers.BigNumber.from('130456720000000000')).to.eq(price)
+  })
+
+  it('getBaseOut:', async () => {
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1e8, 1) * 100000)
+    const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
+    await addLiquidity(expandTo18Decimals(1e9), quoteReserve)
+    const quoteIn = expandTo18Decimals(1)
+    const baseOut = await pair.getBaseOut(quoteIn)
+    expect(ethers.BigNumber.from('130456720000000000')).to.eq(baseOut)
+  })
+
+  it('getQuoteOut:', async () => {
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1e8, 1) * 100000)
+    const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
+    await addLiquidity(expandTo18Decimals(1e9), quoteReserve)
+    const baseIn = expandTo18Decimals(1)
+    const quoteOut = await pair.getQuoteOut(baseIn)
+    expect(ethers.BigNumber.from('5000000000000000')).to.eq(quoteOut)
+  })
+
+  it('swap: quote for base and back to quote', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    // price 1
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1e8, 1) * 100000)
+    const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
+    const baseReturned = ethers.BigNumber.from('9900000000000000')
+    await addLiquidity(baseSupply, quoteReserve)
+    // account for platform fee
+    const quoteAmountIn = expandTo18Decimals(1)
+    const quoteAmountInWithFee = ethers.BigNumber.from('999000000000000000')
+    const baseAmountOut = await pair.getBaseOut(quoteAmountInWithFee)
+    // transfer and swap
+    await tokenQuote.transfer(pair.address, quoteAmountIn)
+    await expect(pair.swap(tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut, wallet.address))
+      .to.emit(tokenBase, 'Transfer')
+      .withArgs(pair.address, wallet.address, baseAmountOut)
+      .to.emit(pair, 'Swap')
+      .withArgs(pair.address, wallet.address, tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut, wallet.address)
+    // check reserves at point A
+    const reservesA = await pair.getReserves()
+    expect(reservesA[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned))
+    expect(reservesA[1]).to.eq(quoteAmountInWithFee.add(quoteReserve))
+    // reserves + fees
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned))
+    expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn.add(quoteReserve))
+    // wallet balances
+    expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseAmountOut.add(baseReturned))
+    expect(await tokenQuote.balanceOf(wallet.address)).to.eq((await tokenQuote.totalSupply()).sub(quoteReserve).sub(quoteAmountIn))
+
+    const baseAmountIn = baseAmountOut
+    const baseAmountInWithFee = ethers.BigNumber.from('130256483130000000')
+    const quoteAmountOut = await pair.getQuoteOut(baseAmountInWithFee)
+    await tokenBase.transfer(pair.address, baseAmountIn)
+    await expect(pair.swap(tokenBase.address, tokenQuote.address, baseAmountIn, quoteAmountOut, wallet.address))
+      .to.emit(tokenQuote, 'Transfer')
+      .withArgs(pair.address, wallet.address, quoteAmountOut)
+      .to.emit(pair, 'Swap')
+      .withArgs(pair.address, wallet.address, tokenBase.address, tokenQuote.address, baseAmountIn, quoteAmountOut, wallet.address)
+    // check reserves at point B
+    const reservesB = await pair.getReserves()
+    expect(reservesB[0]).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned).add(baseAmountInWithFee))
+    expect(reservesB[1]).to.eq(quoteReserve.add(quoteAmountInWithFee).sub(quoteAmountOut))
+    // reserves + fees
+    expect(await tokenBase.balanceOf(pair.address)).to.eq(baseSupply.sub(baseAmountOut).sub(baseReturned).add(baseAmountIn))
+    expect(await tokenQuote.balanceOf(pair.address)).to.eq(quoteAmountIn.add(quoteReserve).sub(quoteAmountOut))
+    // wallet balances
+    expect(await tokenBase.balanceOf(wallet.address)).to.eq(baseReturned)
+    expect(await tokenQuote.balanceOf(wallet.address)).to.eq(
+      (await tokenQuote.totalSupply()).sub(quoteReserve).sub(quoteAmountIn).add(quoteAmountOut)
+    )
+  })
+
+  // supply, base price
+  const prices = [
+    ['3161514300000000000000', '3162540000000000'],
+    ['3160515300000000000000', '3161540000000000'],
+    ['3159516300000000000000', '3160540000000000'],
+    ['3158517300000000000000', '3159540000000000'],
+    ['3157518300000000000000', '3158540000000000'],
+    ['3156519300000000000000', '3157540000000000'],
+    ['3155520300000000000000', '3156540000000000'],
+    ['3154521300000000000000', '3155540000000000'],
+    ['3153522300000000000000', '3154540000000000']
+  ]
+
+  it.only('swap: verify price at reserve', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    // price 10
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(10, 1e8, 1) * 100000)
+    const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
+    await addLiquidity(baseSupply, quoteReserve)
+    // account for platform fee
+    const baseAmountIn = expandToDecimals(1, 16)
+    const baseAmountInWithFee = ethers.BigNumber.from('90000000')
+    for (let i = 0; i < prices.length; ++i) {
+      const supply = ethers.BigNumber.from(prices[i][0])
+      const price = ethers.BigNumber.from(prices[i][1])
+      // verify price
+      const basePrice = await pair.basePrice()
+      //expect(price).to.eq(basePrice)
+      const contractSupply = await pair.supply()
+      //expect(supply).to.eq(contractSupply)
+      const quoteAmountOut = await pair.getQuoteOut(baseAmountInWithFee)
+      console.log('supply:', contractSupply.toString())
+      console.log('price:', basePrice.toString())
+      // transfer and swap
+      await tokenBase.transfer(pair.address, expandTo18Decimals(1))
+      await pair.swap(tokenBase.address, tokenQuote.address, baseAmountIn, quoteAmountOut, wallet.address)
+    }
+  })
+
+  it('withdrawPlatformFees:', async () => {
+    const baseSupply = expandTo18Decimals(1e9)
+    // price 1
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1e8, 1) * 100000)
+    const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
+    await addLiquidity(baseSupply, quoteReserve)
+    // account for platform fee
+    const quoteAmountIn = expandTo18Decimals(1)
+    const quoteAmountInWithFee = ethers.BigNumber.from('999000000000000000')
+    const baseAmountOut = await pair.getBaseOut(quoteAmountInWithFee)
+    // transfer and swap
+    await tokenQuote.transfer(pair.address, quoteAmountIn)
+    await pair.swap(tokenQuote.address, tokenBase.address, quoteAmountIn, baseAmountOut, wallet.address)
+
+    // check platform quote fees
+    const fees = await pair.getPlatformFees()
+    expect(fees[1]).to.eq(quoteAmountIn.sub(quoteAmountInWithFee))
   })
 })
 
@@ -599,7 +810,9 @@ describe('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
 
   it('swap: verify price at supply', async () => {
     const baseSupply = expandTo18Decimals(1e9)
-    const quoteReserve = expandTo18Decimals(5) // price 10
+    // price 100
+    const quoteReserveFloat = Math.ceil(getReserveForStartPrice(100, 1, 1) * 100000)
+    const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
     await addLiquidity(baseSupply, quoteReserve)
     // account for platform fee
     const baseAmountIn = expandTo18Decimals(1)
@@ -625,7 +838,6 @@ describe('DAOfiV1Pair: (y = 0.000001x) m = 0.000001, n = 1, fee = 0', () => {
     // price 1
     const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1, 1) * 100000)
     const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
-    const baseReturned = ethers.BigNumber.from('999272000000000000000000')
     await addLiquidity(baseSupply, quoteReserve)
     // account for platform fee
     const quoteAmountIn = expandTo18Decimals(1)
@@ -685,7 +897,6 @@ describe('DAOfiV1Pair: (y = x) m = 1, n = 1, fee = 3', () => {
     // price 1
     const quoteReserveFloat = Math.ceil(getReserveForStartPrice(1, 1e6, 1) * 100000)
     const quoteReserve = expandToDecimals(quoteReserveFloat, 13)
-    const baseReturned = expandTo18Decimals(1)
     await addLiquidity(baseSupply, quoteReserve)
     // account for platform fee
     const quoteAmountIn = expandTo18Decimals(1)
