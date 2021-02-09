@@ -109,7 +109,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         uint8 decimals = IERC20(token).decimals();
         uint256 diff = 0;
         uint256 factor = 0;
-        converted = amount;
+        converted = 0;
         if (decimals > resolution) {
             diff = uint256(decimals.sub(resolution));
             factor = 10 ** diff;
