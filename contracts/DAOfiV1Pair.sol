@@ -170,9 +170,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @param _baseToken token address of the base token
     * @param _quoteToken token address of the quote token
     * @param _pairOwner address of the pair owner
-    * @param _slopeNumerator value between 1 - 1000 which determines the curve slope (slopeNumerator / SLOPE_DENOM)
-    * @param _n value between 1 - 3 which determines the reserve ratio of the curve (r = 1 / (n + 1))
-    * @param _fee value between 0 - 10 which determines swap fee
+    * @param _slopeNumerator value between 1 - SLOPE_NUMER_LIMIT which determines the curve slope (slopeNumerator / SLOPE_DENOM)
+    * @param _n  value between 1 - MAN_N which determines the reserve ratio of the curve (r = 1 / (n + 1))
+    * NOTE: this value is currently hardcoded to 1, which effectively sets the reserve ratio to 1/2.
+    * This is done to enforce linear price curves.
+    * @param _fee value between 0 - MAX_FEE which determines swap fee
     */
     function initialize(
         address _router,
