@@ -287,6 +287,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @param to address of token out recipient
     */
     function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address to) external override lock {
+        require(msg.sender == router, 'DAOfiV1: FORBIDDEN_SWAP');
         require(deposited, 'DAOfiV1: UNINITIALIZED_SWAP');
         require(
             (tokenIn == baseToken && tokenOut == quoteToken) || (tokenOut == baseToken && tokenIn == quoteToken),

@@ -145,10 +145,22 @@ describe('DAOfiV1Pair: reverts', () => {
   })
 
   it('swap: initial requires', async () => {
+    const wallet2 = (await ethers.getSigners())[1]
     const fixture = await pairFixture(wallet, 1e6, 1, 0)
     pair = fixture.pair
     tokenBase = fixture.tokenBase
     tokenQuote = fixture.tokenQuote
+    // router is the initial wallet in this case, switch wallet to test restriction
+    pair = await pair.connect(wallet2)
+    await expect(pair.swap(
+      tokenQuote.address,
+      tokenBase.address,
+      expandTo18Decimals(1),
+      ethers.BigNumber.from('99306510000000000'),
+      wallet.address
+    )).to.be.revertedWith('DAOfiV1: FORBIDDEN_SWAP')
+    // switch back to wallet1
+    pair = await pair.connect(wallet)
     // not deposited
     await expect(pair.swap(
       tokenQuote.address,
