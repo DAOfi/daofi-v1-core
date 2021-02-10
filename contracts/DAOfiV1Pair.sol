@@ -346,7 +346,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function basePrice() public view override returns (uint256 price) {
         require(deposited, 'DAOfiV1: UNINITIALIZED_BASE_PRICE');
-        price = getQuoteOut(10 ** IERC20(baseToken).decimals());
+        // getQuoteOut will fail if amount > supply
+        if (supply >= 10 ** IERC20(baseToken).decimals()) {
+            price = getQuoteOut(10 ** IERC20(baseToken).decimals());
+        } else {
+            price = getQuoteOut(supply);
+        }
     }
 
     /**
@@ -372,7 +377,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
         require(deposited, 'DAOfiV1: UNINITIALIZED_BASE_OUT');
-        // Cases for 0 supply,with differing examples between research, bancor v1, bancor v2
+        // Cases for 0 supply, with differing examples between research, bancor v1, bancor v2
         // given quote reserve = b, reserve ratio = r, slope = m, find supply s
 
         // s = (b / rm)^r
@@ -421,21 +426,17 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
         require(deposited, 'DAOfiV1: UNINITIALIZED_QUOTE_OUT');
-        if (amountBaseIn >= supply) {
-            amountQuoteOut = reserveQuote;
-        } else {
-            amountBaseIn = _convert(baseToken, amountBaseIn, INTERNAL_DECIMALS, true);
-            amountQuoteOut = _convert(
-                quoteToken,
-                _getFormula().saleTargetAmount(
-                    _convert(baseToken, supply, INTERNAL_DECIMALS, true),
-                    _convert(quoteToken, reserveQuote, INTERNAL_DECIMALS, true),
-                    reserveRatio,
-                    amountBaseIn
-                ),
-                INTERNAL_DECIMALS,
-                false
-            );
-        }
+        amountBaseIn = _convert(baseToken, amountBaseIn, INTERNAL_DECIMALS, true);
+        amountQuoteOut = _convert(
+            quoteToken,
+            _getFormula().saleTargetAmount(
+                _convert(baseToken, supply, INTERNAL_DECIMALS, true),
+                _convert(quoteToken, reserveQuote, INTERNAL_DECIMALS, true),
+                reserveRatio,
+                amountBaseIn
+            ),
+            INTERNAL_DECIMALS,
+            false
+        );
     }
 }
