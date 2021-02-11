@@ -207,6 +207,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function setPairOwner(address _nextOwner) external override {
         require(msg.sender == pairOwner, 'DAOfiV1: FORBIDDEN_PAIR_OWNER');
+        require(_nextOwner != address(0), 'DAOfiV1: INVALID_OWNER');
         pairOwner = _nextOwner;
     }
 

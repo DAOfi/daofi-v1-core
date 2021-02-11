@@ -105,6 +105,10 @@ describe('DAOfiV1Pair: reverts', () => {
     // owner is the initial wallet in this case, switch wallet to test restriction
     pair = await pair.connect(wallet2)
     await expect(pair.setPairOwner(wallet3.address)).to.be.revertedWith('DAOfiV1: FORBIDDEN_PAIR_OWNER')
+    // switch back to wallet1
+    pair = await pair.connect(wallet)
+    // invalid owner
+    await expect(pair.setPairOwner('0x0')).to.be.reverted // DAOfiV1: INVALID_OWNER
   })
 
   it('deposit:', async () => {
