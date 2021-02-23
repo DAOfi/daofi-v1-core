@@ -1,5 +1,5 @@
 import BancorFormula from '@daofi/bancor/solidity/build/contracts/BancorFormula.json'
- import { ethers } from 'ethers'
+import { ethers } from 'ethers'
 import { deployContract } from 'ethereum-waffle'
 import DAOfiV1Factory from '../build/contracts/DAOfiV1Factory.sol/DAOfiV1Factory.json'
 
