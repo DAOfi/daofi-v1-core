@@ -59,6 +59,10 @@ describe('DAOfiV1Factory', async () => {
   })
 
   it('createPair', async () => {
+    await expect(createPair('0x0', TEST_ADDRESSES[0], TEST_ADDRESSES[1], wallet.address, 1e6, 1, 0)).to.be.reverted // DAOfiV1: INVALID_ROUTER
+    await expect(createPair(wallet.address, '0x0', TEST_ADDRESSES[1], wallet.address, 1e6, 1, 0)).to.be.reverted // DAOfiV1: INVALID_QUOTE
+    await expect(createPair(wallet.address, TEST_ADDRESSES[0], '0x0', wallet.address, 1e6, 1, 0)).to.be.reverted // DAOfiV1: INVALID_BASE
+    await expect(createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], '0x0', 1e6, 1, 0)).to.be.reverted // DAOfiV1: INVALID_OWNER
     await createPair(wallet.address, TEST_ADDRESSES[0], TEST_ADDRESSES[1], wallet.address, 1e6, 1, 0)
   })
 
@@ -73,6 +77,6 @@ describe('DAOfiV1Factory', async () => {
       0
     )
     const receipt = await tx.wait()
-    expect(receipt.gasUsed).to.eq(3452138)
+    expect(receipt.gasUsed).to.eq(3577033)
   })
 })

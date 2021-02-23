@@ -16,6 +16,7 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
     * @param _formula address of the bancor formula
     */
     constructor(address _formula) {
+        require(_formula != address(0), 'DAOfiV1: INVALID_FORMULA');
         formula = _formula;
     }
 
@@ -68,8 +69,11 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
         uint32 n,
         uint32 fee
     ) external override returns (address pair) {
+        require(router != address(0), 'DAOfiV1: INVALID_ROUTER');
+        require(baseToken != address(0), 'DAOfiV1: INVALID_BASE');
+        require(quoteToken != address(0), 'DAOfiV1: INVALID_QUOTE');
+        require(pairOwner != address(0), 'DAOfiV1: INVALID_OWNER');
         require(baseToken != quoteToken, 'DAOfiV1: IDENTICAL_ADDRESSES');
-        require(baseToken != address(0) && quoteToken != address(0), 'DAOfiV1: ZERO_ADDRESS');
         require(getPair(baseToken, quoteToken, slopeNumerator, n, fee) == address(0), 'DAOfiV1: PAIR_EXISTS'); // single check is sufficient
         bytes memory bytecode = type(DAOfiV1Pair).creationCode;
         bytes32 salt = keccak256(abi.encodePacked(baseToken, quoteToken, slopeNumerator, n, fee));

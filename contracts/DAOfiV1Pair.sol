@@ -109,7 +109,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         uint8 decimals = IERC20(token).decimals();
         uint256 diff = 0;
         uint256 factor = 0;
-        converted = amount;
+        converted = 0;
         if (decimals > resolution) {
             diff = uint256(decimals.sub(resolution));
             factor = 10 ** diff;
@@ -170,9 +170,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @param _baseToken token address of the base token
     * @param _quoteToken token address of the quote token
     * @param _pairOwner address of the pair owner
-    * @param _slopeNumerator value between 1 - 1000 which determines the curve slope (slopeNumerator / SLOPE_DENOM)
-    * @param _n value between 1 - 3 which determines the reserve ratio of the curve (r = 1 / (n + 1))
-    * @param _fee value between 0 - 10 which determines swap fee
+    * @param _slopeNumerator value between 1 - SLOPE_NUMER_LIMIT which determines the curve slope (slopeNumerator / SLOPE_DENOM)
+    * @param _n  value between 1 - MAN_N which determines the reserve ratio of the curve (r = 1 / (n + 1))
+    * NOTE: this value is currently hardcoded to 1, which effectively sets the reserve ratio to 1/2.
+    * This is done to enforce linear price curves.
+    * @param _fee value between 0 - MAX_FEE which determines swap fee
     */
     function initialize(
         address _router,
@@ -205,14 +207,16 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function setPairOwner(address _nextOwner) external override {
         require(msg.sender == pairOwner, 'DAOfiV1: FORBIDDEN_PAIR_OWNER');
+        require(_nextOwner != address(0), 'DAOfiV1: INVALID_OWNER');
         pairOwner = _nextOwner;
     }
 
     /**
     * @dev Used to initialize a pair's reserves, called via periphery addLiquidity function only.
     * This function uses the amount of quote reserve to determine an initial supply of base,
-    * which is returned from the base reserve.
-    *
+    * which is returned from the base reserve. This function is restricted to the pair owner via router
+    * and can only be called once.  This is done to eliminate liquidity pooling functionality,
+    * which may be added in a later version.
     * @param to address of the initial supply recipient
     *
     * @return amountBaseOut initial supply amount for the recipient
@@ -237,7 +241,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
 
     /**
     * @dev Withdraw function will remove all funds from the contract, minus fees attributed to the platform.
-    * once this function is called, the pair is effectively closed.
+    * once this function is called, the pair is effectively closed. This function is restricted to the pair owner via router
+    * and since deposit can only be called once, the pool is closed after this call.
+    * This is done to eliminate liquidity pooling functionality, which may be added in a later version.
     *
     * @param to address of the withdrawal recipient
     *
@@ -287,6 +293,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @param to address of token out recipient
     */
     function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOut, address to) external override lock {
+        require(msg.sender == router, 'DAOfiV1: FORBIDDEN_SWAP');
         require(deposited, 'DAOfiV1: UNINITIALIZED_SWAP');
         require(
             (tokenIn == baseToken && tokenOut == quoteToken) || (tokenOut == baseToken && tokenIn == quoteToken),
@@ -343,7 +350,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function basePrice() public view override returns (uint256 price) {
         require(deposited, 'DAOfiV1: UNINITIALIZED_BASE_PRICE');
-        price = getQuoteOut(10 ** IERC20(baseToken).decimals());
+        // getQuoteOut will fail if amount > supply
+        if (supply >= 10 ** IERC20(baseToken).decimals()) {
+            price = getQuoteOut(10 ** IERC20(baseToken).decimals());
+        } else {
+            price = getQuoteOut(supply);
+        }
     }
 
     /**
@@ -369,7 +381,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getBaseOut(uint256 amountQuoteIn) public view override returns (uint256 amountBaseOut) {
         require(deposited, 'DAOfiV1: UNINITIALIZED_BASE_OUT');
-        // Cases for 0 supply,with differing examples between research, bancor v1, bancor v2
+        // Cases for 0 supply, with differing examples between research, bancor v1, bancor v2
         // given quote reserve = b, reserve ratio = r, slope = m, find supply s
 
         // s = (b / rm)^r
@@ -418,21 +430,17 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
         require(deposited, 'DAOfiV1: UNINITIALIZED_QUOTE_OUT');
-        if (amountBaseIn >= supply) {
-            amountQuoteOut = reserveQuote;
-        } else {
-            amountBaseIn = _convert(baseToken, amountBaseIn, INTERNAL_DECIMALS, true);
-            amountQuoteOut = _convert(
-                quoteToken,
-                _getFormula().saleTargetAmount(
-                    _convert(baseToken, supply, INTERNAL_DECIMALS, true),
-                    _convert(quoteToken, reserveQuote, INTERNAL_DECIMALS, true),
-                    reserveRatio,
-                    amountBaseIn
-                ),
-                INTERNAL_DECIMALS,
-                false
-            );
-        }
+        amountBaseIn = _convert(baseToken, amountBaseIn, INTERNAL_DECIMALS, true);
+        amountQuoteOut = _convert(
+            quoteToken,
+            _getFormula().saleTargetAmount(
+                _convert(baseToken, supply, INTERNAL_DECIMALS, true),
+                _convert(quoteToken, reserveQuote, INTERNAL_DECIMALS, true),
+                reserveRatio,
+                amountBaseIn
+            ),
+            INTERNAL_DECIMALS,
+            false
+        );
     }
 }
