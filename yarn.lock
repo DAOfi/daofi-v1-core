@@ -24,17 +24,17 @@
   integrity sha512-bvaTH34PMCbv6anRa9I/0zjLJgY4EuznbEMgbV77JBCQ9KNC46rzi0avuxpOfu+xDjPEtSFGqVEOr5GlUSGudA==
 
 "@ethereum-waffle/chai@^3.2.0":
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/@ethereum-waffle/chai/-/chai-3.2.0.tgz#f75465e447358db0fde967b26cf10adbe5365380"
-  integrity sha512-3mvI7luX8FSAX2yjklSN8rw8F8RNaMzZDadDkS9JvmoM4khByGe3mDn8rVroneBAcFusXJfL6BEssGj5S4mD7Q==
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/@ethereum-waffle/chai/-/chai-3.2.2.tgz#33a349688386c9a8fdc4da5baea329036b9fe75e"
+  integrity sha512-S2jKmCsCrrS35fw1C6rUwH9CRboytge37PDYBDqlGpIvQQws9v+IvBjv8tLRT2BWCZSS9dvwbvBYTJL31y5ytw==
   dependencies:
-    "@ethereum-waffle/provider" "^3.2.0"
+    "@ethereum-waffle/provider" "^3.2.2"
     ethers "^5.0.0"
 
 "@ethereum-waffle/compiler@^3.2.0":
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/@ethereum-waffle/compiler/-/compiler-3.2.0.tgz#3d5cccc8171ff61a0069d9558fb567ddd45b6b4e"
-  integrity sha512-Tg8YjbcVKQkNwhbiBf9Z4kKPolPO0IB+iYwAdpXNwgyMOH74guIHhFGtKOCPoY4VXR75erGgeQIt2PzIn/szCA==
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/@ethereum-waffle/compiler/-/compiler-3.2.2.tgz#73d5bce44bcdc880d8630b9064591470c0123f57"
+  integrity sha512-6Y0TLIq26psgeoUSXCZIffeQHVqs6TOaJjHlQieJBx19defQIq5cYt8dRo1AZZGf+Eyjc2PZJERME/CfXiJgiQ==
   dependencies:
     "@resolver-engine/imports" "^0.3.3"
     "@resolver-engine/imports-fs" "^0.3.3"
@@ -45,29 +45,29 @@
     node-fetch "^2.6.0"
     solc "^0.6.3"
 
-"@ethereum-waffle/ens@^3.2.0":
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/@ethereum-waffle/ens/-/ens-3.2.0.tgz#26f7b2048a422eae5ce39a855e519e01ebc06953"
-  integrity sha512-n4EYJDLAwN2X+2EsZMasXRlz5gYp39Tmy18RU4f6ZdnTNuVNw1BNkCC9VzrQooHGvHLjKZFPvcl+FRfBO+Xcyw==
+"@ethereum-waffle/ens@^3.2.2":
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/@ethereum-waffle/ens/-/ens-3.2.2.tgz#2a1ea3270b8d64498324a80cd659db843b1ba4b3"
+  integrity sha512-bvoi/52dWEpLpvOBOm4fCkGEv7T88M7QI4StFAh7tRlCbp2oIZ0VcItQrIrz7Hek5BPMS/AJF2QtYoec4CtxBg==
   dependencies:
     "@ensdomains/ens" "^0.4.4"
     "@ensdomains/resolver" "^0.2.4"
     ethers "^5.0.1"
 
 "@ethereum-waffle/mock-contract@^3.2.0":
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/@ethereum-waffle/mock-contract/-/mock-contract-3.2.0.tgz#be9441060f8b58f1d7e344f74e5dd158d41a7c45"
-  integrity sha512-TfBt9ka2DXVxxIBee3WB0gSLgWCo9ZegqcdXjCz0QGlu+dEhL8W3+aLDYQoyx3kwlecfNl8EQ1V7g7GH8wrlMg==
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/@ethereum-waffle/mock-contract/-/mock-contract-3.2.2.tgz#5749b03cbb4850150f81cf66151c4523eb7436f0"
+  integrity sha512-H60Cc5C7sYNU4LuPMSKDh8YIaN9/fkwEjznY78CEbOosO+lMlFYdA+5VZjeDGDuYKfsBqsocQdkj1CRyoi1KNw==
   dependencies:
     "@ethersproject/abi" "^5.0.1"
     ethers "^5.0.1"
 
-"@ethereum-waffle/provider@^3.2.0":
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/@ethereum-waffle/provider/-/provider-3.2.0.tgz#501d4bbf04ffc01dced0107dcc9e20f24354387f"
-  integrity sha512-U9KyjMKIZuK4gi2kzWIJkAXYjtg0aIlEQ0F4yKqHMRyqAiSM6M4VJgn6tHisxe3Ev9z/jSnutKT8dyAEwlIYdw==
+"@ethereum-waffle/provider@^3.2.0", "@ethereum-waffle/provider@^3.2.2":
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/@ethereum-waffle/provider/-/provider-3.2.2.tgz#6ab422015641f340ba71739d6ab85896277281e5"
+  integrity sha512-2UCNHsgr1fiI6JA7kmpSqt9AdOajGRK4Wyh24DeoAkCcZuaOdUY80fEmkSzhq8w3jIIvWRUQajBJPieEKw5NIw==
   dependencies:
-    "@ethereum-waffle/ens" "^3.2.0"
+    "@ethereum-waffle/ens" "^3.2.2"
     ethers "^5.0.1"
     ganache-core "^2.10.2"
     patch-package "^6.2.2"
@@ -425,9 +425,9 @@
     "@ethersproject/strings" "^5.0.4"
 
 "@nomiclabs/ethereumjs-vm@^4.1.1":
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/@nomiclabs/ethereumjs-vm/-/ethereumjs-vm-4.2.0.tgz#a853bdb4fb032529f810f32bb767551d19d7ce57"
-  integrity sha512-+XwqoO941bILTO4KDLIUJ37U42ySxw6it7jyoi0tKv0/VUcOrWKF1TCQWMv6dBDRlxpPQd273n9o5SVlYYLRWQ==
+  version "4.2.2"
+  resolved "https://registry.yarnpkg.com/@nomiclabs/ethereumjs-vm/-/ethereumjs-vm-4.2.2.tgz#2f8817113ca0fb6c44c1b870d0a809f0e026a6cc"
+  integrity sha512-8WmX94mMcJaZ7/m7yBbyuS6B+wuOul+eF+RY9fBpGhNaUpyMR/vFIcDojqcWQ4Yafe1tMKY5LDu2yfT4NZgV4Q==
   dependencies:
     async "^2.1.2"
     async-eventemitter "^0.2.2"
@@ -440,7 +440,7 @@
     ethereumjs-util "^6.2.0"
     fake-merkle-patricia-tree "^1.0.1"
     functional-red-black-tree "^1.0.1"
-    merkle-patricia-tree "^2.3.2"
+    merkle-patricia-tree "3.0.0"
     rustbn.js "~0.2.0"
     safe-buffer "^5.1.1"
     util.promisify "^1.0.0"
