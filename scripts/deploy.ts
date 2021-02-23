@@ -11,7 +11,7 @@ async function main() {
   console.log('Wallet:', wallet.address)
 
   const formula = await deployContract(wallet, BancorFormula as any) //waffle doesn't like the type from truffle
-  console.log('New BancorFormula deployed at:', formula.address)
+  console.log('BancorFormula deployed at:', formula.address)
 
   await formula.init()
   console.log('Formula initialized.')
