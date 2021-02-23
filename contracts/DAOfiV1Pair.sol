@@ -214,8 +214,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     /**
     * @dev Used to initialize a pair's reserves, called via periphery addLiquidity function only.
     * This function uses the amount of quote reserve to determine an initial supply of base,
-    * which is returned from the base reserve.
-    *
+    * which is returned from the base reserve. This function is restricted to the pair owner via router
+    * and can only be called once.  This is done to eliminate liquidity pooling functionality,
+    * which may be added in a later version.
     * @param to address of the initial supply recipient
     *
     * @return amountBaseOut initial supply amount for the recipient
@@ -240,7 +241,9 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
 
     /**
     * @dev Withdraw function will remove all funds from the contract, minus fees attributed to the platform.
-    * once this function is called, the pair is effectively closed.
+    * once this function is called, the pair is effectively closed. This function is restricted to the pair owner via router
+    * and since deposit can only be called once, the pool is closed after this call.
+    * This is done to eliminate liquidity pooling functionality, which may be added in a later version.
     *
     * @param to address of the withdrawal recipient
     *
