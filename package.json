@@ -1,7 +1,7 @@
 {
   "name": "@daofi/daofi-v1-core",
   "description": "Core contracts for the DAOfi V1 protocol",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "homepage": "https://github.com/DAOfi",
   "repository": {
     "type": "git",

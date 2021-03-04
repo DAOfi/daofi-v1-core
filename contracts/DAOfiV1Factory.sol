@@ -69,7 +69,7 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
         uint32 n,
         uint32 fee
     ) external override returns (address pair) {
-        require(router != address(0), 'DAOfiV1: INVALID_ROUTER');
+        require(msg.sender == router, 'DAOfiV1: INVALID_ROUTER');
         require(baseToken != address(0), 'DAOfiV1: INVALID_BASE');
         require(quoteToken != address(0), 'DAOfiV1: INVALID_QUOTE');
         require(pairOwner != address(0), 'DAOfiV1: INVALID_OWNER');
