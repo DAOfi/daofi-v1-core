@@ -27,6 +27,7 @@ interface IDAOfiV1Pair {
     function reserveRatio() external view returns (uint32);
     function supply() external view returns (uint256);
     function initialize(
+        address _formula,
         address _router,
         address _baseToken,
         address _quoteToken,
@@ -39,8 +40,7 @@ interface IDAOfiV1Pair {
     function getReserves() external view returns (uint256 reserveBase, uint256 reserveQuote);
     function getPlatformFees() external view returns (uint256 feesBase, uint256 feesQuote);
     function getOwnerFees() external view returns (uint256 feesBase, uint256 feesQuote);
-    function basePrice() external view returns (uint256 price);
-    function quotePrice() external view returns (uint256 price);
+    function price() external view returns (uint256);
     function deposit(address to) external returns (uint256 amountBase);
     function withdraw(address to) external returns (uint256 amountBase, uint256 amountQuote);
     function withdrawPlatformFees(address to) external returns (uint256 amountBase, uint256 amountQuote);

@@ -80,7 +80,7 @@ contract DAOfiV1Factory is IDAOfiV1Factory {
         assembly {
             pair := create2(0, add(bytecode, 32), mload(bytecode), salt)
         }
-        IDAOfiV1Pair(pair).initialize(router, baseToken, quoteToken, pairOwner, slopeNumerator, n, fee);
+        IDAOfiV1Pair(pair).initialize(formula, router, baseToken, quoteToken, pairOwner, slopeNumerator, n, fee);
         pairs[salt] = pair;
         allPairs.push(pair);
         emit PairCreated(baseToken, quoteToken, pairOwner, slopeNumerator, n, fee, pair, allPairs.length);
