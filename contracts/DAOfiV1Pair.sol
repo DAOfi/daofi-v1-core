@@ -15,12 +15,12 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     uint32 private constant SLOPE_DENOM = 1000000;
     uint32 private constant SLOPE_NUMER_LIMIT = SLOPE_DENOM * 100;
     uint32 private constant MAX_N = 1;
-    uint8 private constant INTERNAL_DECIMALS = 8;
     uint8 public constant MAX_FEE = 10; // 1%
     uint8 public constant override PLATFORM_FEE = 1; // 0.1%
     address public constant PLATFORM = 0xAD10D4F9937D743cbEb1383B1D3A3AD15Ace75D6;
     bytes4 private constant SELECTOR = bytes4(keccak256(bytes('transfer(address,uint256)')));
     address public override factory;
+    address private formula;
     /**
     * @dev Reserve ratio, represented in ppm, 1-1000000
     * 1/3 corresponds to y = slope * x^2
@@ -41,8 +41,8 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     uint256 public override supply; // track base tokens issued
 
     address private router;
-    uint256 private reserveBase;       // uses single storage slot, accessible via getReserves
-    uint256 private reserveQuote;      // uses single storage slot, accessible via getReserves
+    uint256 private reserveBase;
+    uint256 private reserveQuote;
     uint256 private feesBaseOwner;
     uint256 private feesQuoteOwner;
     uint256 private feesBasePlatform;
@@ -86,16 +86,6 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev Wrapper function to retrieve the bancor formula address from the factory
-    * and return the contract interface of the formula.
-    *
-    * @return IBancorFormula
-    */
-    function _getFormula() private view returns (IBancorFormula) {
-        return IBancorFormula(IDAOfiV1Factory(factory).formula());
-    }
-
-    /**
     * @dev Convert token amounts to and from internal decimal places
     *
     * @param token address for the token of the amount being converted
@@ -109,22 +99,26 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         uint8 decimals = IERC20(token).decimals();
         uint256 diff = 0;
         uint256 factor = 0;
-        converted = 0;
-        if (decimals > resolution) {
-            diff = uint256(decimals.sub(resolution));
-            factor = 10 ** diff;
-            if (to && amount >= factor) {
-                converted = amount.div(factor);
-            } else if (!to) {
-                converted = amount.mul(factor);
-            }
-        } else if (decimals < resolution) {
-            diff = uint256(resolution.sub(decimals));
-            factor = 10 ** diff;
-            if (to) {
-                converted = amount.mul(factor);
-            } else if (!to && amount >= factor) {
-                converted = amount.div(factor);
+        if (decimals == resolution) {
+            converted = amount;
+        } else {
+            converted = 0;
+            if (decimals > resolution) {
+                diff = uint256(decimals.sub(resolution));
+                factor = 10 ** diff;
+                if (to && amount >= factor) {
+                    converted = amount.div(factor);
+                } else if (!to) {
+                    converted = amount.mul(factor);
+                }
+            } else if (decimals < resolution) {
+                diff = uint256(resolution.sub(decimals));
+                factor = 10 ** diff;
+                if (to) {
+                    converted = amount.mul(factor);
+                } else if (!to && amount >= factor) {
+                    converted = amount.div(factor);
+                }
             }
         }
     }
@@ -177,6 +171,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @param _fee value between 0 - MAX_FEE which determines swap fee
     */
     function initialize(
+        address _formula,
         address _router,
         address _baseToken,
         address _quoteToken,
@@ -189,6 +184,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         require(_slopeNumerator > 0 && _slopeNumerator <= SLOPE_NUMER_LIMIT, 'DAOfiV1: INVALID_SLOPE_NUMERATOR');
         require(_n > 0 && _n <= MAX_N, 'DAOfiV1: INVALID_N');
         require(_fee <= MAX_FEE, 'DAOfiV1: INVALID_FEE');
+        formula = _formula;
         router = _router;
         baseToken = _baseToken;
         quoteToken = _quoteToken;
@@ -198,7 +194,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         fee = _fee;
         supply = 0;
         reserveRatio = uint32(
-            _getFormula().MAX_WEIGHT().div(n + 1)
+            IBancorFormula(formula).MAX_WEIGHT().div(n + 1)
         );  // (1 / (n + 1)) * MAX_WEIGHT
     }
 
@@ -225,6 +221,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         require(msg.sender == router, 'DAOfiV1: FORBIDDEN_DEPOSIT');
         require(deposited == false, 'DAOfiV1: DOUBLE_DEPOSIT');
         reserveBase = IERC20(baseToken).balanceOf(address(this));
+        require(reserveBase > 0, 'DAOfiV1: INSUFICCIENT_BASE_RESERVE');
         reserveQuote = IERC20(quoteToken).balanceOf(address(this));
         // this function is locked and the contract can not reset reserves
         deposited = true;
@@ -324,7 +321,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         // Check that inputs equal output
         // handle quote to base
         if (tokenOut == baseToken) {
-            require(getBaseOut(amountInSubFees) == amountOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
+            require(getBaseOut(amountInSubFees) >= amountOut, 'DAOfiV1: INVALID_BASE_OUTPUT');
             require(amountOut <= reserveBase, 'DAOfiV1: INSUFFICIENT_BASE_RESERVE');
             supply = supply.add(amountOut);
             reserveQuote = reserveQuote.add(amountInSubFees);
@@ -332,7 +329,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
             feesQuoteOwner = feesQuoteOwner.add(amountIn).sub(amountInSubOwnerFee);
             feesQuotePlatform = feesQuotePlatform.add(amountIn).sub(amountInSubPlatformFee);
         } else if (tokenOut == quoteToken) {
-            require(getQuoteOut(amountInSubFees) == amountOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
+            require(getQuoteOut(amountInSubFees) >= amountOut, 'DAOfiV1: INVALID_QUOTE_OUTPUT');
             require(amountOut <= reserveQuote, 'DAOfiV1: INSUFFICIENT_QUOTE_RESERVE');
             supply = supply.sub(amountInSubFees);
             reserveQuote = reserveQuote.sub(amountOut);
@@ -344,28 +341,18 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     }
 
     /**
-    * @dev Returns the price of 1 base token, in quote
+    * @dev Returns the current price of base, in quote
     *
-    * @return price
+    * @return quotePrice
     */
-    function basePrice() public view override returns (uint256 price) {
+    function price() public view override returns (uint256 quotePrice) {
         require(deposited, 'DAOfiV1: UNINITIALIZED_BASE_PRICE');
-        // getQuoteOut will fail if amount > supply
-        if (supply >= 10 ** IERC20(baseToken).decimals()) {
-            price = getQuoteOut(10 ** IERC20(baseToken).decimals());
-        } else {
-            price = getQuoteOut(supply);
-        }
-    }
-
-    /**
-    * @dev Returns the price of 1 quote token, in base
-    *
-    * @return price
-    */
-    function quotePrice() public view override returns (uint256 price) {
-        require(deposited, 'DAOfiV1: UNINITIALIZED_QUOTE_PRICE');
-        price = getBaseOut(10 ** IERC20(quoteToken).decimals());
+        quotePrice = _convert(
+            baseToken,
+            slopeNumerator.mul(supply ** n).div(SLOPE_DENOM),
+            IERC20(quoteToken).decimals(),
+            false
+        );
     }
 
     /**
@@ -383,36 +370,33 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         require(deposited, 'DAOfiV1: UNINITIALIZED_BASE_OUT');
         // Cases for 0 supply, with differing examples between research, bancor v1, bancor v2
         // given quote reserve = b, reserve ratio = r, slope = m, find supply s
-
+        // We decided on:
         // s = (b / rm)^r
+        // Which is from:
         // https://blog.relevant.community/bonding-curves-in-depth-intuition-parametrization-d3905a681e0a
-        if (supply == 0) {
-            // Handle amounts as internal decimals then convert back to token decimals before returning
-            amountQuoteIn = _convert(quoteToken, amountQuoteIn, INTERNAL_DECIMALS, true);
-            (uint256 result, uint8 precision) = _getFormula().power(
-                amountQuoteIn.mul(SLOPE_DENOM).mul(_getFormula().MAX_WEIGHT()),
+        if (supply == 0 && amountQuoteIn > 0) {
+            uint256 numer = amountQuoteIn.mul(SLOPE_DENOM).mul(IBancorFormula(formula).MAX_WEIGHT());
+            uint256 denom = slopeNumerator.mul(reserveRatio);
+            require(numer.div(denom) <= 10 ** 23, 'DAOfiV1: INITIAL_PRICE_TOO_HIGH');
+            (uint256 result, uint8 precision) = IBancorFormula(formula).power(
+                amountQuoteIn.mul(SLOPE_DENOM).mul(IBancorFormula(formula).MAX_WEIGHT()),
                 slopeNumerator.mul(reserveRatio),
                 reserveRatio,
-                _getFormula().MAX_WEIGHT()
+                IBancorFormula(formula).MAX_WEIGHT()
             );
+            // Convert quote amount to base
             amountBaseOut = _convert(
                 baseToken,
                 result >> precision,
-                INTERNAL_DECIMALS >> 1,
+                IERC20(quoteToken).decimals() >> 1,
                 false
             );
         } else {
-            amountQuoteIn = _convert(quoteToken, amountQuoteIn, INTERNAL_DECIMALS, true);
-            amountBaseOut = _convert(
-                baseToken,
-                _getFormula().purchaseTargetAmount(
-                    _convert(baseToken, supply, INTERNAL_DECIMALS, true),
-                    _convert(quoteToken, reserveQuote, INTERNAL_DECIMALS, true),
-                    reserveRatio,
-                    amountQuoteIn
-                ),
-                INTERNAL_DECIMALS,
-                false
+            amountBaseOut = IBancorFormula(formula).purchaseTargetAmount(
+                supply,
+                reserveQuote,
+                reserveRatio,
+                amountQuoteIn
             );
         }
     }
@@ -430,17 +414,11 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     */
     function getQuoteOut(uint256 amountBaseIn) public view override returns (uint256 amountQuoteOut) {
         require(deposited, 'DAOfiV1: UNINITIALIZED_QUOTE_OUT');
-        amountBaseIn = _convert(baseToken, amountBaseIn, INTERNAL_DECIMALS, true);
-        amountQuoteOut = _convert(
-            quoteToken,
-            _getFormula().saleTargetAmount(
-                _convert(baseToken, supply, INTERNAL_DECIMALS, true),
-                _convert(quoteToken, reserveQuote, INTERNAL_DECIMALS, true),
-                reserveRatio,
-                amountBaseIn
-            ),
-            INTERNAL_DECIMALS,
-            false
+        amountQuoteOut = IBancorFormula(formula).saleTargetAmount(
+            supply,
+            reserveQuote,
+            reserveRatio,
+            amountBaseIn
         );
     }
 }
