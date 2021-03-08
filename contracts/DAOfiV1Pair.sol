@@ -7,6 +7,7 @@ import 'hardhat/console.sol';
 import './interfaces/IDAOfiV1Factory.sol';
 import './interfaces/IDAOfiV1Pair.sol';
 import './interfaces/IERC20.sol';
+import './libraries/Math.sol';
 import './libraries/SafeMath.sol';
 
 contract DAOfiV1Pair is IDAOfiV1Pair {
@@ -15,6 +16,7 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     uint32 private constant SLOPE_DENOM = 1000000;
     uint32 private constant SLOPE_NUMER_LIMIT = SLOPE_DENOM * 100;
     uint32 private constant MAX_N = 1;
+    uint256 private constant INITIAL_DIGITS = 10;
     uint8 public constant MAX_FEE = 10; // 1%
     uint8 public constant override PLATFORM_FEE = 1; // 0.1%
     address public constant PLATFORM = 0xAD10D4F9937D743cbEb1383B1D3A3AD15Ace75D6;
@@ -374,23 +376,29 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
         // s = (b / rm)^r
         // Which is from:
         // https://blog.relevant.community/bonding-curves-in-depth-intuition-parametrization-d3905a681e0a
-        if (supply == 0 && amountQuoteIn > 0) {
-            uint256 numer = amountQuoteIn.mul(SLOPE_DENOM).mul(IBancorFormula(formula).MAX_WEIGHT());
-            uint256 denom = slopeNumerator.mul(reserveRatio);
-            require(numer.div(denom) <= 10 ** 23, 'DAOfiV1: INITIAL_PRICE_TOO_HIGH');
-            (uint256 result, uint8 precision) = IBancorFormula(formula).power(
-                amountQuoteIn.mul(SLOPE_DENOM).mul(IBancorFormula(formula).MAX_WEIGHT()),
-                slopeNumerator.mul(reserveRatio),
-                reserveRatio,
-                IBancorFormula(formula).MAX_WEIGHT()
-            );
-            // Convert quote amount to base
-            amountBaseOut = _convert(
-                baseToken,
-                result >> precision,
-                IERC20(quoteToken).decimals() >> 1,
-                false
-            );
+        if (supply == 0) {
+            // Avoid bancor max numerator issues by scaling down precision of initial quote
+            if (amountQuoteIn > 0) {
+                uint256 digits = Math.decimalLength(amountQuoteIn);
+                uint256 diff = 0;
+                if (digits > INITIAL_DIGITS) {
+                    diff = digits - INITIAL_DIGITS;
+                    amountQuoteIn = amountQuoteIn.div(10 ** diff);
+                }
+                (uint256 result, uint8 precision) = IBancorFormula(formula).power(
+                    amountQuoteIn.mul(SLOPE_DENOM).mul(IBancorFormula(formula).MAX_WEIGHT()),
+                    slopeNumerator.mul(reserveRatio),
+                    reserveRatio,
+                    IBancorFormula(formula).MAX_WEIGHT()
+                );
+                // Convert quote amount to base
+                amountBaseOut = _convert(
+                    baseToken,
+                    result >> precision,
+                    uint8(IERC20(quoteToken).decimals().sub(uint8(diff)) >> 1),
+                    false
+                );
+            }
         } else {
             amountBaseOut = IBancorFormula(formula).purchaseTargetAmount(
                 supply,
