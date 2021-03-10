@@ -3,6 +3,8 @@ import { ethers } from 'ethers'
 import { deployContract } from 'ethereum-waffle'
 import DAOfiV1Factory from '../build/contracts/DAOfiV1Factory.sol/DAOfiV1Factory.json'
 
+const sleep = async (time: number) => new Promise(resolve => setTimeout(resolve, time))
+
 async function main() {
   const provider = new ethers.providers.JsonRpcProvider(
     process.env.JSONRPC_URL || 'https://sokol.poa.network'
@@ -16,14 +18,13 @@ async function main() {
   await formula.init()
   console.log('Formula initialized.')
 
-  const nonce = await wallet.getTransactionCount()
+  await sleep(10000)
 
   const factory = await deployContract(
     wallet,
     DAOfiV1Factory,
     [formula.address],
     {
-      nonce: nonce,
       chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 0x4D, // default to sokol (77)
       gasLimit: 9999999,
       gasPrice: ethers.utils.parseUnits('120', 'gwei')
