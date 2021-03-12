@@ -157,11 +157,6 @@ describe('DAOfiV1Pair: reverts', () => {
     await expect(pair.withdraw(wallet.address)).to.not.be.revertedWith('DAOfiV1: UNINITIALIZED')
   })
 
-  it('withdrawPlatformFees:', async () => {
-    pair = (await pairFixture(wallet, 1e6, 1, 0)).pair
-    await expect(pair.withdrawPlatformFees(wallet.address)).to.be.revertedWith('DAOfiV1: FORBIDDEN_WITHDRAW')
-  })
-
   it('swap: initial requires', async () => {
     const wallet2 = (await ethers.getSigners())[1]
     const fixture = await pairFixture(wallet, 1e6, 1, 0)
