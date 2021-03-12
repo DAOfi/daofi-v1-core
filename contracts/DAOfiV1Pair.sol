@@ -263,21 +263,18 @@ contract DAOfiV1Pair is IDAOfiV1Pair {
     * @dev Platform-only function to remove fees attributed to platform.
     * Fees for the platform are reset to 0 once called.
     *
-    * @param to address of the fee recipient
-    *
     * @return amountBase amount of base token withdrawn
     * @return amountQuote amount of quote token withdrawn
     */
-    function withdrawPlatformFees(address to) external override lock returns (uint256 amountBase, uint256 amountQuote) {
-        require(msg.sender == PLATFORM, 'DAOfiV1: FORBIDDEN_WITHDRAW');
+    function withdrawPlatformFees() external override lock returns (uint256 amountBase, uint256 amountQuote) {
         require(deposited, 'DAOfiV1: UNINITIALIZED');
         amountBase = feesBasePlatform;
         amountQuote = feesQuotePlatform;
-        _safeTransfer(baseToken, to, amountBase);
-        _safeTransfer(quoteToken, to, amountQuote);
+        _safeTransfer(baseToken, PLATFORM, amountBase);
+        _safeTransfer(quoteToken, PLATFORM, amountQuote);
         feesBasePlatform = 0;
         feesQuotePlatform = 0;
-        emit WithdrawFees(msg.sender, amountBase, amountQuote, to);
+        emit WithdrawFees(msg.sender, amountBase, amountQuote, PLATFORM);
     }
 
     /**
