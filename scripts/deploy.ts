@@ -7,7 +7,7 @@ const sleep = async (time: number) => new Promise(resolve => setTimeout(resolve,
 
 async function main() {
   const provider = new ethers.providers.JsonRpcProvider(
-    process.env.JSONRPC_URL || 'https://sokol.poa.network'
+    process.env.JSONRPC_URL || 'https://kovan.poa.network'
   )
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY || '', provider)
   console.log('Wallet:', wallet.address)
@@ -25,9 +25,9 @@ async function main() {
     DAOfiV1Factory,
     [formula.address],
     {
-      chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 0x4D, // default to sokol (77)
+      chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 0x2A, // default to kovan (42)
       gasLimit: 9999999,
-      gasPrice: ethers.utils.parseUnits('120', 'gwei')
+      gasPrice: ethers.utils.parseUnits('200', 'gwei')
     }
   )
   console.log('Factory deployed at:', factory.address)
