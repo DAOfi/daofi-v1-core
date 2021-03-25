@@ -12,21 +12,24 @@ async function main() {
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY || '', provider)
   console.log('Wallet:', wallet.address)
 
-  const formula = await deployContract(wallet, BancorFormula as any) //waffle doesn't like the type from truffle
+  // const formula = await deployContract(wallet, BancorFormula as any) //waffle doesn't like the type from truffle
+  // console.log('BancorFormula deployed at:', formula.address)
+  const formula = new ethers.Contract('0x16a8656849167ca8829014482a29e57ae027b4a6', (BancorFormula as any).abi, wallet)
+  // const tx = await formula.init({
+  //   gasLimit: 8000000,
+  //   gasPrice: ethers.utils.parseUnits('200', 'gwei'),
+  //   // nonce: await wallet.getTransactionCount()
+  // })
+  // console.log('Formula init transaction:', tx)
+
+  // await sleep(10000)
   console.log('BancorFormula deployed at:', formula.address)
-
-  await formula.init()
-  console.log('Formula initialized.')
-
-  await sleep(10000)
-
   const factory = await deployContract(
     wallet,
     DAOfiV1Factory,
     [formula.address],
     {
-      chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 0x2A, // default to kovan (42)
-      gasLimit: 9999999,
+      gasLimit: 8000000,
       gasPrice: ethers.utils.parseUnits('200', 'gwei')
     }
   )
