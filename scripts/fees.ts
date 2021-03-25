@@ -13,7 +13,10 @@ async function main() {
   const pair = new ethers.Contract(process.env.PAIR || '', DAOfiV1Pair.abi, wallet)
   console.log('Pair:', pair.address)
 
-  await pair.withdrawPlatformFees()
+  await pair.withdrawPlatformFees({
+    gasLimit: 8000000,
+    gasPrice: ethers.utils.parseUnits('200', 'gwei')
+  })
 
   await sleep(10000)
 
